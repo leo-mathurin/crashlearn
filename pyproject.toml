@@ -33,7 +33,8 @@ requires = ["uv_build>=0.11,<0.12"]
 build-backend = "uv_build"
 
 [tool.uv]
-default-groups = ["dev"]
+# inference (numpy + onnxruntime) is light and needed to load submission agents in tests.
+default-groups = ["dev", "inference"]
 
 [tool.ruff]
 target-version = "py311"
@@ -45,3 +46,9 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Same defaults locally and in CI; run excluded tests with `uv run pytest -m slow`.
+addopts = "--strict-markers -rs -m 'not slow and not gpu'"
+markers = [
+    "slow: long-running test, excluded by default",
+    "gpu: requires CUDA, excluded by default",
+]
