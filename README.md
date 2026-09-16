@@ -20,7 +20,9 @@ Le [projet Linear Crash & Learn](https://linear.app/e-hamilton/project/crash-and
 
 ## Développement
 
-Dépôt : [EpitechMscProPromo2027/T-AIA-901-LYN-9-1-crashlearn-8](https://github.com/EpitechMscProPromo2027/T-AIA-901-LYN-9-1-crashlearn-8) (`origin`).
+Dépôt principal privé : [leo-mathurin/crashlearn](https://github.com/leo-mathurin/crashlearn) (`origin`). GitHub Actions est activé sur ce dépôt personnel.
+
+Le remote `epitech` pointe vers [le dépôt de remise Epitech](https://github.com/EpitechMscProPromo2027/T-AIA-901-LYN-9-1-crashlearn-8). Les pushes courants vont vers `origin` ; le dépôt Epitech est réservé à la remise finale.
 
 Branches persistantes prévues : `develop` pour l'intégration, `main` pour les jalons validés. Branches courtes, PR vers `develop`, revue croisée puis promotion vers `main` avec tag et métriques. Backlog partagé, tâches prises librement et aucun domaine réservé. Conventional Commits.
 
