@@ -1,0 +1,47 @@
+[project]
+name = "crashlearn"
+version = "0.1.0"
+description = "Crash & Learn: autonomous racing agents trained with reinforcement learning"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "gymnasium>=1.3.0",
+    "numba>=0.67.0",
+    "numpy>=2.4.6",
+    "pillow>=12.3.0",
+    "pyyaml>=6.0.3",
+    "scipy>=1.17.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.7",
+]
+train = [
+    "stable-baselines3>=2.9.0",
+    "torch>=2.14.0",
+    "wandb>=0.30.0",
+]
+inference = [
+    "numpy>=2.4.6",
+    "onnxruntime>=1.30.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["vendor"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
