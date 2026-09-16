@@ -1,6 +1,6 @@
 # Crash & Learn
 
-Projet de conduite autonome par reinforcement learning — Léo Mathurin, Lucas Noirie et Thibaud Combaz Deville.
+Projet de conduite autonome par reinforcement learning : Léo Mathurin, Lucas Noirie et Thibaud Combaz Deville.
 
 Début : **14 septembre 2026 à 09:00 (Europe/Paris)**. Rendu : **7 février 2027 à 23:42 (Europe/Paris)**.
 
