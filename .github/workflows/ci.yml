@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Same commands as in README.md (single source: `uv run ...`, pytest options in pyproject.toml).
+# `uv sync --locked` fails if uv.lock is out of date with pyproject.toml instead of fixing it.
+jobs:
+  lint:
+    name: Ruff
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Models are stored with Git LFS; lint and fast tests never need the binaries.
+          # Consequence: model.onnx files are LFS pointers here and model tests skip.
+          lfs: false
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.11.19"
+          python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked
+      - run: uv run ruff check --output-format=github .
+      - run: uv run ruff format --check .
+
+  test:
+    name: Pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.11.19"
+          python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked
+      - name: uv run pytest
+        # explicit `shell: bash` adds -o pipefail, so a pytest failure is not masked by tee
+        shell: bash
+        run: uv run pytest | tee pytest.log
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '### Pytest'
+            echo '```'
+            tail -n 40 pytest.log 2>/dev/null || echo 'pytest did not run'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
