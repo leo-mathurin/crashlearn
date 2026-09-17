@@ -15,8 +15,11 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    # commitlint and ruff pinned: keep in sync with the revs in .pre-commit-config.yaml
+    "commitlint==2.0.0",
+    "pre-commit>=4.6.2",
     "pytest>=9.1.1",
-    "ruff>=0.16.7",
+    "ruff==0.16.7",
 ]
 train = [
     "stable-baselines3>=2.9.0",

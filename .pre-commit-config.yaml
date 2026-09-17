@@ -1,0 +1,16 @@
+# Install once: `uv run pre-commit install` (installs both hook types below).
+# Revs pinned by SHA; keep ruff and commitlint versions equal to pyproject.toml (dev group).
+default_install_hook_types: [pre-commit, commit-msg]
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: e8f7d69b957a30acb2c875078d5fd012de24b64c # frozen: v0.16.7
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/opensource-nepal/commitlint
+    rev: 9c112b70de7b0e51f81d12a5268a451db5419794 # frozen: v2.0.0
+    hooks:
+      - id: commitlint
