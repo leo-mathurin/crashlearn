@@ -1,0 +1,49 @@
+name: Commitlint
+
+# PRs are squash-merged: the PR title becomes the commit on develop/main, so it is linted too.
+# `edited` re-runs this check (only) when the title changes.
+on:
+  pull_request:
+    branches: [develop, main]
+    types: [opened, edited, reopened, synchronize]
+
+concurrency:
+  group: commitlint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  commitlint:
+    name: Commitlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # needs the PR commits and the base branch
+          lfs: false
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.11.19"
+          python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --only-dev
+      - name: PR title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: uv run commitlint "$TITLE"
+      - name: PR commits
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        # --from-hash is inclusive (would lint the base commit), so lint each PR commit instead
+        run: |
+          status=0
+          for sha in $(git rev-list --reverse "$BASE..$HEAD"); do
+            uv run commitlint --hash "$sha" || status=1
+          done
+          exit $status
