@@ -49,13 +49,42 @@ uv sync --group train             # torch, stable-baselines3, wandb
 uv sync --only-group inference    # environnement minimal numpy + onnxruntime, sans le projet
 ```
 
-Qualité :
+Qualité : ce sont exactement les commandes exécutées par la CI (`.github/workflows/ci.yml`).
 
 ```bash
 uv run ruff check .
-uv run ruff format --check .
-uv run pytest
+uv run ruff format --check .      # `uv run ruff format .` pour corriger
+uv run pytest                     # exclut les tests marqués slow et gpu
+uv run pytest -m slow             # tests longs, hors CI
 ```
+
+Les options de pytest (`--strict-markers`, marqueurs, sélection par défaut) sont dans `pyproject.toml`. Les tests du wrapper, des features, de l'export et des soumissions sont skippés tant que le module ou `submission/<pilote>/` correspondant n'existe pas. Ils s'activent seuls ensuite, et `-rs` affiche la raison de chaque skip.
+
+Circuits et partitions ([docs/tracks.md](docs/tracks.md)) :
+
+```bash
+uv run python scripts/track_inventory.py            # contrôle tracks.yaml contre vendor/ (hashes, géométrie)
+uv run python scripts/track_inventory.py --write    # régénère assets et geometry_* (jamais les partitions)
+uv run python scripts/check_track_loading.py        # set_map + reset + 20 décisions sur chaque carte
+```
+
+Pilote scripté de contrôle ([docs/scripted_driver.md](docs/scripted_driver.md)). C'est un témoin de diagnostic, pas un livrable.
+
+```bash
+uv run python scripts/control_race.py                          # 5 cartes train, 3 tours, seed 0 → runs/control_race.json
+uv run python scripts/control_race.py --map Austin --cars 4 --seed 1 --output runs/austin.json
+```
+
+## Intégration continue
+
+GitHub Actions lance deux jobs, **Ruff** et **Pytest**, sur chaque PR et chaque push vers `develop` et `main`.
+- L'environnement est installé avec `uv sync --locked` : la CI échoue si `uv.lock` n'est plus aligné sur `pyproject.toml`. Après toute modification des dépendances, lancer `uv lock` et committer le lock.
+- La CI n'installe ni torch, ni CUDA, ni les binaires Git LFS.
+
+Protection prévue sur `develop` et `main` :
+- PR obligatoire, avec l'approbation d'un autre membre ;
+- checks **Ruff** et **Pytest** requis, branche à jour avant fusion ;
+- force-push et suppression interdits.
 
 Le run de contrôle accepte `--map`, `--steps`, `--speed` et `--steer-gain`. Il affiche quelques champs de `get_step_info()`, puis renvoie `0` si tout s'est bien passé, `1` en cas d'erreur de simulation et `2` si la carte est inconnue. La liste des cartes s'affiche quand on passe un nom invalide.
 
@@ -64,7 +93,10 @@ Le run de contrôle accepte `--map`, `--steps`, `--speed` et `--steer-gain`. Il 
 ```
 src/crashlearn/     package applicatif (code de l'équipe)
 scripts/            points d'entrée CLI (run de contrôle, …)
-tests/              tests pytest
+src/crashlearn/tracks.yaml  circuits, alias et partitions train/validation/test (source unique)
+tests/              tests pytest (contrat simulateur, soumission, circuits, pilote scripté, wrapper, features, export)
+docs/               documentation technique (circuits et partitions, pilote scripté)
+.github/workflows/  CI GitHub Actions
 vendor/simulation/  simulateur fourni, copie unique et non modifiée
 vendor/PROVENANCE.md  origine et sha256 de l'archive
 ```
