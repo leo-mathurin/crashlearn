@@ -32,18 +32,22 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --only-dev
+      # --no-sync: keep the dev-only environment (plain `uv run` would install the whole project)
       - name: PR title
         env:
           TITLE: ${{ github.event.pull_request.title }}
-        run: uv run commitlint "$TITLE"
+          NUMBER: ${{ github.event.pull_request.number }}
+        # GitHub appends " (#N)" to the squash commit title: lint the header that will land
+        run: uv run --no-sync python scripts/lint_commit_msg.py --message "$TITLE (#$NUMBER)"
       - name: PR commits
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
-        # --from-hash is inclusive (would lint the base commit), so lint each PR commit instead
+        # Every commit is linted in full while merge and rebase merges are allowed on the repo
+        # (they land commits as-is). No --allow-autosquash: a leftover fixup! commit fails here.
         run: |
           status=0
           for sha in $(git rev-list --reverse "$BASE..$HEAD"); do
-            uv run commitlint --hash "$sha" || status=1
+            uv run --no-sync python scripts/lint_commit_msg.py --hash "$sha" || status=1
           done
           exit $status
