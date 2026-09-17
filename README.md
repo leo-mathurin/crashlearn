@@ -58,17 +58,26 @@ uv run pytest                     # exclut les tests marqués slow et gpu
 uv run pytest -m slow             # tests longs, hors CI
 ```
 
+Hooks Git, à installer une fois par clone :
+
+```bash
+uv run pre-commit install        # hooks pre-commit (ruff check --fix, ruff format) et commit-msg (commitlint)
+uv run pre-commit run --all-files
+```
+
+Un commit est refusé si son message ne suit pas les [Conventional Commits](https://www.conventionalcommits.org/) (types autorisés : `build`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `style`, `test`, `chore`, `revert`, `bump`, en minuscules). Les versions de Ruff et de commitlint sont épinglées à l'identique dans `pyproject.toml` et `.pre-commit-config.yaml` : les mettre à jour ensemble.
+
 Les options de pytest (`--strict-markers`, marqueurs, sélection par défaut) sont dans `pyproject.toml`. Les tests du wrapper, des features, de l'export et des soumissions sont skippés tant que le module ou `submission/<pilote>/` correspondant n'existe pas. Ils s'activent seuls ensuite, et `-rs` affiche la raison de chaque skip.
 
 ## Intégration continue
 
-GitHub Actions lance deux jobs, **Ruff** et **Pytest**, sur chaque PR et chaque push vers `develop` et `main`.
+GitHub Actions lance deux jobs, **Ruff** et **Pytest**, sur chaque PR et chaque push vers `develop` et `main`. Le workflow **Commitlint** vérifie sur chaque PR le message de chaque commit et le **titre de la PR**, qui devient le message du commit lors d'une fusion en squash.
 - L'environnement est installé avec `uv sync --locked` : la CI échoue si `uv.lock` n'est plus aligné sur `pyproject.toml`. Après toute modification des dépendances, lancer `uv lock` et committer le lock.
 - La CI n'installe ni torch, ni CUDA, ni les binaires Git LFS.
 
 Protection prévue sur `develop` et `main` :
 - PR obligatoire, avec l'approbation d'un autre membre ;
-- checks **Ruff** et **Pytest** requis, branche à jour avant fusion ;
+- checks **Ruff**, **Pytest** et **Commitlint** requis, branche à jour avant fusion ;
 - force-push et suppression interdits.
 
 Le run de contrôle accepte `--map`, `--steps`, `--speed` et `--steer-gain`. Il affiche quelques champs de `get_step_info()`, puis renvoie `0` si tout s'est bien passé, `1` en cas d'erreur de simulation et `2` si la carte est inconnue. La liste des cartes s'affiche quand on passe un nom invalide.
@@ -79,7 +88,8 @@ Le run de contrôle accepte `--map`, `--steps`, `--speed` et `--steer-gain`. Il 
 src/crashlearn/     package applicatif (code de l'équipe)
 scripts/            points d'entrée CLI (run de contrôle, …)
 tests/              tests pytest (contrat simulateur, soumission, wrapper, features, export)
-.github/workflows/  CI GitHub Actions
+.github/workflows/  CI GitHub Actions (ci.yml, commitlint.yml)
+.pre-commit-config.yaml  hooks Git locaux
 vendor/simulation/  simulateur fourni, copie unique et non modifiée
 vendor/PROVENANCE.md  origine et sha256 de l'archive
 ```
