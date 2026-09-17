@@ -245,6 +245,13 @@ def test_control_race_rejects_unwritable_output_before_racing(kind, tmp_path):
 
 @pytest.mark.slow
 def test_control_race_is_reproducible_with_provenance(tmp_path):
+    tracked_changes = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=no"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
     runs = []
     for name in ("a", "b"):
         out = tmp_path / f"{name}.json"
@@ -254,6 +261,8 @@ def test_control_race_is_reproducible_with_provenance(tmp_path):
     for record in runs[0]:
         record.pop("created_utc")
         assert record["commit"] and record["sim_sha256"] and record["driver_config"]
+        assert record["race_trajectory_sha256"]
+        assert record["dirty"] is bool(tracked_changes)
         assert (record["map"], record["seed"], record["laps"]) == ("IMS", 0, 3)
         assert record["status"] == "TIMEOUT"
         assert record["decisions"] == 300
