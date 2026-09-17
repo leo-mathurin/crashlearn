@@ -272,3 +272,65 @@ def test_control_race_is_reproducible_with_provenance(tmp_path):
         record.pop("created_utc")
     assert runs[0] == runs[1]
     assert [r["car"] for r in runs[0]] == [0, 1]
+
+
+# --- real simulator, single process -----------------------------------------
+
+
+@pytest.fixture
+def budapest():
+    import env_simulation
+
+    env_simulation.close()
+    env_simulation.set_map("Budapest")
+    yield env_simulation
+    # leave the state the session `sim` fixture expects: example map, 2 cars, stepped once
+    env_simulation.close()
+    env_simulation.set_map("example")
+    env_simulation.reset(num_cars=2)
+    env_simulation.simulation_step()
+
+
+@pytest.mark.slow
+def test_drivers_in_one_simulation_share_no_state(budapest):
+    budapest.reset(num_cars=2)
+    drivers = [ScriptedDriver(), ScriptedDriver()]
+    logs = ([], [])
+    info = budapest.get_step_info()
+    assert info["step_count"] == 0  # first predict of an episode sees step 0
+    for _ in range(200):
+        for car, driver in enumerate(drivers):
+            o = budapest.get_obs(car)
+            action = driver.predict(o, info)
+            logs[car].append((o, info, action))
+            budapest.apply_action(car, *action)
+        budapest.simulation_step()
+        info = budapest.get_step_info()
+    for car, log in enumerate(logs):
+        assert budapest.get_obs(car)["progress"] > 0.05
+        replay = ScriptedDriver()  # same inputs, fresh instance: same actions
+        assert [replay.predict(o, i) for o, i, _ in log] == [a for _, _, a in log]
+
+
+@pytest.mark.slow
+def test_degraded_inputs_during_a_real_race(budapest):
+    budapest.reset(num_cars=1)
+    driver = ScriptedDriver()
+    info = budapest.get_step_info()
+    for k in range(300):
+        o = budapest.get_obs(0)
+        lidar = o["lidar"].astype(np.float64)
+        lidar[[(k * 7 + j * 13) % 100 for j in range(10)]] = np.nan
+        opponents = {**o["opponents"], 1: {**o["opponents"][1], "status": "1"}}
+        degraded = {**o, "lidar": lidar, "opponents": opponents}
+        if k > 0:  # a caller that drops step_count after the first step
+            info = {key: v for key, v in info.items() if key != "step_count"}
+        action = driver.predict(degraded, info)
+        check_action(action)
+        budapest.apply_action(0, *action)
+        budapest.simulation_step()
+        info = budapest.get_step_info()
+    assert info["agent_status"][0] == 1
+    # NaN rays read as 0.1 m obstacles: the car crawls (about 0.017 lap vs 0.237 undegraded
+    # over these 300 decisions) but keeps moving and never breaks the action contract
+    assert budapest.get_obs(0)["progress"] > 0
