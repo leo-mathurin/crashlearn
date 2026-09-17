@@ -1,16 +1,28 @@
 # Install once: `uv run pre-commit install` (installs both hook types below).
-# Revs pinned by SHA; keep ruff and commitlint versions equal to pyproject.toml (dev group).
+# Hooks run the tools locked in uv.lock through `uv run`: a single environment, so no version
+# drift with CI. File scope comes only from [tool.ruff] in pyproject.toml (same commands as CI).
 default_install_hook_types: [pre-commit, commit-msg]
+# Without this, hooks with no `stages` also run at commit-msg time (ruff twice per commit).
+default_stages: [pre-commit, manual]
 
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: e8f7d69b957a30acb2c875078d5fd012de24b64c # frozen: v0.16.7
+  - repo: local
     hooks:
       - id: ruff-check
-        args: [--fix]
+        name: ruff check
+        entry: uv run --locked ruff check --fix .
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: ruff-format
-
-  - repo: https://github.com/opensource-nepal/commitlint
-    rev: 9c112b70de7b0e51f81d12a5268a451db5419794 # frozen: v2.0.0
-    hooks:
+        name: ruff format
+        entry: uv run --locked ruff format .
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: commitlint
+        name: commitlint
+        # fixup!/squash!/amend! allowed locally (git rebase --autosquash); CI rejects them
+        entry: uv run --locked python scripts/lint_commit_msg.py --allow-autosquash --file
+        language: system
+        stages: [commit-msg]
