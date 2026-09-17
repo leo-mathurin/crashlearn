@@ -4,6 +4,7 @@ import json
 import math
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -216,6 +217,10 @@ def test_opponent_ahead_is_avoided():
         ["--laps", "4"],  # the simulator finishes a car at 3 laps
         ["--cars", "5"],
         ["--max-time", "0"],
+        ["--max-time", "-1"],
+        ["--max-time", "nan"],
+        ["--max-time", "inf"],
+        ["--max-time", "0.01"],  # below one 20 Hz decision
     ],
 )
 def test_control_race_rejects_invalid_arguments(args, tmp_path):
@@ -225,6 +230,17 @@ def test_control_race_rejects_invalid_arguments(args, tmp_path):
     )
     assert result.returncode == 2, result.stderr
     assert not out.exists()
+
+
+@pytest.mark.parametrize("kind", ["missing_parent", "directory"])
+def test_control_race_rejects_unwritable_output_before_racing(kind, tmp_path):
+    # /proc refuses new directories even as root; a directory cannot be opened as a file
+    out = Path("/proc/crashlearn-nope/out.json") if kind == "missing_parent" else tmp_path
+    cmd = [sys.executable, str(SCRIPT), "--map", "IMS", "--max-time", "1", "--output", str(out)]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    assert result.returncode == 2, result.stderr
+    assert "cannot write" in result.stderr
+    assert "IMS" not in result.stdout  # failed before the first race
 
 
 @pytest.mark.slow
