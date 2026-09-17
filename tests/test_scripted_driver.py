@@ -66,28 +66,103 @@ def test_same_inputs_give_same_actions():
     assert any(speed < 0 for speed, _ in first), "episode should exercise the reverse path"
 
 
-@pytest.mark.parametrize(
-    "lidar",
-    [
-        np.full(100, 0.1),
-        np.full(100, 15.0),
-        np.full(100, np.nan),
-        np.where(np.arange(100) % 2, np.inf, -np.inf),
-        np.full(50, 3.0),
-        [],
-    ],
-    ids=["all_min", "all_max", "nan", "inf", "short", "empty"],
-)
-@pytest.mark.parametrize("velocity", [0.0, 3.0, float("nan")])
-def test_actions_bounded_and_finite(lidar, velocity):
-    driver = ScriptedDriver()
-    for k in range(40):  # walls on every other step: forward, reverse and stuck paths
-        o = obs(lidar, velocity=velocity, progress=float("nan") if k == 5 else 0.5)
-        check_action(driver.predict(o, info(k, wall=k % 2 == 1)))
+# --- action contract: every config variant (league opponents) and every degraded input ---
+
+NAN, INF = float("nan"), float("inf")
+CONFIGS = {
+    "default": DriverConfig(),
+    "reverse_fast": DriverConfig(reverse_speed=-5.0),
+    "speeds_negative": DriverConfig(min_speed=-10.0, max_speed=-10.0),
+    "speeds_zero": DriverConfig(min_speed=0.0, max_speed=0.0, speed_gain=0.0),
+    "speeds_high": DriverConfig(min_speed=20.0, max_speed=20.0, speed_gain=10.0),
+    "gains_zero": DriverConfig(steer_gain=0.0, steer_slowdown=0.0),
+    "gains_high": DriverConfig(steer_gain=10.0, steer_slowdown=10.0),
+    "steps_zero": DriverConfig(stuck_steps=0, reverse_steps=0, wrong_way_steps=0),
+    "steps_one": DriverConfig(stuck_steps=1, reverse_steps=1, wrong_way_steps=1),
+    "steps_many": DriverConfig(stuck_steps=100, reverse_steps=100, wrong_way_steps=100),
+    "windows_zero": DriverConfig(fov_deg=0.0, front_cone_deg=0.0),
+    "windows_one_degree": DriverConfig(fov_deg=1.0, front_cone_deg=1.0),
+    "windows_full": DriverConfig(fov_deg=180.0, front_cone_deg=180.0),
+    "thresholds_zero": DriverConfig(
+        disparity_threshold=0.0,
+        car_half_width=0.0,
+        margin=0.0,
+        target_tolerance=0.0,
+        front_margin=0.0,
+        stuck_speed=0.0,
+        no_reverse_below_progress=0.0,
+    ),
+    "thresholds_high": DriverConfig(
+        disparity_threshold=100.0,
+        car_half_width=100.0,
+        margin=100.0,
+        target_tolerance=100.0,
+        front_margin=100.0,
+        stuck_speed=100.0,
+        no_reverse_below_progress=100.0,
+    ),
+    "nan_values": DriverConfig(max_speed=NAN, steer_gain=NAN),
+    "inf_values": DriverConfig(max_speed=INF, steer_gain=INF),
+}
+LIDAR = np.full(100, 5.0)
+INPUTS = {
+    "lidar_min": {"lidar": np.full(100, 0.1)},
+    "lidar_max": {"lidar": np.full(100, 15.0)},
+    "lidar_nan": {"lidar": np.full(100, NAN)},
+    "lidar_inf": {"lidar": np.where(np.arange(100) % 2, INF, -INF)},
+    "lidar_none": {"lidar": None},
+    "lidar_2d": {"lidar": np.full((1, 100), 5.0)},
+    "lidar_empty": {"lidar": []},
+    "lidar_short": {"lidar": np.full(50, 3.0)},
+    "opponent_status_text": {"lidar": LIDAR, "opponents": {1: {"status": "1", "x_rel": 1.0}}},
+    "opponent_position_nan": {
+        "lidar": LIDAR,
+        "opponents": {1: {"status": 1, "x_rel": NAN, "y_rel": NAN}},
+    },
+    "opponent_ahead": {"lidar": LIDAR, "opponents": {1: {"status": 1, "x_rel": 0.5, "y_rel": 0}}},
+    "loader_dummy": create_dummy_obs(),
+}
 
 
-def test_official_dummy_inputs():
-    check_action(ScriptedDriver().predict(create_dummy_obs(), create_dummy_info()))
+def contract_sequence(base):
+    """30 decisions: forward, wrong way, stuck, then wall contacts next to the line."""
+    for k in range(30):
+        if k < 10:
+            velocity, progress = 3.0, 0.5 + 0.001 * k
+        elif k < 20:
+            velocity, progress = 3.0, 0.52 - 0.002 * (k - 10)
+        elif k < 25:
+            velocity, progress = 0.0, 0.5
+        else:
+            velocity, progress = NAN if k == 26 else 0.0, 0.005
+        yield {**base, "velocity": velocity, "progress": progress}, info(k, wall=k in (5, 22, 27))
+
+
+@pytest.mark.parametrize("base", INPUTS.values(), ids=INPUTS.keys())
+@pytest.mark.parametrize("config", CONFIGS.values(), ids=CONFIGS.keys())
+def test_action_contract(config, base):
+    driver = ScriptedDriver(config)
+    for o, i in contract_sequence(base):
+        check_action(driver.predict(o, i))
+    check_action(driver.predict({}, {}))
+    check_action(driver.predict(create_dummy_obs(), create_dummy_info()))
+
+
+def test_step_count_reset():
+    config = DriverConfig()
+    stuck = obs(LIDAR, velocity=0.0)
+
+    missing = ScriptedDriver(config)  # no step_count: state must persist, recovery must fire
+    speeds = [missing.predict(stuck, {})[0] for _ in range(config.stuck_steps)]
+    assert speeds[-1] == config.reverse_speed
+
+    kept = ScriptedDriver(config)
+    kept.predict(obs(LIDAR), info(0))
+    assert kept.predict(obs(LIDAR), info(1, wall=True))[0] == config.reverse_speed
+    assert kept.predict(obs(LIDAR), info(2))[0] == config.reverse_speed  # still reversing
+
+    kept.predict(obs(LIDAR), info(1, wall=True))
+    assert kept.predict(obs(LIDAR), info(0))[0] > 0  # step 0 = new episode, reverse dropped
 
 
 def test_instances_share_no_state():
