@@ -60,6 +60,14 @@ uv run pytest -m slow             # tests longs, hors CI
 
 Les options de pytest (`--strict-markers`, marqueurs, sélection par défaut) sont dans `pyproject.toml`. Les tests du wrapper, des features, de l'export et des soumissions sont skippés tant que le module ou `submission/<pilote>/` correspondant n'existe pas. Ils s'activent seuls ensuite, et `-rs` affiche la raison de chaque skip.
 
+Circuits et partitions ([docs/tracks.md](docs/tracks.md)) :
+
+```bash
+uv run python scripts/track_inventory.py            # contrôle tracks.yaml contre vendor/ (hashes, géométrie)
+uv run python scripts/track_inventory.py --write    # régénère assets et geometry_* (jamais les partitions)
+uv run python scripts/check_track_loading.py        # set_map + reset + 20 décisions sur chaque carte
+```
+
 ## Intégration continue
 
 GitHub Actions lance deux jobs, **Ruff** et **Pytest**, sur chaque PR et chaque push vers `develop` et `main`.
@@ -78,7 +86,9 @@ Le run de contrôle accepte `--map`, `--steps`, `--speed` et `--steer-gain`. Il 
 ```
 src/crashlearn/     package applicatif (code de l'équipe)
 scripts/            points d'entrée CLI (run de contrôle, …)
-tests/              tests pytest (contrat simulateur, soumission, wrapper, features, export)
+src/crashlearn/tracks.yaml  circuits, alias et partitions train/validation/test (source unique)
+tests/              tests pytest (contrat simulateur, soumission, circuits, wrapper, features, export)
+docs/               documentation technique (circuits et partitions)
 .github/workflows/  CI GitHub Actions
 vendor/simulation/  simulateur fourni, copie unique et non modifiée
 vendor/PROVENANCE.md  origine et sha256 de l'archive
