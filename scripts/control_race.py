@@ -46,9 +46,10 @@ def duration(text: str) -> float:
 def provenance(args: argparse.Namespace, config: DriverConfig) -> dict:
     sim_file = SIM_DIR / "env_simulation.py"
     setup = (SIM_DIR / "setup.py").read_text()
+    status = git("status", "--porcelain", "--untracked-files=no")  # untracked files ignored
     return {
         "commit": git("rev-parse", "HEAD"),
-        "dirty": git("status", "--porcelain") not in ("", "unknown"),
+        "dirty": None if status == "unknown" else bool(status),
         "sim_sha256": hashlib.sha256(sim_file.read_bytes()).hexdigest(),
         "f110_gym_version": re.search(r"version=['\"]([^'\"]+)", setup).group(1),
         "seed": args.seed,
@@ -129,7 +130,7 @@ def run_race(sim, name: str, args: argparse.Namespace, config: DriverConfig) -> 
                 "distance_m": round(car["distance"], 2),
                 "dnf_step": car["end_step"] if status == "DNF" else None,
                 "friction_seen": sorted(frictions),
-                "trajectory_sha256": trajectory.hexdigest(),
+                "race_trajectory_sha256": trajectory.hexdigest(),
             }
         )
     return records
