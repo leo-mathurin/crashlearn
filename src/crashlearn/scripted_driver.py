@@ -5,6 +5,10 @@ league opponent. The subject requires learned policies: this driver never replac
 
 Same call signature as the tournament agents: `predict(obs, info) -> (target_speed, steering)`.
 NumPy and the standard library only; all state lives on the instance.
+Every action goes through one clamp, so the contract holds for any DriverConfig variant.
+Observations must have the simulator's shape: `opponents` as a dict, an integer `agent_id` and
+a numeric LiDAR. Other shapes (list, None, text) are not supported; harden only if the league
+ever takes observations from external sources.
 """
 
 import math
@@ -66,8 +70,16 @@ class ScriptedDriver:
         self._prev_progress = 0.0
 
     def predict(self, obs: dict, info: dict) -> tuple[float, float]:
+        speed, steer = self._decide(obs, info)
+        # single exit clamp: both driving directions, any config, non-finite -> 0
+        return (
+            float(np.clip(_finite(speed, 0.0), SPEED_MIN, SPEED_MAX)),
+            float(np.clip(_finite(steer, 0.0), -STEER_MAX, STEER_MAX)),
+        )
+
+    def _decide(self, obs: dict, info: dict) -> tuple[float, float]:
         c = self.config
-        if info.get("step_count", 0) == 0:
+        if info.get("step_count") == 0:  # a missing key is not a new episode
             self.reset()
         me = int(obs.get("agent_id", 0))
         scan = self._scan_with_opponents(obs, me)
@@ -86,7 +98,7 @@ class ScriptedDriver:
 
         if self._reverse_left > 0:
             self._reverse_left -= 1
-            return float(c.reverse_speed), self._reverse_steer
+            return c.reverse_speed, self._reverse_steer
 
         self._stuck = self._stuck + 1 if abs(velocity) < c.stuck_speed else 0
         if _wall_hit(info, me) or self._stuck >= c.stuck_steps:
@@ -95,15 +107,15 @@ class ScriptedDriver:
                 # reversing with opposite lock points the nose back toward the free direction
                 self._reverse_left = c.reverse_steps - 1
                 self._reverse_steer = -steer
-                return float(c.reverse_speed), self._reverse_steer
-            return float(c.min_speed), steer
+                return c.reverse_speed, self._reverse_steer
+            return c.min_speed, steer
         if self._backward >= c.wrong_way_steps:
-            return float(c.min_speed), steer
+            return c.min_speed, steer
 
-        front = scan[np.abs(ANGLES) <= math.radians(c.front_cone_deg)].min()
+        front = scan[_cone(c.front_cone_deg)].min()
         speed = min(c.min_speed + c.speed_gain * (front - c.front_margin), c.max_speed)
         speed *= 1.0 - c.steer_slowdown * abs(steer) / STEER_MAX
-        return float(np.clip(speed, c.min_speed, SPEED_MAX)), steer
+        return max(speed, c.min_speed), steer
 
     def _scan_with_opponents(self, obs: dict, me: int) -> np.ndarray:
         """Sanitised scan (NaN/inf -> bounds) plus active opponents: the LiDAR sees walls only."""
@@ -128,7 +140,7 @@ class ScriptedDriver:
     def _steering(self, scan: np.ndarray) -> float:
         """Disparity extender over the front window, then aim at the deepest ray nearest ahead."""
         c = self.config
-        window = np.flatnonzero(np.abs(ANGLES) <= math.radians(c.fov_deg))
+        window = np.flatnonzero(_cone(c.fov_deg))
         d = scan[window]
         ext = d.copy()
         for k in range(len(d) - 1):
@@ -144,6 +156,11 @@ class ScriptedDriver:
         angles = ANGLES[window][candidates]
         target = angles[np.argmin(np.abs(angles))]  # ties: lowest index (right) wins, stable
         return float(np.clip(c.steer_gain * target, -STEER_MAX, STEER_MAX))
+
+
+def _cone(half_angle_deg: float) -> np.ndarray:
+    """Rays within the half-angle; never empty (the two rays around straight ahead stay in)."""
+    return np.abs(ANGLES) <= max(math.radians(half_angle_deg), ANGLE_STEP)
 
 
 def _finite(value, default: float) -> float:
