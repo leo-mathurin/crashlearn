@@ -10,6 +10,7 @@ import dataclasses
 import datetime
 import hashlib
 import json
+import math
 import re
 import subprocess
 import sys
@@ -33,6 +34,13 @@ def git(*args: str) -> str:
         ).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
+
+
+def duration(text: str) -> float:
+    value = float(text)
+    if not math.isfinite(value) or value < DECISION_DT:
+        raise argparse.ArgumentTypeError(f"must be finite and >= {DECISION_DT} s, got {text!r}")
+    return value
 
 
 def provenance(args: argparse.Namespace, config: DriverConfig) -> dict:
@@ -145,7 +153,7 @@ def main() -> int:
     )
     parser.add_argument("--cars", type=int, default=1, choices=range(1, 5), help="1 to 4 cars")
     parser.add_argument(
-        "--max-time", type=float, default=600.0, help="simulated seconds before TIMEOUT"
+        "--max-time", type=duration, default=600.0, help="simulated seconds before TIMEOUT"
     )
     parser.add_argument("--output", type=Path, default=Path("runs/control_race.json"))
     args = parser.parse_args()
@@ -155,8 +163,11 @@ def main() -> int:
     for name in args.maps:
         if name not in train:
             parser.error(f"{name!r} is not a canonical training track: {', '.join(train)}")
-    if args.max_time <= 0:
-        parser.error("--max-time must be positive")
+    try:  # fail now, not after an hour of racing; "a" keeps an existing file intact
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.open("a").close()
+    except OSError as e:
+        parser.error(f"cannot write --output {args.output}: {e}")
 
     add_simulator_to_path()
     import env_simulation as sim
@@ -167,11 +178,10 @@ def main() -> int:
     try:
         for name in args.maps:
             records += [{**prov, **r} for r in run_race(sim, name, args, config)]
+            # rewritten after every race: a crash mid-campaign keeps the finished races
+            args.output.write_text(json.dumps(records, indent=2) + "\n")
     finally:
         sim.close()
-
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(records, indent=2) + "\n")
 
     print(f"commit {prov['commit'][:12]}{' (dirty)' if prov['dirty'] else ''}  seed {args.seed}")
     print(f"driver v{config.version}  sim {prov['sim_sha256'][:12]}  laps {args.laps}\n")
