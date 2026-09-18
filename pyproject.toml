@@ -15,8 +15,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    # commitlint and ruff pinned to avoid lint/format churn on relock; hooks use them via uv run
-    "commitlint==2.0.0",
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",
     "ruff==0.16.7",

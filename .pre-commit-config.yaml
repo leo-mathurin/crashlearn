@@ -20,9 +20,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.26.0
+    hooks:
       - id: commitlint
-        name: commitlint
-        # fixup!/squash!/amend! allowed locally (git rebase --autosquash); CI rejects them
-        entry: uv run --locked python scripts/lint_commit_msg.py --allow-autosquash --file
-        language: system
         stages: [commit-msg]
+        # commitlint 21 needs node >= 22.12: pre-commit installs it, no system node required
+        language_version: "22.12.0"
+        additional_dependencies: ["@commitlint/config-conventional@21.2.2"]
