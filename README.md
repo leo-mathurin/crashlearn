@@ -67,7 +67,7 @@ uv run pre-commit run --all-files
 uv run pre-commit run commitlint --hook-stage commit-msg --commit-msg-filename .git/COMMIT_EDITMSG
 ```
 
-Les hooks sont déclarés en `repo: local` et appellent `uv run --locked ruff …` : ils utilisent les versions de `uv.lock`, les mêmes qu'en CI. Il n'existe pas de second environnement géré par pre-commit, donc aucune dérive de version n'est possible. En contrepartie, `uv` est nécessaire pour committer, et un lock périmé bloque le commit comme il bloque la CI. Seul le hook `commitlint` fait exception : il vient du dépôt [commitlint-pre-commit-hook](https://github.com/alessandrojcm/commitlint-pre-commit-hook), épinglé par `rev`, et tourne sous Node. **Node n'est pas requis sur la machine** : pre-commit installe la version demandée (22.12) dans son propre environnement, à la première installation des hooks (environ 9 s). `tests/test_hook_versions.py` échoue si un hook distant réintroduit un outil déjà présent dans `uv.lock` avec une autre version, si le `rev` du hook commitlint n'est plus épinglé, ou si sa version de commitlint diverge de celle installée par la CI.
+Les hooks sont déclarés en `repo: local` et appellent `uv run --locked ruff …` : ils utilisent les versions de `uv.lock`, les mêmes qu'en CI. Il n'existe pas de second environnement géré par pre-commit, donc aucune dérive de version n'est possible. En contrepartie, `uv` est nécessaire pour committer, et un lock périmé bloque le commit comme il bloque la CI. Seul le hook `commitlint` fait exception : il vient du dépôt [commitlint-pre-commit-hook](https://github.com/alessandrojcm/commitlint-pre-commit-hook), épinglé par `rev`, et tourne sous Node. **Node n'est pas requis sur la machine** : pre-commit installe la version demandée (22.12) dans son propre environnement, à la première installation des hooks (environ 9 s). Sa version est épinglée à deux endroits, qui doivent rester alignés : le `rev` du hook et `COMMITLINT_VERSION` dans `.github/workflows/commitlint.yml`.
 
 Périmètre des fichiers : il est défini **uniquement** dans `[tool.ruff]` de `pyproject.toml`, `vendor/` étant exclu. Les hooks lancent exactement les commandes de la CI sur `.`, sans filtre propre ; un fichier Python non suivi et non ignoré est donc lui aussi vérifié.
 
@@ -78,7 +78,7 @@ Markdown : Ruff 0.16 inclut les `*.md` et ne reformate **que** les blocs de code
 Format [Conventional Commits](https://www.conventionalcommits.org/), vérifié par [`@commitlint/cli`](https://commitlint.js.org) avec `@commitlint/config-conventional`. **Les règles sont celles du référentiel, sans réglage maison** : la configuration (`.commitlintrc.json`) ne fait qu'étendre la configuration conventionnelle.
 - Types en minuscules : `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`.
 - Titre de **100 caractères au maximum** (`header-max-length`), description obligatoire et sans point final.
-- Lignes du corps et du pied de **100 caractères au maximum** (`body-max-line-length`, `footer-max-line-length`). **Aucune exemption pour les URLs** : une URL longue doit aller sur sa propre ligne de pied, ou être raccourcie.
+- Lignes du corps et du pied de **100 caractères au maximum** (`body-max-line-length`, `footer-max-line-length`), avec une exception : **toute ligne contenant une URL `http://` ou `https://` échappe au contrôle de longueur**. C'est le comportement de `@commitlint/ensure` (`/\bhttps?:\/\/\S+/`), qui assume d'être permissif pour éviter une expression régulière coûteuse. Un trailer long sans URL, lui, reste refusé.
 - Les messages engendrés par Git (`Merge …`, `Revert "…"`, `Reapply …`) et les commits `fixup!`, `squash!` et `amend!` sont ignorés **en local** : c'est le comportement par défaut de commitlint, qui laisse fonctionner `git commit --fixup <sha>` puis `git rebase -i --autosquash`.
 - **En CI**, `.commitlintrc.ci.json` ajoute `defaultIgnores: false` : ces exceptions disparaissent, donc un `fixup!` non résorbé fait échouer la PR.
   - Les commits de fusion sont exclus de la vérification (`git rev-list --no-merges`), leur message n'étant jamais conventionnel.
@@ -93,7 +93,9 @@ Format [Conventional Commits](https://www.conventionalcommits.org/), vérifié p
 | `Feat: add x` | refusé : type en majuscule |
 | `feat:add x` | refusé : espace manquante |
 | titre de 101 caractères | refusé : longueur |
-| ligne de corps de 101 caractères, URL comprise | refusé : longueur |
+| ligne de corps de 101 caractères, sans URL | refusé : longueur |
+| ligne de 137 caractères contenant une URL, corps ou pied | valide : exemption URL |
+| `Co-Authored-By: <nom long> <adresse>` de plus de 100 caractères | refusé : longueur |
 | `fixup! feat: add x` | valide en local, refusé en CI |
 | `Revert "feat: add x"` | valide en local, refusé en CI |
 
