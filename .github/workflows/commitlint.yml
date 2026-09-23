@@ -1,0 +1,56 @@
+name: Commitlint
+
+# PRs are squash-merged: the PR title becomes the commit on develop/main, so it is linted too.
+# `edited` re-runs this check (only) when the title changes.
+on:
+  pull_request:
+    branches: [develop, main]
+    types: [opened, edited, reopened, synchronize]
+
+concurrency:
+  group: commitlint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # keep in sync with .pre-commit-config.yaml (tests/test_hook_versions.py checks it)
+  COMMITLINT_VERSION: 21.2.2
+
+jobs:
+  commitlint:
+    name: Commitlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # needs the PR commits and the base branch
+          lfs: false
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.12.0"
+      - run: npm install --no-save "@commitlint/cli@$COMMITLINT_VERSION" "@commitlint/config-conventional@$COMMITLINT_VERSION"
+      # .commitlintrc.ci.json sets defaultIgnores: false, so fixup!/squash!/amend! fail here
+      # while the local hook (default config) accepts them for git rebase --autosquash.
+      - name: PR title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        # GitHub appends " (#N)" to the squash commit title: lint the header that will land
+        run: printf '%s (#%s)' "$TITLE" "$NUMBER" | npx commitlint --config .commitlintrc.ci.json
+      - name: PR commits
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        # Every commit is linted while merge and rebase merges are allowed on the repo (they land
+        # commits as-is). Merge commits are skipped: their generated message is never conventional.
+        run: |
+          status=0
+          for sha in $(git rev-list --reverse --no-merges "$BASE..$HEAD"); do
+            echo "commit $(git log -1 --format='%h %s' "$sha")"
+            git log -1 --format=%B "$sha" | npx commitlint --config .commitlintrc.ci.json || status=1
+          done
+          exit $status

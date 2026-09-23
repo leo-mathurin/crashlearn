@@ -58,6 +58,47 @@ uv run pytest                     # exclut les tests marqués slow et gpu
 uv run pytest -m slow             # tests longs, hors CI
 ```
 
+Hooks Git, à installer une fois par clone (`uv` doit être dans le `PATH`) :
+
+```bash
+uv run pre-commit install         # hooks pre-commit (ruff check --fix, ruff format) et commit-msg
+uv run pre-commit run --all-files
+# rejoue le dernier message de commit
+uv run pre-commit run commitlint --hook-stage commit-msg --commit-msg-filename .git/COMMIT_EDITMSG
+```
+
+Les hooks sont déclarés en `repo: local` et appellent `uv run --locked ruff …` : ils utilisent les versions de `uv.lock`, les mêmes qu'en CI. Il n'existe pas de second environnement géré par pre-commit, donc aucune dérive de version n'est possible. En contrepartie, `uv` est nécessaire pour committer, et un lock périmé bloque le commit comme il bloque la CI. Seul le hook `commitlint` fait exception : il vient du dépôt [commitlint-pre-commit-hook](https://github.com/alessandrojcm/commitlint-pre-commit-hook), épinglé par `rev`, et tourne sous Node. **Node n'est pas requis sur la machine** : pre-commit installe la version demandée (22.12) dans son propre environnement, à la première installation des hooks (environ 9 s). Sa version est épinglée à deux endroits, qui doivent rester alignés : le `rev` du hook et `COMMITLINT_VERSION` dans `.github/workflows/commitlint.yml`.
+
+Périmètre des fichiers : il est défini **uniquement** dans `[tool.ruff]` de `pyproject.toml`, `vendor/` étant exclu. Les hooks lancent exactement les commandes de la CI sur `.`, sans filtre propre ; un fichier Python non suivi et non ignoré est donc lui aussi vérifié.
+
+Markdown : Ruff 0.16 inclut les `*.md` et ne reformate **que** les blocs de code `python`, `py` et `pycon`. La prose et les blocs `bash`, `toml` ou sans langage ne sont pas touchés, et un bloc Python invalide est laissé tel quel. Ce comportement est volontaire : il garde les exemples de la doc cohérents. Pour préserver la mise en forme d'un bloc, utiliser `# fmt: off` dans le bloc, ou un autre langage.
+
+### Messages de commit
+
+Format [Conventional Commits](https://www.conventionalcommits.org/), vérifié par [`@commitlint/cli`](https://commitlint.js.org) avec `@commitlint/config-conventional`. **Les règles sont celles du référentiel, sans réglage maison** : la configuration (`.commitlintrc.json`) ne fait qu'étendre la configuration conventionnelle.
+- Types en minuscules : `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`.
+- Titre de **100 caractères au maximum** (`header-max-length`), description obligatoire et sans point final.
+- Lignes du corps et du pied de **100 caractères au maximum** (`body-max-line-length`, `footer-max-line-length`), avec une exception : **toute ligne contenant une URL `http://` ou `https://` échappe au contrôle de longueur**. C'est le comportement de `@commitlint/ensure` (`/\bhttps?:\/\/\S+/`), qui assume d'être permissif pour éviter une expression régulière coûteuse. Un trailer long sans URL, lui, reste refusé.
+- Les messages engendrés par Git (`Merge …`, `Revert "…"`, `Reapply …`) et les commits `fixup!`, `squash!` et `amend!` sont ignorés **en local** : c'est le comportement par défaut de commitlint, qui laisse fonctionner `git commit --fixup <sha>` puis `git rebase -i --autosquash`.
+- **En CI**, `.commitlintrc.ci.json` ajoute `defaultIgnores: false` : ces exceptions disparaissent, donc un `fixup!` non résorbé fait échouer la PR.
+  - Les commits de fusion sont exclus de la vérification (`git rev-list --no-merges`), leur message n'étant jamais conventionnel.
+  - Un revert doit donc s'écrire `revert: …` plutôt que d'utiliser le message par défaut de `git revert`.
+
+| Message | Résultat |
+|---|---|
+| `feat: add track inventory` | valide |
+| `fix(tracks)!: seal the test split` | valide |
+| `revert: undo the sealed split change` | valide |
+| `Update readme` | refusé : format |
+| `Feat: add x` | refusé : type en majuscule |
+| `feat:add x` | refusé : espace manquante |
+| titre de 101 caractères | refusé : longueur |
+| ligne de corps de 101 caractères, sans URL | refusé : longueur |
+| ligne de 137 caractères contenant une URL, corps ou pied | valide : exemption URL |
+| `Co-Authored-By: <nom long> <adresse>` de plus de 100 caractères | refusé : longueur |
+| `fixup! feat: add x` | valide en local, refusé en CI |
+| `Revert "feat: add x"` | valide en local, refusé en CI |
+
 Les options de pytest (`--strict-markers`, marqueurs, sélection par défaut) sont dans `pyproject.toml`. Les tests du wrapper, des features, de l'export et des soumissions sont skippés tant que le module ou `submission/<pilote>/` correspondant n'existe pas. Ils s'activent seuls ensuite, et `-rs` affiche la raison de chaque skip.
 
 Circuits et partitions ([docs/tracks.md](docs/tracks.md)) :
@@ -77,13 +118,17 @@ uv run python scripts/control_race.py --map Austin --cars 4 --seed 1 --output ru
 
 ## Intégration continue
 
-GitHub Actions lance deux jobs, **Ruff** et **Pytest**, sur chaque PR et chaque push vers `develop` et `main`.
-- L'environnement est installé avec `uv sync --locked` : la CI échoue si `uv.lock` n'est plus aligné sur `pyproject.toml`. Après toute modification des dépendances, lancer `uv lock` et committer le lock.
+GitHub Actions lance deux jobs, **Ruff** et **Pytest**, sur chaque PR et chaque push vers `develop` et `main`. Le workflow **Commitlint** s'exécute sur chaque PR et à chaque modification de son titre.
+- Il vérifie le **titre de la PR suivi de ` (#N)`**, c'est-à-dire le titre du commit que GitHub crée lors d'une fusion en squash. Le titre de la PR doit donc tenir en 93 caractères environ.
+- Il vérifie aussi **chaque commit** de la PR (hors commits de fusion), sans exception pour les fixup. Tant que le dépôt autorise aussi les fusions par merge commit et par rebase, ces commits peuvent arriver tels quels sur `develop`.
+- Réglage recommandé : fusion en squash uniquement, avec le titre de la PR (`PR_TITLE`) comme titre de commit. Ce réglage n'est pas encore appliqué. Une fois en place, seul le titre de la PR ferait foi, et la vérification des commits pourrait se limiter au refus des fixup.
+- Le job Commitlint n'utilise pas `uv` : il installe Node 22.12 et commitlint avec `npm`, aux versions épinglées dans le workflow.
+- L'environnement des jobs Ruff et Pytest est installé avec `uv sync --locked` : la CI échoue si `uv.lock` n'est plus aligné sur `pyproject.toml`. Après toute modification des dépendances, lancer `uv lock` et committer le lock.
 - La CI n'installe ni torch, ni CUDA, ni les binaires Git LFS.
 
 Protection prévue sur `develop` et `main` :
 - PR obligatoire, avec l'approbation d'un autre membre ;
-- checks **Ruff** et **Pytest** requis, branche à jour avant fusion ;
+- checks **Ruff**, **Pytest** et **Commitlint** requis, branche à jour avant fusion ;
 - force-push et suppression interdits.
 
 Le run de contrôle accepte `--map`, `--steps`, `--speed` et `--steer-gain`. Il affiche quelques champs de `get_step_info()`, puis renvoie `0` si tout s'est bien passé, `1` en cas d'erreur de simulation et `2` si la carte est inconnue. La liste des cartes s'affiche quand on passe un nom invalide.
@@ -96,7 +141,9 @@ scripts/            points d'entrée CLI (run de contrôle, …)
 src/crashlearn/tracks.yaml  circuits, alias et partitions train/validation/test (source unique)
 tests/              tests pytest (contrat simulateur, soumission, circuits, pilote scripté, wrapper, features, export)
 docs/               documentation technique (circuits et partitions, pilote scripté)
-.github/workflows/  CI GitHub Actions
+.github/workflows/  CI GitHub Actions (ci.yml, commitlint.yml)
+.pre-commit-config.yaml  hooks Git (ruff en local, commitlint en hook distant)
+.commitlintrc.json  règles des messages de commit ; .commitlintrc.ci.json ajoute defaultIgnores: false
 vendor/simulation/  simulateur fourni, copie unique et non modifiée
 vendor/PROVENANCE.md  origine et sha256 de l'archive
 ```

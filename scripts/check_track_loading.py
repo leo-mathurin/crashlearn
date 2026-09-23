@@ -21,7 +21,7 @@ def main() -> int:
 
     canonical = set(tracks.final_retraining_tracks())
     names = sorted(set(sim.get_available_maps()) | canonical)
-    failed = []
+    failed = {"track": [], "alias": []}
     try:
         for name in names:
             kind = "track" if name in canonical else "alias"
@@ -29,7 +29,7 @@ def main() -> int:
             try:
                 r = tracks.load_and_step(name, args.steps)
             except Exception as e:
-                failed.append(name if kind == "track" else None)
+                failed[kind].append(name)
                 print(f"FAIL {kind} {name!r}: {type(e).__name__}: {e}")
                 continue
             print(
@@ -39,9 +39,11 @@ def main() -> int:
     finally:
         sim.close()
 
-    failed_tracks = [n for n in failed if n]
-    print(f"\n{len(names)} names, {len(failed)} failed ({len(failed_tracks)} canonical)")
-    return 1 if failed_tracks else 0
+    print(
+        f"\n{len(names)} names: {len(failed['track'])} canonical failures, "
+        f"{len(failed['alias'])} alias failures"
+    )
+    return 1 if failed["track"] else 0
 
 
 if __name__ == "__main__":

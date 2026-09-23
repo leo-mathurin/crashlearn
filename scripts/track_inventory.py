@@ -60,12 +60,13 @@ def main() -> int:
                 errors.append(f"alias {alias!r}: {kind} differs from {canonical!r}")
 
     if args.write:
+        # --write only refreshes generated fields: directory and alias errors still fail
+        errors = [e for e in errors if not e.endswith("generated fields out of date")]
         lines = tracks.TRACKS_YAML.read_text().splitlines(keepends=True)
         header = "".join(line for line in lines if line.startswith("#"))  # comments on top only
         body = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=100)
         tracks.TRACKS_YAML.write_text(header + body)
         print(f"\nwrote {tracks.TRACKS_YAML}")
-        return 0
 
     for e in errors:
         print(f"ERROR: {e}", file=sys.stderr)

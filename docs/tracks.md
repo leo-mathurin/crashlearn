@@ -112,7 +112,7 @@ Les champs `geometry_*` sont des **descripteurs géométriques** calculés à pa
 - **Unités :** mètres du **modèle réduit à l'échelle 1:10**, pas du circuit réel. La courbure est en rad/m.
 - **Longueur :** périmètre de la centerline fermée.
 - **Cap cumulé :** somme des |Δcap| entre segments consécutifs.
-- **Courbure en un point :** |Δcap| divisé par la longueur moyenne des deux segments adjacents. Elle est discrète et non lissée, sur un pas d'environ 0,3 m, donc sensible au bruit du tracé. Les maxima (jusqu'à 1,85 rad/m, soit un rayon d'environ 0,54 m) sont inférieurs au rayon de braquage minimal de la voiture (≈ 0,74 m) et reflètent probablement ce bruit plutôt qu'un vrai virage.
+- **Courbure en un point :** |Δcap| divisé par la longueur moyenne des deux segments adjacents. Elle est discrète et non lissée, sur un pas d'environ 0,3 m, donc sensible au bruit du tracé. Les maxima (jusqu'à 1,85 rad/m) correspondent à des rayons d'environ 0,54 m, plus serrés que le rayon de braquage minimal de la voiture (≈ 0,74 m) : ils reflètent probablement ce bruit plutôt qu'un vrai virage.
 - **Virages serrés :** nombre de séquences contiguës de points où la courbure est ≥ 0,5 rad/m (rayon ≤ 2 m).
   - Ce **seuil est arbitraire** : environ 2,7 fois le rayon minimal de braquage.
   - Un même virage bruité peut être compté plusieurs fois.
