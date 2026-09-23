@@ -6,13 +6,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from crashlearn import SIM_DIR, add_simulator_to_path
+from crashlearn import add_simulator_to_path
 
 ROOT = Path(__file__).resolve().parents[1]
 SUBMISSION_DIRS = sorted(
     p for p in (ROOT / "submission").glob("*") if p.is_dir() and (p / "agent.py").is_file()
 )
-MAPS_DIR = SIM_DIR / "maps"
 
 # Vendored simulator modules (env_simulation, agent_loader) importable from every test.
 add_simulator_to_path()

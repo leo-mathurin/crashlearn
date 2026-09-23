@@ -1,38 +1,15 @@
-"""Inventory of the provided circuits and a `set_map` sweep (E-10, feeds into E-9)."""
+"""`set_map` behaviour on the provided circuits (E-10).
 
-import filecmp
-import os
+The track list, the Mexico City duplicate and the per-track assets are covered by
+tests/test_tracks.py through `crashlearn.tracks`, the single source of track names.
+"""
 
 import env_simulation as es
 import pytest
-from conftest import MAPS_DIR
 
-CANONICAL_MAPS = [
-    "Austin",
-    "BrandsHatch",
-    "Budapest",
-    "Catalunya",
-    "Hockenheim",
-    "IMS",
-    "Melbourne",
-    "MexicoCity",
-    "Montreal",
-    "Monza",
-    "MoscowRaceway",
-    "Nuerburgring",
-    "Oschersleben",
-    "Sakhir",
-    "SaoPaulo",
-    "Sepang",
-    "Shanghai",
-    "Silverstone",
-    "Sochi",
-    "Spa",
-    "Spielberg",
-    "YasMarina",
-    "Zandvoort",
-]
-MAPS_WITHOUT_RACELINE = {"Montreal", "Shanghai"}
+from crashlearn import tracks
+
+TRACKS = tracks.final_retraining_tracks()  # all 23 circuits; driven straight only, no policy
 
 
 @pytest.fixture(autouse=True)
@@ -44,35 +21,10 @@ def _fresh_sim():
         es.set_map("example")
 
 
-def test_inventory_has_24_names_for_23_distinct_circuits():
+def test_simulator_lists_24_names_for_23_distinct_circuits():
     names = es.get_available_maps()
     assert len(names) == 24
-    assert set(names) == set(CANONICAL_MAPS) | {"Mexico City"}
-
-
-def test_mexico_city_folder_is_a_misnamed_copy_of_mexicocity():
-    """'Mexico City' files are prefixed MexicoCity_ and identical to the canonical folder."""
-    dup = os.path.join(MAPS_DIR, "Mexico City")
-    ref = os.path.join(MAPS_DIR, "MexicoCity")
-    for fname in (
-        "MexicoCity_centerline.csv",
-        "MexicoCity_map.png",
-        "MexicoCity_map.yaml",
-        "MexicoCity_raceline.csv",
-    ):
-        assert filecmp.cmp(os.path.join(dup, fname), os.path.join(ref, fname), shallow=False)
-    assert not os.path.exists(os.path.join(dup, "Mexico City_map.png"))
-
-
-@pytest.mark.parametrize("name", CANONICAL_MAPS)
-def test_each_canonical_map_has_expected_files(name):
-    d = os.path.join(MAPS_DIR, name)
-    for suffix in ("_centerline.csv", "_map.png", "_map.yaml"):
-        assert os.path.isfile(os.path.join(d, name + suffix)), name + suffix
-    has_raceline = os.path.isfile(os.path.join(d, f"{name}_raceline.csv"))
-    assert has_raceline == (name not in MAPS_WITHOUT_RACELINE)
-    # No map ships a _config.yaml: the starting pose is derived from the centerline.
-    assert not os.path.exists(os.path.join(d, f"{name}_config.yaml"))
+    assert set(names) == set(TRACKS) | {"Mexico City"}
 
 
 def test_set_map_is_idempotent_and_reported():
@@ -89,7 +41,7 @@ def test_set_map_unknown_name_raises():
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("name", CANONICAL_MAPS)
+@pytest.mark.parametrize("name", TRACKS)
 def test_four_cars_start_clean_on_each_map(name):
     """Measured: across all 23 circuits, 4 cars start with no wall contact (20 steps at 2 m/s)."""
     es.set_map(name)
