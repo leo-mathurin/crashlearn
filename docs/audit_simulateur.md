@@ -2,13 +2,13 @@
 
 Complète par l'exécution le document Linear [Simulateur fourni, contrats et écarts](https://linear.app/e-hamilton/document/simulateur-fourni-contrats-et-ecarts-de44f3cb7d5d), qui reposait sur une lecture du code. Les observations ci-dessous ont toutes été reproduites ; les tests qui les figent sont dans `tests/`.
 
-Rebasé sur `develop` après la réorganisation du dépôt (E-6/E-8/E-9/E-17) : le simulateur vendu vit maintenant dans `vendor/simulation/` (voir `vendor/PROVENANCE.md`). Les vérifications de contrat les plus basiques (schéma `get_obs`, absence de `done`, clipping des actions) ont été écrites indépendamment dans `tests/test_simulator_contract.py` ; les tests ci-dessous les complètent sans les dupliquer.
+Le simulateur est vendorisé dans `vendor/simulation/` (voir `vendor/PROVENANCE.md`) ; les noms de circuits viennent de `crashlearn.tracks` (voir `docs/tracks.md`). Les vérifications de contrat les plus basiques (schéma `get_obs`, absence de `done`, clipping des actions) ont été écrites indépendamment dans `tests/test_simulator_contract.py` ; les tests ci-dessous les complètent sans les dupliquer.
 
 ## Environnement
 
 | Élément | Valeur |
 | -- | -- |
-| Archive | `simulation.zip` (4 567 078 octets, fichiers datés du 08/09/2026), vendue dans `vendor/simulation/` |
+| Archive | `simulation.zip` (4 567 078 octets, fichiers datés du 08/09/2026), vendorisée dans `vendor/simulation/` |
 | Machine | Linux 7.0.0-31, 8 cœurs, 15 Go RAM, CPU uniquement |
 | Python | 3.11.16 via uv 0.12.15 |
 | Dépendances | numpy 2.4.6, numba 0.67.0, scipy 1.17.1, Pillow, pyyaml 6.0.3, pytest 9.1.1, ruff 0.16.7 |
@@ -59,7 +59,7 @@ Chaque défaut est figé par un test `xfail(strict=True)` dans `tests/test_simul
 | D2 | `get_space_info` annonce des adversaires `rel_x/rel_y/rel_dist/rel_yaw/velocity/active`, `get_obs` renvoie `x_rel/y_rel/yaw_rel/speed/progress/lap_count/status` | aucune clé commune | `test_space_info_opponent_keys_match_real_obs` |
 | D3 | `agent_loader.create_dummy_obs/info` ne suivent pas le vrai schéma : pas d'`agent_id`, clés adversaires du faux schéma, `info` sans `time_elapsed/ranks/progress_delta/race_over`, listes au lieu de dicts | le dry-run du loader ne détecte pas un agent qui lirait `obs["agent_id"]` ou `info["ranks"]` | `test_loader_dummy_obs_matches_real_obs_schema`, `test_loader_dummy_info_matches_real_info_schema` |
 | D4 | `get_available_maps()` liste `"Mexico City"` mais ses fichiers sont préfixés `MexicoCity_` : `set_map("Mexico City")` → `FileNotFoundError` | 24 noms listés, 23 chargeables | `test_every_available_map_can_be_loaded` |
-| D5 | Un `set_map` raté laisse `_current_map` sur la carte cassée et `_sim=None` : tout `reset()` suivant replante jusqu'à un `set_map` valide | reproduit après D4 | `test_failed_set_map_does_not_poison_singleton` |
+| D5 | Un `set_map` raté laisse `_current_map` sur la carte cassée et `_sim=None` : tout `reset()` suivant replante jusqu'à un `set_map` valide | reproduit avec une carte listée sans fichiers, indépendamment de D4 | `test_failed_set_map_does_not_poison_singleton` |
 | D6 | **Mur traversable.** Le test iTTC (`laser_models.py:206-213`) ne fire que si `0 ≤ (scan − côté)/(v·cos) < 0,015 s`. Au redémarrage depuis v=0 la fenêtre fait ~1 mm : la voiture avance de quelques mm par pas (fluage), le flag `collisions.wall` clignote. Une fois le corps dans le mur, `scan − côté < 0` → plus aucune détection : la voiture traverse, ressort et roule hors carte **en restant ACTIVE** (la projection sur la centerline continue de progresser, donc pas de DNF). La marche arrière ne libère plus une voiture qui a pénétré. | poussée à 10 m/s : cellule occupée au pas 50, 0,92 m au pas 120, 133 m hors carte au pas 400, statut 1 ; à 3 m/s : 40 m au pas 400. Marche arrière après 120 pas : v reste 0 sur 60 pas. | `test_wall_is_impassable_when_pushing_for_10_seconds`, `test_car_leaving_the_map_is_not_active`, `test_reverse_frees_car_after_long_wall_push` |
 
 D6 est absent de l'audit statique et prioritaire pour E-12 : un agent RL peut apprendre à couper à travers les murs, et une voiture sortie de piste n'est jamais classée DNF. Piste minimale : dans le wrapper, comparer la pose post-sous-pas à l'occupancy grid (ou imposer une distance LiDAR minimale ≥ demi-largeur) et restaurer la pose indépendamment de l'iTTC ; déclarer DNF une voiture hors carte.
