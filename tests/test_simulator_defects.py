@@ -282,6 +282,34 @@ def test_steered_reverse_stays_stable():
     assert float(sim._sim.agents[0].state[3]) < -1.0  # really reversing past 0.5 m/s
 
 
+# --- Public seed (E-11 control driver, bug 5) ------------------------------------
+
+
+def _noise_and_friction(seed, monkeypatch):
+    monkeypatch.setattr(es, "_SEED", es._SEED)  # restored after the test
+    for name in ("_FRICTION_LO", "_FRICTION_HI", "_FRICTION_INTERVAL_SEC"):
+        monkeypatch.setattr(es, name, getattr(es, name))
+    es.set_friction_profile(0.5, 1.0, (0.5, 1.0))
+    es.close()
+    es.set_seed(seed)
+    es.reset(1)
+    trace = []
+    for _ in range(60):
+        es.simulation_step()
+        trace.append(
+            (es._get_sim()._last_scan_noise.copy(), es.get_step_info()["friction_current"])
+        )
+    return trace
+
+
+def test_set_seed_makes_noise_and_friction_reproducible(monkeypatch):
+    a, b = _noise_and_friction(3, monkeypatch), _noise_and_friction(3, monkeypatch)
+    c = _noise_and_friction(4, monkeypatch)
+    assert all(np.array_equal(na, nb) and fa == fb for (na, fa), (nb, fb) in zip(a, b, strict=True))
+    assert not np.array_equal(a[0][0], c[0][0])
+    assert [f for _, f in a] != [f for _, f in c]
+
+
 # --- Parameter consistency (E-12) ------------------------------------------------
 
 

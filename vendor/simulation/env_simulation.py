@@ -234,7 +234,7 @@ class _Sim:
         self._sim: Simulator | None  = None
         self._num_agents: int        = 0
         self._map_name: str          = ""   # Currently loaded map name (set by set_map)
-        self._rng                    = np.random.default_rng(seed=0)
+        self._rng                    = np.random.default_rng(seed=_SEED)  # E-12: set_seed()
         self._waypoints: np.ndarray  = np.zeros((2, 2))  # (N, 2) x,y
         self._arc: np.ndarray        = np.zeros(2)        # cumulative arc length (N,)
         self._total_arc: float       = 1.0
@@ -983,6 +983,7 @@ class _Sim:
 # Module-level singleton and 6 public functions
 # ---------------------------------------------------------------------------
 _sim_instance: _Sim | None = None
+_SEED: int = 0  # E-12: seed of the simulator RNG (LiDAR noise, friction draws), see set_seed()
 
 
 def _get_sim() -> _Sim:
@@ -1326,3 +1327,17 @@ def set_friction_profile(lo: float, hi: float, interval_sec: tuple[float, float]
                          f"got ({i_lo}, {i_hi})")
     _FRICTION_LO, _FRICTION_HI = lo, hi
     _FRICTION_INTERVAL_SEC = (i_lo, i_hi)
+
+
+def set_seed(seed: int) -> None:
+    """Seed the simulator RNG (LiDAR noise and friction draws) (E-12). Not part of the inference
+    contract.
+
+    The shipped code always seeded it with 0 when the singleton was built and exposed no seed;
+    reset() still does NOT reseed it, so successive episodes keep drawing new noise. Reseeds the
+    running simulator now, and every simulator built afterwards (after close()).
+    """
+    global _SEED
+    _SEED = int(seed)
+    if _sim_instance is not None:
+        _sim_instance._rng = np.random.default_rng(seed=_SEED)
