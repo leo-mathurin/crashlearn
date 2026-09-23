@@ -28,9 +28,8 @@ def _fresh_sim():
 # --- Friction -----------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="D1: _update_friction is a no-op, friction stays at 1.0")
 def test_friction_changes_over_time():
-    """Announced friction changes every 20s -> over 30s, at least one change is expected."""
+    """D1, fixed in E-12: friction changes every 20 s -> over 30 s, at least one change."""
     es.reset(1)
     seen = set()
     for _ in range(600):
@@ -40,14 +39,40 @@ def test_friction_changes_over_time():
     assert len(seen) > 1
 
 
-@pytest.mark.xfail(strict=True, reason="D1: the engine's mu is never updated after reset")
 def test_engine_mu_follows_friction_current():
+    """D1, fixed in E-12: the engine's mu was never updated after reset."""
     es.reset(1)
     sim = es._get_sim()
     sim._friction_countdown = 1
     for _ in range(3):
         es.simulation_step()
     assert sim._sim.agents[0].params["mu"] == es.get_step_info()["friction_current"] < 1.0
+
+
+def test_training_friction_profile_is_applied(monkeypatch):
+    """E-12: training-only randomisation, separate from the shipped local rules."""
+    for name in ("_FRICTION_LO", "_FRICTION_HI", "_FRICTION_INTERVAL_SEC"):
+        monkeypatch.setattr(es, name, getattr(es, name))  # restored after the test
+    es.set_friction_profile(0.5, 0.8, (1.0, 2.0))
+    es.reset(1)
+    sim = es._get_sim()
+    assert es.get_step_info()["friction_current"] == es._FRICTION_HI == 0.8
+    seen = set()
+    for _ in range(200):  # 10 s: at least 5 draws
+        es.simulation_step()
+        mu = es.get_step_info()["friction_current"]
+        assert 0.5 <= mu <= 0.8
+        assert sim._sim.agents[0].params["mu"] == mu
+        seen.add(mu)
+    assert len(seen) >= 5
+
+
+@pytest.mark.parametrize(
+    "lo, hi, interval", [(0.0, 1.0, (20, 20)), (0.9, 0.8, (20, 20)), (0.9, 1.0, (0.0, 1.0))]
+)
+def test_training_friction_profile_rejects_invalid_values(lo, hi, interval):
+    with pytest.raises(ValueError):
+        es.set_friction_profile(lo, hi, interval)
 
 
 def test_friction_bounds_are_almost_flat():

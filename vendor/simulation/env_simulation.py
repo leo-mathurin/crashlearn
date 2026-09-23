@@ -721,8 +721,16 @@ class _Sim:
     # Friction
     # ------------------------------------------------------------------
     def _update_friction(self) -> None:
+        # E-12 (D1): the shipped body built the params dict and dropped it; the countdown never
+        # ran and the engine's mu stayed at its reset value. friction_current is the absolute mu.
+        self._friction_countdown -= 1
+        if self._friction_countdown > 0:
+            return
+        self._friction = float(self._rng.uniform(_FRICTION_LO, _FRICTION_HI))
+        self._friction_countdown = self._next_friction_steps()
         p = dict(_PARAMS)
-        p["mu"] = _FRICTION_HI
+        p["mu"] = self._friction
+        self._sim.update_params(p, agent_idx=-1)  # type: ignore[union-attr]
 
 
     # ------------------------------------------------------------------
@@ -1270,3 +1278,23 @@ def get_current_map() -> str | None:
     Use it to verify which map circuit is active before starting training or a tournament.
     """
     return _current_map
+
+
+def set_friction_profile(lo: float, hi: float, interval_sec: tuple[float, float]) -> None:
+    """Training-only friction randomisation (E-12). Not part of the inference contract.
+
+    The shipped values (_FRICTION_LO/_HI = 0.99/1.0, a change every 20 s) are the local
+    rules and stay the defaults; tournament conditions are unknown. Friction still starts at
+    _FRICTION_HI on reset, then is drawn uniformly in [lo, hi] every interval (drawn in
+    [interval_sec[0], interval_sec[1]] seconds). Takes effect at the next reset().
+    """
+    global _FRICTION_LO, _FRICTION_HI, _FRICTION_INTERVAL_SEC
+    lo, hi = float(lo), float(hi)
+    i_lo, i_hi = float(interval_sec[0]), float(interval_sec[1])
+    if not (0.0 < lo <= hi):
+        raise ValueError(f"friction range must satisfy 0 < lo <= hi, got ({lo}, {hi})")
+    if not (1.0 / _DECISION_FREQ_HZ <= i_lo <= i_hi):
+        raise ValueError(f"interval must satisfy {1.0 / _DECISION_FREQ_HZ} <= lo <= hi, "
+                         f"got ({i_lo}, {i_hi})")
+    _FRICTION_LO, _FRICTION_HI = lo, hi
+    _FRICTION_INTERVAL_SEC = (i_lo, i_hi)
