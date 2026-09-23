@@ -1072,6 +1072,10 @@ def _load_config_override(path: str) -> tuple[float, float, float] | None:
         return None
 
 
+_MAP_STATE_GLOBALS = ("_current_map", "_MAP_YAML", "_MAP_EXT", "_WPT_PATH", "_MAP_CONFIG_YAML",
+                      "_MAP_SX", "_MAP_SY", "_MAP_STHETA")
+
+
 def set_map(name: str, num_cars: int | None = None) -> None:
     """Load a map circuit. Call once before training starts. Idempotent (no-op if same map).
 
@@ -1102,81 +1106,97 @@ def set_map(name: str, num_cars: int | None = None) -> None:
     if name not in available and name != "example":
         raise ValueError(f"Unknown map '{name}'. Available: {sorted(available)}")
 
-    if name == "example":
-        # Default / fallback map (from maps/examples/)
-        base_dir = _EXAMPLES_DIR
-        config_base = "example_map"
-    else:
-        base_dir = os.path.join(_REPO_ROOT, "maps", name)
-        config_base = name + "_map"
-
-    _MAP_YAML   = os.path.join(base_dir, f"{config_base}.yaml")
-    _MAP_EXT    = ".png"
-    _WPT_PATH   = os.path.join(base_dir, f"{config_base.replace('_map', '_centerline')}.csv") if name != "example" else \
-                  os.path.join(_EXAMPLES_DIR, "example_waypoints.csv")
-    _MAP_CONFIG_YAML = os.path.join(base_dir, f"{config_base.replace('_map', '_config')}.yaml")
-
-    # Try loading sx/sy/stheta from the config YAML; fall back to map data.
-    cfg = _load_config_override(_MAP_CONFIG_YAML)
-    if cfg is not None:
-        _MAP_SX, _MAP_SY, _MAP_STHETA = cfg
-    elif name != "example":
-        # Derive start pose from the map's own data (centerline CSV or map YAML origin).
-        centerline_path = os.path.join(base_dir, f"{name}_centerline.csv")
-        map_yaml_path   = os.path.join(base_dir, f"{name}_map.yaml")
-
-        if os.path.exists(centerline_path):
-            # Use first non-comment waypoint as start point.
-            with open(centerline_path) as _f:
-                for line in _f:
-                    stripped = line.strip()
-                    if stripped.startswith("#") or not stripped:
-                        continue
-                    parts = [p.strip() for p in stripped.split(",")]
-                    if len(parts) >= 2:
-                        _MAP_SX = float(parts[0])
-                        _MAP_SY = float(parts[1])
-                        # Compute heading from the first two waypoints.
-                        with open(centerline_path) as _f2:
-                            wpts_raw = []
-                            for l in _f2:
-                                s = l.strip()
-                                if s.startswith("#") or not s:
-                                    continue
-                                pp = [p.strip() for p in s.split(",")]
-                                if len(pp) >= 2:
-                                    wpts_raw.append((float(pp[0]), float(pp[1])))
-                        if len(wpts_raw) >= 2:
-                            dx = wpts_raw[1][0] - wpts_raw[0][0]
-                            dy = wpts_raw[1][1] - wpts_raw[0][1]
-                            _MAP_STHETA = float(math.atan2(dy, dx))
-                        else:
-                            _MAP_STHETA = _DEFAULT_THETA
-                        break
-                else:
-                    # No waypoints found in CSV → fall through to map_yaml origin.
-                    _load_start_from_map_yaml(base_dir, name)
-        else:
-            _load_start_from_map_yaml(base_dir, name)
-    else:
-        _MAP_SX, _MAP_SY, _MAP_STHETA = 0.7, 0.0, 1.37079632679
-
-    # Re-warmup the njit progress projector with the new centerline (if it exists).
-    if name != "example" and os.path.exists(_WPT_PATH):
-        _rebuild_waypoints_from_csv(_WPT_PATH)
-
-    _current_map = name
-    # FIX C3b/C3c: rebuild the Simulator on the new map. Invalidating _sim forces
-    # reset() → _build(), which re-reads the updated _MAP_YAML globals for both the
-    # Simulator occupancy grid and the ScanSimulator2D (LiDAR + iTTC). num_cars is
-    # honored (lazy rebuild with the requested count).
-    if _sim_instance is not None:
-        _sim_instance._map_name = name
+    # E-12 (D5): make the switch atomic. The shipped code wrote _current_map before rebuilding,
+    # so a failed rebuild left the module on the broken map and every later reset() crashed.
+    saved = {k: globals()[k] for k in _MAP_STATE_GLOBALS}
+    try:
         if name == "example":
-            _sim_instance._load_waypoints()   # restore example centerline
-        n = num_cars if num_cars is not None else max(_sim_instance._num_agents, 1)
-        _sim_instance._sim = None
-        _sim_instance.reset(n)
+            # Default / fallback map (from maps/examples/)
+            base_dir = _EXAMPLES_DIR
+            config_base = "example_map"
+        else:
+            base_dir = os.path.join(_REPO_ROOT, "maps", name)
+            config_base = name + "_map"
+
+        _MAP_YAML   = os.path.join(base_dir, f"{config_base}.yaml")
+        _MAP_EXT    = ".png"
+        _WPT_PATH   = os.path.join(base_dir, f"{config_base.replace('_map', '_centerline')}.csv") if name != "example" else \
+                      os.path.join(_EXAMPLES_DIR, "example_waypoints.csv")
+        _MAP_CONFIG_YAML = os.path.join(base_dir, f"{config_base.replace('_map', '_config')}.yaml")
+        # E-12 (D5): fail here, not at the next reset() when no simulator is built yet
+        for required in (_MAP_YAML, os.path.splitext(_MAP_YAML)[0] + _MAP_EXT):
+            if not os.path.isfile(required):
+                raise FileNotFoundError(f"map '{name}': missing {required}")
+
+        # Try loading sx/sy/stheta from the config YAML; fall back to map data.
+        cfg = _load_config_override(_MAP_CONFIG_YAML)
+        if cfg is not None:
+            _MAP_SX, _MAP_SY, _MAP_STHETA = cfg
+        elif name != "example":
+            # Derive start pose from the map's own data (centerline CSV or map YAML origin).
+            centerline_path = os.path.join(base_dir, f"{name}_centerline.csv")
+            map_yaml_path   = os.path.join(base_dir, f"{name}_map.yaml")
+
+            if os.path.exists(centerline_path):
+                # Use first non-comment waypoint as start point.
+                with open(centerline_path) as _f:
+                    for line in _f:
+                        stripped = line.strip()
+                        if stripped.startswith("#") or not stripped:
+                            continue
+                        parts = [p.strip() for p in stripped.split(",")]
+                        if len(parts) >= 2:
+                            _MAP_SX = float(parts[0])
+                            _MAP_SY = float(parts[1])
+                            # Compute heading from the first two waypoints.
+                            with open(centerline_path) as _f2:
+                                wpts_raw = []
+                                for l in _f2:
+                                    s = l.strip()
+                                    if s.startswith("#") or not s:
+                                        continue
+                                    pp = [p.strip() for p in s.split(",")]
+                                    if len(pp) >= 2:
+                                        wpts_raw.append((float(pp[0]), float(pp[1])))
+                            if len(wpts_raw) >= 2:
+                                dx = wpts_raw[1][0] - wpts_raw[0][0]
+                                dy = wpts_raw[1][1] - wpts_raw[0][1]
+                                _MAP_STHETA = float(math.atan2(dy, dx))
+                            else:
+                                _MAP_STHETA = _DEFAULT_THETA
+                            break
+                    else:
+                        # No waypoints found in CSV → fall through to map_yaml origin.
+                        _load_start_from_map_yaml(base_dir, name)
+            else:
+                _load_start_from_map_yaml(base_dir, name)
+        else:
+            _MAP_SX, _MAP_SY, _MAP_STHETA = 0.7, 0.0, 1.37079632679
+
+        # Re-warmup the njit progress projector with the new centerline (if it exists).
+        if name != "example" and os.path.exists(_WPT_PATH):
+            _rebuild_waypoints_from_csv(_WPT_PATH)
+
+        _current_map = name
+        # FIX C3b/C3c: rebuild the Simulator on the new map. Invalidating _sim forces
+        # reset() → _build(), which re-reads the updated _MAP_YAML globals for both the
+        # Simulator occupancy grid and the ScanSimulator2D (LiDAR + iTTC). num_cars is
+        # honored (lazy rebuild with the requested count).
+        if _sim_instance is not None:
+            _sim_instance._map_name = name
+            if name == "example":
+                _sim_instance._load_waypoints()   # restore example centerline
+            n = num_cars if num_cars is not None else max(_sim_instance._num_agents, 1)
+            _sim_instance._sim = None
+            _sim_instance.reset(n)
+    except Exception:
+        globals().update(saved)
+        if _sim_instance is not None:  # rebuild on the previous map (the race restarts)
+            _sim_instance._map_name = _current_map
+            _sim_instance._load_waypoints()
+            _sim_instance._sim = None
+            _sim_instance.reset(max(_sim_instance._num_agents, 1))
+        raise
 
 
 # ---------------------------------------------------------------------------

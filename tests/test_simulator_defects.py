@@ -137,18 +137,31 @@ def test_every_available_map_can_be_loaded():
     es.reset(1)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="D5: a failed set_map leaves _current_map on the broken map, reset() then crashes",
-)
-def test_failed_set_map_does_not_poison_singleton(monkeypatch):
-    # A listed map with no files, rather than "Mexico City": fixing D4 must not hide D5.
+@pytest.fixture
+def ghost_map(monkeypatch):
+    """A listed map with no files, rather than "Mexico City": fixing D4 must not hide D5."""
     monkeypatch.setattr(es, "_available_maps", es._ensure_maps_discovered() | {"Ghost"})
+
+
+def test_failed_set_map_does_not_poison_singleton(ghost_map):
+    """D5, fixed in E-12: a failed set_map left _current_map on the broken map."""
+    es.set_map("Spa")
     es.reset(1)
+    arc = es._get_sim()._total_arc
     with pytest.raises(FileNotFoundError):
         es.set_map("Ghost")
-    # Expected: the previous state is kept and reset() still works.
-    assert es.get_current_map() != "Ghost"
+    assert es.get_current_map() == "Spa"
+    es.reset(1)
+    assert es._get_sim()._total_arc == arc  # still projecting progress on Spa
+
+
+def test_failed_set_map_before_any_reset_keeps_the_previous_map(ghost_map):
+    """D5, fixed in E-12: with no simulator built yet, the failure surfaced at the next reset."""
+    es.close()
+    before = es.get_current_map()
+    with pytest.raises(FileNotFoundError):
+        es.set_map("Ghost")
+    assert es.get_current_map() == before
     es.reset(1)
 
 
