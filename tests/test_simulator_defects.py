@@ -116,12 +116,14 @@ def test_every_available_map_can_be_loaded():
     strict=True,
     reason="D5: a failed set_map leaves _current_map on the broken map, reset() then crashes",
 )
-def test_failed_set_map_does_not_poison_singleton():
+def test_failed_set_map_does_not_poison_singleton(monkeypatch):
+    # A listed map with no files, rather than "Mexico City": fixing D4 must not hide D5.
+    monkeypatch.setattr(es, "_available_maps", es._ensure_maps_discovered() | {"Ghost"})
     es.reset(1)
     with pytest.raises(FileNotFoundError):
-        es.set_map("Mexico City")
+        es.set_map("Ghost")
     # Expected: the previous state is kept and reset() still works.
-    assert es.get_current_map() != "Mexico City"
+    assert es.get_current_map() != "Ghost"
     es.reset(1)
 
 
