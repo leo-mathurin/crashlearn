@@ -65,7 +65,7 @@ def canonical_name(name: str) -> str:
 
 
 def track_dirs() -> list[str]:
-    """Directory names the simulator exposes as maps (aliases included)."""
+    """Directory names the simulator exposes as maps (one per track since E-12)."""
     return sorted(d.name for d in MAPS_DIR.iterdir() if d.is_dir() and d.name not in NON_TRACK_DIRS)
 
 

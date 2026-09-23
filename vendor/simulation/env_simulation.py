@@ -18,6 +18,10 @@ wall contact). Velocity/yaw_rate/slip remain zeroed (correct for a stopped car).
 No speed debuff. No reward penalty. Escape from a head-on wall requires
 reversing (single-track model produces no yaw at v=0).
 Collisions are never penalised and never terminate the episode.
+E-12 (D6): in_collision comes from the iTTC check, which misses slow contacts and never
+fires once the body is inside a wall, so cars crept then tunneled through walls. Each
+sub-step now also checks the body against the occupancy grid (_footprint_clear) and
+applies the same rollback; knockbacks that would push a car into a wall are undone.
 """
 
 # ---------------------------------------------------------------------------
@@ -181,6 +185,38 @@ def _project_progress_njit(px, py, wpts, arc, total_arc):
 
 
 # ---------------------------------------------------------------------------
+# E-12 D6: wall contact from the occupancy grid (independent of the iTTC check)
+# ---------------------------------------------------------------------------
+# The body is approximated by three discs of radius width/2 centred on its long axis
+# (centre and +/- (length - width)/2): the ends are covered, the four corners by ~5 cm less.
+_FOOTPRINT_RADIUS = _PARAMS["width"] / 2.0
+_FOOTPRINT_OFFSETS = (0.0, (_PARAMS["length"] - _PARAMS["width"]) / 2.0,
+                      -(_PARAMS["length"] - _PARAMS["width"]) / 2.0)
+
+
+def _footprint_clear(state) -> bool:
+    """True if the car body at state (x, y, ., ., yaw) lies in free space of the current map.
+
+    Uses the scanner's distance transform (metres to the nearest occupied cell). A point
+    outside the map image counts as occupied, so a car can never drive off the grid.
+    """
+    scan = RaceCar.scan_simulator
+    x, y, yaw = float(state[0]), float(state[1]), float(state[4])
+    c, s = math.cos(yaw), math.sin(yaw)
+    for off in _FOOTPRINT_OFFSETS:
+        px, py = x + off * c, y + off * s
+        tx, ty = px - scan.orig_x, py - scan.orig_y
+        xr = tx * scan.orig_c + ty * scan.orig_s
+        yr = -tx * scan.orig_s + ty * scan.orig_c
+        col, row = int(xr // scan.map_resolution), int(yr // scan.map_resolution)
+        if not (0 <= row < scan.map_height and 0 <= col < scan.map_width):
+            return False
+        if scan.dt[row, col] < _FOOTPRINT_RADIUS:
+            return False
+    return True
+
+
+# ---------------------------------------------------------------------------
 # _Sim singleton
 # ---------------------------------------------------------------------------
 class _Sim:
@@ -198,7 +234,7 @@ class _Sim:
         self._sim: Simulator | None  = None
         self._num_agents: int        = 0
         self._map_name: str          = ""   # Currently loaded map name (set by set_map)
-        self._rng                    = np.random.default_rng(seed=0)
+        self._rng                    = np.random.default_rng(seed=_SEED)  # E-12: set_seed()
         self._waypoints: np.ndarray  = np.zeros((2, 2))  # (N, 2) x,y
         self._arc: np.ndarray        = np.zeros(2)        # cumulative arc length (N,)
         self._total_arc: float       = 1.0
@@ -533,6 +569,13 @@ class _Sim:
         si[1] += impulse_mag_j_to_i * n[1]
         sj[0] -= impulse_mag_i_to_j * n[0]
         sj[1] -= impulse_mag_i_to_j * n[1]
+        # E-12 D6: a knockback must not push a car into a wall (undo that car's displacement)
+        if not _footprint_clear(si):
+            si[0] -= impulse_mag_j_to_i * n[0]
+            si[1] -= impulse_mag_j_to_i * n[1]
+        if not _footprint_clear(sj):
+            sj[0] += impulse_mag_i_to_j * n[0]
+            sj[1] += impulse_mag_i_to_j * n[1]
 
         # --- Subtle velocity influence (preserve sign) ---
 
@@ -612,6 +655,12 @@ class _Sim:
                     continue
                 wall = bool(self._sim.agents[i].in_collision)
                 veh  = int(self._sim.collision_idx[i]) >= 0
+                # E-12 D6: the iTTC check misses slow contacts (window ~1 mm at v~0) and
+                # never fires once the body is inside a wall; the occupancy grid does not.
+                if not wall and not _footprint_clear(self._sim.agents[i].state):
+                    wall = True
+                    self._wall_hit[i] = True
+                    self._sim.agents[i].state[3:] = 0.0  # what the engine does on iTTC
 
                 
 
@@ -672,8 +721,16 @@ class _Sim:
     # Friction
     # ------------------------------------------------------------------
     def _update_friction(self) -> None:
+        # E-12 (D1): the shipped body built the params dict and dropped it; the countdown never
+        # ran and the engine's mu stayed at its reset value. friction_current is the absolute mu.
+        self._friction_countdown -= 1
+        if self._friction_countdown > 0:
+            return
+        self._friction = float(self._rng.uniform(_FRICTION_LO, _FRICTION_HI))
+        self._friction_countdown = self._next_friction_steps()
         p = dict(_PARAMS)
-        p["mu"] = _FRICTION_HI
+        p["mu"] = self._friction
+        self._sim.update_params(p, agent_idx=-1)  # type: ignore[union-attr]
 
 
     # ------------------------------------------------------------------
@@ -690,6 +747,9 @@ class _Sim:
             y = float(obs["poses_y"][i])
             p_abs = self._compute_progress(x, y)              # absolute, [0,1)
             rel   = (p_abs - self._progress_start[i]) % 1.0   # own-start phase, [0,1)
+            if rel >= 1.0:
+                # E-12: (0.0 - 1e-19) % 1.0 == 1.0 in floating point, right on the line
+                rel = 0.0
 
             d     = rel - self._rel_prev[i]
             if d < -0.5:
@@ -730,19 +790,24 @@ class _Sim:
                 self._stagnation_flag[i] = False
                 continue
 
-            # Progress-based DNF: update running max within current lap
+            # Running max of the lap phase, reported as info["max_progress"]
             self._max_progress[i] = max(float(self._progress[i]), self._max_progress[i])
 
-            # Record running max in history deque (maxlen=_DNF_WINDOW_STEPS+1)
-            self._progress_history[i].append(self._max_progress[i])
+            # E-12: the DNF window follows the running max of the CUMULATIVE progress. The
+            # shipped code used the lap phase, which comes back near 1.0 right after the line
+            # (float wrap, or a car backing over it): the max stuck at 1.0 and the car was
+            # DNF'd 4 s later however well it drove.
+            hist = self._progress_history[i]
+            best = max(float(self._cum[i]), hist[-1]) if hist else float(self._cum[i])
+            hist.append(best)
 
-            if len(self._progress_history[i]) < _DNF_WINDOW_STEPS + 1:
+            if len(hist) < _DNF_WINDOW_STEPS + 1:
                 self._stagnation_flag[i] = False
                 continue
 
-            # DNF: strictly increasing max-progress required over window.
-            window_start = self._progress_history[i][0]
-            stag = (self._max_progress[i] <= window_start)
+            # DNF: strictly increasing max cumulative progress required over the window.
+            window_start = hist[0]
+            stag = (best <= window_start)
             self._stagnation_flag[i] = stag
             if stag:
                 self._freeze_dnf(i)
@@ -918,6 +983,7 @@ class _Sim:
 # Module-level singleton and 6 public functions
 # ---------------------------------------------------------------------------
 _sim_instance: _Sim | None = None
+_SEED: int = 0  # E-12: seed of the simulator RNG (LiDAR noise, friction draws), see set_seed()
 
 
 def _get_sim() -> _Sim:
@@ -1015,6 +1081,10 @@ def _load_config_override(path: str) -> tuple[float, float, float] | None:
         return None
 
 
+_MAP_STATE_GLOBALS = ("_current_map", "_MAP_YAML", "_MAP_EXT", "_WPT_PATH", "_MAP_CONFIG_YAML",
+                      "_MAP_SX", "_MAP_SY", "_MAP_STHETA")
+
+
 def set_map(name: str, num_cars: int | None = None) -> None:
     """Load a map circuit. Call once before training starts. Idempotent (no-op if same map).
 
@@ -1045,81 +1115,97 @@ def set_map(name: str, num_cars: int | None = None) -> None:
     if name not in available and name != "example":
         raise ValueError(f"Unknown map '{name}'. Available: {sorted(available)}")
 
-    if name == "example":
-        # Default / fallback map (from maps/examples/)
-        base_dir = _EXAMPLES_DIR
-        config_base = "example_map"
-    else:
-        base_dir = os.path.join(_REPO_ROOT, "maps", name)
-        config_base = name + "_map"
-
-    _MAP_YAML   = os.path.join(base_dir, f"{config_base}.yaml")
-    _MAP_EXT    = ".png"
-    _WPT_PATH   = os.path.join(base_dir, f"{config_base.replace('_map', '_centerline')}.csv") if name != "example" else \
-                  os.path.join(_EXAMPLES_DIR, "example_waypoints.csv")
-    _MAP_CONFIG_YAML = os.path.join(base_dir, f"{config_base.replace('_map', '_config')}.yaml")
-
-    # Try loading sx/sy/stheta from the config YAML; fall back to map data.
-    cfg = _load_config_override(_MAP_CONFIG_YAML)
-    if cfg is not None:
-        _MAP_SX, _MAP_SY, _MAP_STHETA = cfg
-    elif name != "example":
-        # Derive start pose from the map's own data (centerline CSV or map YAML origin).
-        centerline_path = os.path.join(base_dir, f"{name}_centerline.csv")
-        map_yaml_path   = os.path.join(base_dir, f"{name}_map.yaml")
-
-        if os.path.exists(centerline_path):
-            # Use first non-comment waypoint as start point.
-            with open(centerline_path) as _f:
-                for line in _f:
-                    stripped = line.strip()
-                    if stripped.startswith("#") or not stripped:
-                        continue
-                    parts = [p.strip() for p in stripped.split(",")]
-                    if len(parts) >= 2:
-                        _MAP_SX = float(parts[0])
-                        _MAP_SY = float(parts[1])
-                        # Compute heading from the first two waypoints.
-                        with open(centerline_path) as _f2:
-                            wpts_raw = []
-                            for l in _f2:
-                                s = l.strip()
-                                if s.startswith("#") or not s:
-                                    continue
-                                pp = [p.strip() for p in s.split(",")]
-                                if len(pp) >= 2:
-                                    wpts_raw.append((float(pp[0]), float(pp[1])))
-                        if len(wpts_raw) >= 2:
-                            dx = wpts_raw[1][0] - wpts_raw[0][0]
-                            dy = wpts_raw[1][1] - wpts_raw[0][1]
-                            _MAP_STHETA = float(math.atan2(dy, dx))
-                        else:
-                            _MAP_STHETA = _DEFAULT_THETA
-                        break
-                else:
-                    # No waypoints found in CSV → fall through to map_yaml origin.
-                    _load_start_from_map_yaml(base_dir, name)
-        else:
-            _load_start_from_map_yaml(base_dir, name)
-    else:
-        _MAP_SX, _MAP_SY, _MAP_STHETA = 0.7, 0.0, 1.37079632679
-
-    # Re-warmup the njit progress projector with the new centerline (if it exists).
-    if name != "example" and os.path.exists(_WPT_PATH):
-        _rebuild_waypoints_from_csv(_WPT_PATH)
-
-    _current_map = name
-    # FIX C3b/C3c: rebuild the Simulator on the new map. Invalidating _sim forces
-    # reset() → _build(), which re-reads the updated _MAP_YAML globals for both the
-    # Simulator occupancy grid and the ScanSimulator2D (LiDAR + iTTC). num_cars is
-    # honored (lazy rebuild with the requested count).
-    if _sim_instance is not None:
-        _sim_instance._map_name = name
+    # E-12 (D5): make the switch atomic. The shipped code wrote _current_map before rebuilding,
+    # so a failed rebuild left the module on the broken map and every later reset() crashed.
+    saved = {k: globals()[k] for k in _MAP_STATE_GLOBALS}
+    try:
         if name == "example":
-            _sim_instance._load_waypoints()   # restore example centerline
-        n = num_cars if num_cars is not None else max(_sim_instance._num_agents, 1)
-        _sim_instance._sim = None
-        _sim_instance.reset(n)
+            # Default / fallback map (from maps/examples/)
+            base_dir = _EXAMPLES_DIR
+            config_base = "example_map"
+        else:
+            base_dir = os.path.join(_REPO_ROOT, "maps", name)
+            config_base = name + "_map"
+
+        _MAP_YAML   = os.path.join(base_dir, f"{config_base}.yaml")
+        _MAP_EXT    = ".png"
+        _WPT_PATH   = os.path.join(base_dir, f"{config_base.replace('_map', '_centerline')}.csv") if name != "example" else \
+                      os.path.join(_EXAMPLES_DIR, "example_waypoints.csv")
+        _MAP_CONFIG_YAML = os.path.join(base_dir, f"{config_base.replace('_map', '_config')}.yaml")
+        # E-12 (D5): fail here, not at the next reset() when no simulator is built yet
+        for required in (_MAP_YAML, os.path.splitext(_MAP_YAML)[0] + _MAP_EXT):
+            if not os.path.isfile(required):
+                raise FileNotFoundError(f"map '{name}': missing {required}")
+
+        # Try loading sx/sy/stheta from the config YAML; fall back to map data.
+        cfg = _load_config_override(_MAP_CONFIG_YAML)
+        if cfg is not None:
+            _MAP_SX, _MAP_SY, _MAP_STHETA = cfg
+        elif name != "example":
+            # Derive start pose from the map's own data (centerline CSV or map YAML origin).
+            centerline_path = os.path.join(base_dir, f"{name}_centerline.csv")
+            map_yaml_path   = os.path.join(base_dir, f"{name}_map.yaml")
+
+            if os.path.exists(centerline_path):
+                # Use first non-comment waypoint as start point.
+                with open(centerline_path) as _f:
+                    for line in _f:
+                        stripped = line.strip()
+                        if stripped.startswith("#") or not stripped:
+                            continue
+                        parts = [p.strip() for p in stripped.split(",")]
+                        if len(parts) >= 2:
+                            _MAP_SX = float(parts[0])
+                            _MAP_SY = float(parts[1])
+                            # Compute heading from the first two waypoints.
+                            with open(centerline_path) as _f2:
+                                wpts_raw = []
+                                for l in _f2:
+                                    s = l.strip()
+                                    if s.startswith("#") or not s:
+                                        continue
+                                    pp = [p.strip() for p in s.split(",")]
+                                    if len(pp) >= 2:
+                                        wpts_raw.append((float(pp[0]), float(pp[1])))
+                            if len(wpts_raw) >= 2:
+                                dx = wpts_raw[1][0] - wpts_raw[0][0]
+                                dy = wpts_raw[1][1] - wpts_raw[0][1]
+                                _MAP_STHETA = float(math.atan2(dy, dx))
+                            else:
+                                _MAP_STHETA = _DEFAULT_THETA
+                            break
+                    else:
+                        # No waypoints found in CSV → fall through to map_yaml origin.
+                        _load_start_from_map_yaml(base_dir, name)
+            else:
+                _load_start_from_map_yaml(base_dir, name)
+        else:
+            _MAP_SX, _MAP_SY, _MAP_STHETA = 0.7, 0.0, 1.37079632679
+
+        # Re-warmup the njit progress projector with the new centerline (if it exists).
+        if name != "example" and os.path.exists(_WPT_PATH):
+            _rebuild_waypoints_from_csv(_WPT_PATH)
+
+        _current_map = name
+        # FIX C3b/C3c: rebuild the Simulator on the new map. Invalidating _sim forces
+        # reset() → _build(), which re-reads the updated _MAP_YAML globals for both the
+        # Simulator occupancy grid and the ScanSimulator2D (LiDAR + iTTC). num_cars is
+        # honored (lazy rebuild with the requested count).
+        if _sim_instance is not None:
+            _sim_instance._map_name = name
+            if name == "example":
+                _sim_instance._load_waypoints()   # restore example centerline
+            n = num_cars if num_cars is not None else max(_sim_instance._num_agents, 1)
+            _sim_instance._sim = None
+            _sim_instance.reset(n)
+    except Exception:
+        globals().update(saved)
+        if _sim_instance is not None:  # rebuild on the previous map (the race restarts)
+            _sim_instance._map_name = _current_map
+            _sim_instance._load_waypoints()
+            _sim_instance._sim = None
+            _sim_instance.reset(max(_sim_instance._num_agents, 1))
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -1221,3 +1307,37 @@ def get_current_map() -> str | None:
     Use it to verify which map circuit is active before starting training or a tournament.
     """
     return _current_map
+
+
+def set_friction_profile(lo: float, hi: float, interval_sec: tuple[float, float]) -> None:
+    """Training-only friction randomisation (E-12). Not part of the inference contract.
+
+    The shipped values (_FRICTION_LO/_HI = 0.99/1.0, a change every 20 s) are the local
+    rules and stay the defaults; tournament conditions are unknown. Friction still starts at
+    _FRICTION_HI on reset, then is drawn uniformly in [lo, hi] every interval (drawn in
+    [interval_sec[0], interval_sec[1]] seconds). Takes effect at the next reset().
+    """
+    global _FRICTION_LO, _FRICTION_HI, _FRICTION_INTERVAL_SEC
+    lo, hi = float(lo), float(hi)
+    i_lo, i_hi = float(interval_sec[0]), float(interval_sec[1])
+    if not (0.0 < lo <= hi):
+        raise ValueError(f"friction range must satisfy 0 < lo <= hi, got ({lo}, {hi})")
+    if not (1.0 / _DECISION_FREQ_HZ <= i_lo <= i_hi):
+        raise ValueError(f"interval must satisfy {1.0 / _DECISION_FREQ_HZ} <= lo <= hi, "
+                         f"got ({i_lo}, {i_hi})")
+    _FRICTION_LO, _FRICTION_HI = lo, hi
+    _FRICTION_INTERVAL_SEC = (i_lo, i_hi)
+
+
+def set_seed(seed: int) -> None:
+    """Seed the simulator RNG (LiDAR noise and friction draws) (E-12). Not part of the inference
+    contract.
+
+    The shipped code always seeded it with 0 when the singleton was built and exposed no seed;
+    reset() still does NOT reseed it, so successive episodes keep drawing new noise. Reseeds the
+    running simulator now, and every simulator built afterwards (after close()).
+    """
+    global _SEED
+    _SEED = int(seed)
+    if _sim_instance is not None:
+        _sim_instance._rng = np.random.default_rng(seed=_SEED)

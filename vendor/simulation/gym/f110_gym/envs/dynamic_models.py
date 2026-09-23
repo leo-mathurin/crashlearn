@@ -149,7 +149,10 @@ def vehicle_dynamics_st(x, u_init, mu, C_Sf, C_Sr, lf, lr, h, m, I, s_min, s_max
     u = np.array([steering_constraint(x[2], u_init[0], s_min, s_max, sv_min, sv_max), accl_constraints(x[3], u_init[1], v_switch, a_max, v_min, v_max)])
 
     # switch to kinematic model for small velocities
-    if abs(x[3]) < 0.5:
+    # E-12 (Crash & Learn): and for every reverse speed. The single-track tyre model below is
+    # only valid moving forward: for v < 0 its yaw damping changes sign and the yaw rate
+    # diverges (1e30 rad/s from 0.02 rad of steering at -1.3 m/s).
+    if x[3] < 0.5:
         # wheelbase
         lwb = lf + lr
 

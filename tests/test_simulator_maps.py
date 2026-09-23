@@ -1,6 +1,6 @@
 """`set_map` behaviour on the provided circuits (E-10).
 
-The track list, the Mexico City duplicate and the per-track assets are covered by
+The track list, the Mexico City alias and the per-track assets are covered by
 tests/test_tracks.py through `crashlearn.tracks`, the single source of track names.
 """
 
@@ -21,10 +21,9 @@ def _fresh_sim():
         es.set_map("example")
 
 
-def test_simulator_lists_24_names_for_23_distinct_circuits():
-    names = es.get_available_maps()
-    assert len(names) == 24
-    assert set(names) == set(TRACKS) | {"Mexico City"}
+def test_simulator_lists_the_23_circuits():
+    """Since E-12 (D4), the misnamed "Mexico City" duplicate is no longer listed."""
+    assert es.get_available_maps() == sorted(TRACKS)
 
 
 def test_set_map_is_idempotent_and_reported():

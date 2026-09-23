@@ -16,7 +16,7 @@ tracks.sealed_test_tracks(unseal=True)  # test scellé, voir la règle
 
 ## Inventaire
 
-`vendor/simulation/maps/` contient 25 dossiers : 23 circuits distincts, le doublon `Mexico City` et `examples/`, la carte par défaut quand `set_map` n'est pas appelé. Chaque circuit fournit :
+`vendor/simulation/maps/` contient 24 dossiers : les 23 circuits et `examples/`, la carte par défaut quand `set_map` n'est pas appelé. L'archive fournie contenait en plus le doublon `Mexico City/`, supprimé dans E-12 (voir plus bas). Chaque circuit fournit :
 
 - `<Nom>_centerline.csv` : `x_m, y_m, w_tr_right_m, w_tr_left_m` ;
 - `<Nom>_map.png` et `<Nom>_map.yaml` : grille d'occupation, résolution et origine ;
@@ -59,11 +59,9 @@ Les valeurs κ désignent la courbure absolue, en rad/m. Les chiffres exacts se 
 
 ## Doublon `Mexico City`
 
-`Mexico City/` est un doublon exact de `MexicoCity/`. Les 5 fichiers ont un sha256 identique, et ce test est rejoué par `track_inventory.py` et `tests/test_tracks.py`. Un seul nom de fichier diffère : `Mexico City_DonkeySim_waypoints.txt`. Le nom canonique retenu est `MexicoCity`, et `Mexico City` n'en est qu'un alias.
+L'archive fournie contenait `Mexico City/`, un doublon exact de `MexicoCity/` : les 5 fichiers avaient un sha256 identique, seul `Mexico City_DonkeySim_waypoints.txt` changeait de nom. Comme ses fichiers restaient préfixés `MexicoCity_`, `set_map("Mexico City")` échouait (`FileNotFoundError`) et `get_available_maps()` renvoyait 24 noms (défaut D4 de l'audit E-10).
 
-Deux défauts du simulateur, à corriger dans E-12 et laissés tels quels ici :
-- `get_available_maps()` renvoie **24 noms**, alias compris. Il ne faut donc pas s'en servir pour lister les circuits.
-- `set_map("Mexico City")` échoue au `reset` : il cherche `maps/Mexico City/Mexico City_map.png`, qui n'existe pas (`FileNotFoundError`). Tant que ce n'est pas corrigé, toujours passer par `canonical_name`.
+E-12 a supprimé ce dossier : `get_available_maps()` renvoie maintenant les 23 circuits. Le nom canonique reste `MexicoCity`, et `Mexico City` est conservé comme **alias de saisie** dans `tracks.yaml`, sans dossier : `canonical_name("Mexico City")` renvoie `"MexicoCity"`.
 
 ## Partitions
 
@@ -103,7 +101,7 @@ Si une récompense, une feature ou le replay venait à utiliser la raceline, il 
 
 `INSTRUCTIONS.md` cite Monaco en exemple, mais cette carte **n'est pas fournie**. Aucune configuration ne la référence, et `canonical_name("Monaco")` lève `KeyError`.
 
-Chargement réel : `uv run python scripts/check_track_loading.py` enchaîne `set_map`, `reset(num_cars=1)` et 20 décisions à 20 Hz sur chaque nom. Les 23 circuits se chargent ; seul l'alias échoue, comme décrit plus haut. La version pytest est `uv run pytest -m slow tests/test_tracks.py`. Le chargement par le visualiseur (`viz_replay.py`) n'est pas couvert ici.
+Chargement réel : `uv run python scripts/check_track_loading.py` enchaîne `set_map`, `reset(num_cars=1)` et 20 décisions à 20 Hz sur chaque nom. Les 23 circuits se chargent. La version pytest est `uv run pytest -m slow tests/test_tracks.py`. Le chargement par le visualiseur (`viz_replay.py`) n'est pas couvert ici.
 
 ## Métriques géométriques : limites
 
