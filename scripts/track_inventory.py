@@ -1,6 +1,6 @@
 """Check (default) or refresh the generated fields of src/crashlearn/tracks.yaml.
 
-Prints the per-track inventory and the file-by-file hash proof for every alias directory.
+Prints the per-track inventory. Aliases are input names only: they have no map directory.
 Exit code 1 if tracks.yaml drifts from the vendored maps.
 """
 
@@ -32,8 +32,10 @@ def main() -> int:
     names = {t["name"] for t in data["tracks"]}
     aliases = {a: t["name"] for t in data["tracks"] for a in t.get("aliases", [])}
     dirs = set(tracks.track_dirs())
-    if dirs != names | aliases.keys():
-        errors.append(f"directories {sorted(dirs)} != names+aliases")
+    if dirs != names:
+        errors.append(f"directories {sorted(dirs)} != track names")
+    if dirs & aliases.keys():
+        errors.append(f"alias directories {sorted(dirs & aliases.keys())} (removed in E-12)")
 
     print(
         f"{'track':<14}{'split':<11}{'raceline':<9}" + "".join(f"{c:>10}" for c, _ in GEOMETRY_COLS)
@@ -47,20 +49,8 @@ def main() -> int:
         cols = "".join(f"{fresh[k]:>10}" for _, k in GEOMETRY_COLS)
         print(f"{t['name']:<14}{t['split']:<11}{raceline:<9}{cols}")
 
-    for alias, canonical in aliases.items():
-        print(f"\nalias {alias!r} vs {canonical!r} (sha256, file by file):")
-        a = tracks.inventory(tracks.MAPS_DIR / alias)
-        c = tracks.inventory(tracks.MAPS_DIR / canonical)
-        for kind in sorted(a.keys() | c.keys()):
-            ha, hc = a.get(kind, {}).get("sha256"), c.get(kind, {}).get("sha256")
-            same = "identical" if ha == hc else "DIFFERENT"
-            print(f"  {kind:<20} {str(ha)[:16]}  {str(hc)[:16]}  {same}")
-            print(f"  {'':<20} {a.get(kind, {}).get('file')} | {c.get(kind, {}).get('file')}")
-            if ha != hc:
-                errors.append(f"alias {alias!r}: {kind} differs from {canonical!r}")
-
     if args.write:
-        # --write only refreshes generated fields: directory and alias errors still fail
+        # --write only refreshes generated fields: directory errors still fail
         errors = [e for e in errors if not e.endswith("generated fields out of date")]
         lines = tracks.TRACKS_YAML.read_text().splitlines(keepends=True)
         header = "".join(line for line in lines if line.startswith("#"))  # comments on top only

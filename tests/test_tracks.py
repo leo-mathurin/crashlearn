@@ -1,8 +1,6 @@
 """Track inventory and fixed splits (E-9). Splits are copied here on purpose:
 editing tracks.yaml to move a track must fail CI and require a team decision."""
 
-import collections
-
 import pytest
 
 from crashlearn import tracks
@@ -21,9 +19,7 @@ def test_yaml_matches_vendored_directories():
     names = {t["name"] for t in TRACKS}
     aliases = {a for t in TRACKS for a in t.get("aliases", [])}
     assert not names & aliases
-    assert (
-        set(tracks.track_dirs()) == names | aliases == TRAIN | VALIDATION | TEST | {"Mexico City"}
-    )
+    assert set(tracks.track_dirs()) == names == TRAIN | VALIDATION | TEST  # no alias dir (E-12)
 
 
 @pytest.mark.parametrize("track", TRACKS, ids=lambda t: t["name"])
@@ -32,13 +28,9 @@ def test_generated_fields_are_up_to_date(track):
     assert {k: track.get(k) for k in fresh} == fresh, "run scripts/track_inventory.py --write"
 
 
-def test_mexico_city_is_an_exact_duplicate():
-    def hashes(name):
-        return collections.Counter(
-            a["sha256"] for a in tracks.inventory(tracks.MAPS_DIR / name).values()
-        )
-
-    assert hashes("Mexico City") == hashes("MexicoCity")
+def test_mexico_city_is_an_alias_without_a_directory():
+    """E-12 (D4) removed the misnamed duplicate folder; the name stays accepted as input."""
+    assert not (tracks.MAPS_DIR / "Mexico City").exists()
     assert tracks.canonical_name("Mexico City") == "MexicoCity"
     assert tracks.canonical_name("MexicoCity") == "MexicoCity"
 

@@ -126,15 +126,12 @@ def test_loader_dummy_info_matches_real_info_schema():
 # --- Maps ---------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="D4: 'Mexico City' is listed but its files are named MexicoCity_*",
-)
 def test_every_available_map_can_be_loaded():
-    assert "Mexico City" in es.get_available_maps()
-    es.set_map("Mexico City")
-    es.reset(1)
+    """D4, fixed in E-12: "Mexico City" was listed but its files are named MexicoCity_*, so
+    set_map("Mexico City") failed. The duplicate folder is gone; every listed name loads
+    (all 23 are driven in tests/test_simulator_maps.py)."""
+    assert "Mexico City" not in es.get_available_maps()
+    assert len(es.get_available_maps()) == 23
 
 
 @pytest.fixture
