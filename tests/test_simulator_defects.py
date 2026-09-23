@@ -1,8 +1,9 @@
 """Defects of the vendored simulator reproduced by execution (E-10, fixes tracked in E-12).
 
 Each test describes the EXPECTED behavior (per the engine's own comments, INSTRUCTIONS.md, or the
-subject) and is marked `xfail(strict=True)`: it fails today, and the day E-12 fixes the underlying
-defect it will flip to XPASS strict, which breaks the suite and forces the marker to be removed.
+subject). Defects still present are marked `xfail(strict=True)`: the day one is fixed, the test
+flips to XPASS strict, which breaks the suite and forces the marker to be removed. E-12 fixed D1,
+D4, D5 and D6 (see vendor/PROVENANCE.md); D2 and D3 are left to our own adapter (E-14/E-16).
 """
 
 import importlib
@@ -219,6 +220,26 @@ def test_reverse_frees_car_after_wall_push():
         if float(sim._sim.agents[0].state[3]) < -0.1:
             return
     pytest.fail("speed is still zero after 20 reverse steps")
+
+
+# --- Parameter consistency (E-12) ------------------------------------------------
+
+
+def test_physics_and_decision_rates_are_consistent():
+    es.reset(1)
+    sim = es._get_sim()
+    assert es._PHYSICS_STEPS / es._FREQ_HZ == pytest.approx(1 / es._DECISION_FREQ_HZ)
+    assert sim._sim.time_step == pytest.approx(1 / es._FREQ_HZ)
+    assert all(agent.ttc_thresh == es._TTC_THRESH for agent in sim._sim.agents)
+
+
+def test_engine_mu_is_the_friction_not_the_nominal_parameter():
+    """Kept as shipped: reset() overrides the nominal mu (1.0489) with friction_current (1.0),
+    so the nominal value never reaches the physics. Documented in vendor/PROVENANCE.md."""
+    es.reset(1)
+    mu = es._get_sim()._sim.agents[0].params["mu"]
+    assert es._PARAMS["mu"] == 1.0489
+    assert mu == es.get_step_info()["friction_current"] == es._FRICTION_HI
 
 
 # --- Documentation vs code -------------------------------------------------------

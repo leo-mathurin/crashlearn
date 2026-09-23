@@ -51,7 +51,7 @@ Les tests fournis ne couvrent que 1 à 3 voitures ; `tests/test_simulator_reset_
 
 ## Défauts reproduits
 
-Chaque défaut est figé par un test `xfail(strict=True)` dans `tests/test_simulator_defects.py` : le jour où E-12 le corrige, le test passe en XPASS strict et force à retirer le marqueur.
+Chaque défaut a été figé par un test `xfail(strict=True)` dans `tests/test_simulator_defects.py` : le jour où il est corrigé, le test passe en XPASS strict et force à retirer le marqueur. **E-12 a corrigé D1, D4, D5 et D6** (détail et commits dans `vendor/PROVENANCE.md`) ; D2 et D3 restent en xfail, volontairement (voir « Corrections attendues »).
 
 | ID | Défaut | Mesure | Test |
 | -- | -- | -- | -- |
@@ -60,7 +60,7 @@ Chaque défaut est figé par un test `xfail(strict=True)` dans `tests/test_simul
 | D3 | `agent_loader.create_dummy_obs/info` ne suivent pas le vrai schéma : pas d'`agent_id`, clés adversaires du faux schéma, `info` sans `time_elapsed/ranks/progress_delta/race_over`, listes au lieu de dicts | le dry-run du loader ne détecte pas un agent qui lirait `obs["agent_id"]` ou `info["ranks"]` | `test_loader_dummy_obs_matches_real_obs_schema`, `test_loader_dummy_info_matches_real_info_schema` |
 | D4 | `get_available_maps()` liste `"Mexico City"` mais ses fichiers sont préfixés `MexicoCity_` : `set_map("Mexico City")` → `FileNotFoundError` | 24 noms listés, 23 chargeables | `test_every_available_map_can_be_loaded` |
 | D5 | Un `set_map` raté laisse `_current_map` sur la carte cassée et `_sim=None` : tout `reset()` suivant replante jusqu'à un `set_map` valide | reproduit avec une carte listée sans fichiers, indépendamment de D4 | `test_failed_set_map_does_not_poison_singleton` |
-| D6 | **Mur traversable.** Le test iTTC (`laser_models.py:206-213`) ne fire que si `0 ≤ (scan − côté)/(v·cos) < 0,015 s`. Au redémarrage depuis v=0 la fenêtre fait ~1 mm : la voiture avance de quelques mm par pas (fluage), le flag `collisions.wall` clignote. Une fois le corps dans le mur, `scan − côté < 0` → plus aucune détection : la voiture traverse, ressort et roule hors carte **en restant ACTIVE** (la projection sur la centerline continue de progresser, donc pas de DNF). La marche arrière ne libère plus une voiture qui a pénétré. | poussée à 10 m/s : cellule occupée au pas 50, 0,92 m au pas 120, 133 m hors carte au pas 400, statut 1 ; à 3 m/s : 40 m au pas 400. Marche arrière après 120 pas : v reste 0 sur 60 pas. | `test_wall_is_impassable_when_pushing_for_10_seconds`, `test_car_leaving_the_map_is_not_active`, `test_reverse_frees_car_after_long_wall_push` |
+| D6 | **Mur traversable.** Le test iTTC (`laser_models.py:206-213`) ne fire que si `0 ≤ (scan − côté)/(v·cos) < 0,015 s`. Au redémarrage depuis v=0 la fenêtre fait ~1 mm : la voiture avance de quelques mm par pas (fluage), le flag `collisions.wall` clignote. Une fois le corps dans le mur, `scan − côté < 0` → plus aucune détection : la voiture traverse, ressort et roule hors carte **en restant ACTIVE** (la projection sur la centerline continue de progresser, donc pas de DNF). La marche arrière ne libère plus une voiture qui a pénétré. | poussée à 10 m/s : cellule occupée au pas 50, 0,92 m au pas 120, 133 m hors carte au pas 400, statut 1 ; à 3 m/s : 40 m au pas 400. Marche arrière après 120 pas : v reste 0 sur 60 pas. | `test_wall_is_impassable_when_pushing_for_10_seconds`, `test_car_pinned_against_a_wall_is_dnf_by_stagnation`, `test_reverse_frees_car_after_wall_push` |
 
 D6 est absent de l'audit statique et prioritaire pour E-12 : un agent RL peut apprendre à couper à travers les murs, et une voiture sortie de piste n'est jamais classée DNF. Piste minimale : dans le wrapper, comparer la pose post-sous-pas à l'occupancy grid (ou imposer une distance LiDAR minimale ≥ demi-largeur) et restaurer la pose indépendamment de l'iTTC ; déclarer DNF une voiture hors carte.
 
@@ -78,10 +78,10 @@ D6 est absent de l'audit statique et prioritaire pour E-12 : un agent RL peut ap
 | O8 | La ligne droite de départ du circuit d'exemple est courte : à fond, mur au pas ~10, v max ≈ 4,8 m/s. Ne pas s'en servir pour calibrer la vitesse. |
 | O9 | Montreal et Shanghai n'ont pas de `_raceline.csv` ; Monaco cité en exemple n'existe pas. |
 
-## Corrections attendues (vers E-12)
+## Corrections attendues (vers E-12) et état
 
-1. D6 — rendre les murs infranchissables et DNF hors carte (bloquant pour l'entraînement).
-2. D1 — implémenter `_update_friction` (mettre à jour `mu` via `update_params`) et rendre plages/intervalle configurables pour la randomisation d'entraînement.
-3. D4/D5 — supprimer le dossier `Mexico City` (copie mal nommée) et rendre `set_map` atomique (n'écrire `_current_map` qu'après succès).
-4. D2/D3 — aligner `get_space_info` et les dummies du loader sur le vrai schéma, ou fournir notre propre adaptateur (E-14, `crashlearn.features.adapt_observation`) et ne jamais faire confiance au dry-run du loader.
+1. D6 — rendre les murs infranchissables et DNF hors carte (bloquant pour l'entraînement). **Fait (E-12)** : contact testé sur la grille d'occupation à chaque sous-pas ; une voiture ne peut plus quitter l'espace libre, et une voiture bloquée contre un mur est DNF par la règle de stagnation.
+2. **Fait (E-12)** D1 — implémenter `_update_friction` (mettre à jour `mu` via `update_params`) et rendre plages/intervalle configurables pour la randomisation d'entraînement.
+3. **Fait (E-12)** D4/D5 — supprimer le dossier `Mexico City` (copie mal nommée) et rendre `set_map` atomique (n'écrire `_current_map` qu'après succès).
+4. **Non traité dans E-12, volontairement** D2/D3 — aligner `get_space_info` et les dummies du loader sur le vrai schéma, ou fournir notre propre adaptateur (E-14, `crashlearn.features.adapt_observation`) et ne jamais faire confiance au dry-run du loader.
 5. O5 — ne pas dépendre de `sim_recorder.py` pour l'évaluation ; écrire notre propre boucle avec une instance d'`Agent` par voiture (E-13).

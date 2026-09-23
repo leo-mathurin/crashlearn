@@ -35,6 +35,8 @@ Chaque correctif est un commit séparé, lié au défaut reproduit par l'audit E
 
 ## Remarques
 
-- Les écarts connus (friction non appliquée, doublon `Mexico City`/`MexicoCity`, détection de carte, etc.) seront corrigés dans le ticket E-12. Chaque correctif fera l'objet d'un commit séparé et visible dans le diff.
+- E-12 a corrigé D1, D4, D5 et D6 (tableau ci-dessus). D2 et D3 (schémas annoncés par `get_space_info` et par les observations factices d'`agent_loader`) ne sont **pas** corrigés ici : ils relèvent de notre adaptateur d'observations (E-14/E-16), et les modifier changerait ce que voit un agent au tournoi. La détection de carte du visualiseur et les métadonnées de replay restent à traiter avec les replays.
+- Cohérence des paramètres vérifiée (tests `test_physics_and_decision_rates_are_consistent`, `test_engine_mu_is_the_friction_not_the_nominal_parameter`) : pas de 0,01 s × 5 sous-pas = 50 ms (20 Hz), `ttc_thresh` appliqué à chaque construction. **Divergence conservée** : le `mu` nominal de `_PARAMS` (1,0489) n'atteint jamais la physique, car `reset()` impose `mu = friction_current` (1,0). On garde ce comportement livré ; `friction_current` est donc un `mu` absolu.
+- Réglages d'entraînement et règles locales : les constantes livrées (friction 0,99–1,0 toutes les 20 s, bruit LiDAR ±0,1 %) restent les défauts et décrivent les règles locales. La randomisation d'entraînement passe par `set_friction_profile` ; elle ne change ni les clés ni les bornes de `get_obs`/`get_step_info`.
 - `Dockerfile` et `docker-compose.yml` sont conservés tels quels, mais ne servent **pas** de référence : ils n'ont pas de configuration GPU, et SB3 y est annoncé sans être installé. L'image reproductible fait l'objet d'un ticket dédié.
 - Ce dossier est exclu de Ruff et de pytest (voir `pyproject.toml`).
