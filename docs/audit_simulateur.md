@@ -51,7 +51,7 @@ Les tests fournis ne couvrent que 1 à 3 voitures ; `tests/test_simulator_reset_
 
 ## Défauts reproduits
 
-Chaque défaut a été figé par un test `xfail(strict=True)` dans `tests/test_simulator_defects.py` : le jour où il est corrigé, le test passe en XPASS strict et force à retirer le marqueur. **E-12 a corrigé D1, D4, D5 et D6** (détail et commits dans `vendor/PROVENANCE.md`) ; D2 et D3 restent en xfail, volontairement (voir « Corrections attendues »).
+Chaque défaut a été figé par un test `xfail(strict=True)` dans `tests/test_simulator_defects.py` : le jour où il est corrigé, le test passe en XPASS strict et force à retirer le marqueur. **E-12 a corrigé D1, D4, D5 et D6**, ainsi que trois défauts révélés ensuite par le pilote de contrôle E-11 (faux DNF après un passage ou un recul sur la ligne, divergence en marche arrière braquée, absence de seed public) : détail et commits dans `vendor/PROVENANCE.md` ; D2 et D3 restent en xfail, volontairement (voir « Corrections attendues »).
 
 | ID | Défaut | Mesure | Test |
 | -- | -- | -- | -- |
