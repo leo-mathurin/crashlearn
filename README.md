@@ -134,7 +134,9 @@ scripts/            points d'entrée CLI (run de contrôle, …)
 src/crashlearn/tracks.yaml  circuits, alias et partitions train/validation/test (source unique)
 tests/              tests pytest (contrat simulateur, soumission, circuits, wrapper, features, export)
 docs/               documentation technique (circuits et partitions)
-.github/workflows/  CI GitHub Actions
+.github/workflows/  CI GitHub Actions (ci.yml, commitlint.yml)
+.pre-commit-config.yaml  hooks Git (ruff en local, commitlint en hook distant)
+.commitlintrc.json  règles des messages de commit ; .commitlintrc.ci.json ajoute defaultIgnores: false
 vendor/simulation/  simulateur fourni, copie unique et non modifiée
 vendor/PROVENANCE.md  origine et sha256 de l'archive
 ```
