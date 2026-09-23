@@ -164,11 +164,14 @@ def main() -> int:
     for name in args.maps:
         if name not in train:
             parser.error(f"{name!r} is not a canonical training track: {', '.join(train)}")
+    existed = args.output.exists()
     try:  # fail now, not after an hour of racing; "a" keeps an existing file intact
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.open("a").close()
     except OSError as e:
         parser.error(f"cannot write --output {args.output}: {e}")
+    if not existed:
+        args.output.unlink()  # probe only: a crash before the first race leaves no empty JSON
 
     add_simulator_to_path()
     import env_simulation as sim
