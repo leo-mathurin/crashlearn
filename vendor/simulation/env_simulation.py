@@ -18,6 +18,10 @@ wall contact). Velocity/yaw_rate/slip remain zeroed (correct for a stopped car).
 No speed debuff. No reward penalty. Escape from a head-on wall requires
 reversing (single-track model produces no yaw at v=0).
 Collisions are never penalised and never terminate the episode.
+E-12 (D6): in_collision comes from the iTTC check, which misses slow contacts and never
+fires once the body is inside a wall, so cars crept then tunneled through walls. Each
+sub-step now also checks the body against the occupancy grid (_footprint_clear) and
+applies the same rollback; knockbacks that would push a car into a wall are undone.
 """
 
 # ---------------------------------------------------------------------------
@@ -178,6 +182,38 @@ def _project_progress_njit(px, py, wpts, arc, total_arc):
             best_t = t
     seg_len = arc[best_seg + 1] - arc[best_seg]
     return (arc[best_seg] + best_t * seg_len) / total_arc
+
+
+# ---------------------------------------------------------------------------
+# E-12 D6: wall contact from the occupancy grid (independent of the iTTC check)
+# ---------------------------------------------------------------------------
+# The body is approximated by three discs of radius width/2 centred on its long axis
+# (centre and +/- (length - width)/2): the ends are covered, the four corners by ~5 cm less.
+_FOOTPRINT_RADIUS = _PARAMS["width"] / 2.0
+_FOOTPRINT_OFFSETS = (0.0, (_PARAMS["length"] - _PARAMS["width"]) / 2.0,
+                      -(_PARAMS["length"] - _PARAMS["width"]) / 2.0)
+
+
+def _footprint_clear(state) -> bool:
+    """True if the car body at state (x, y, ., ., yaw) lies in free space of the current map.
+
+    Uses the scanner's distance transform (metres to the nearest occupied cell). A point
+    outside the map image counts as occupied, so a car can never drive off the grid.
+    """
+    scan = RaceCar.scan_simulator
+    x, y, yaw = float(state[0]), float(state[1]), float(state[4])
+    c, s = math.cos(yaw), math.sin(yaw)
+    for off in _FOOTPRINT_OFFSETS:
+        px, py = x + off * c, y + off * s
+        tx, ty = px - scan.orig_x, py - scan.orig_y
+        xr = tx * scan.orig_c + ty * scan.orig_s
+        yr = -tx * scan.orig_s + ty * scan.orig_c
+        col, row = int(xr // scan.map_resolution), int(yr // scan.map_resolution)
+        if not (0 <= row < scan.map_height and 0 <= col < scan.map_width):
+            return False
+        if scan.dt[row, col] < _FOOTPRINT_RADIUS:
+            return False
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -533,6 +569,13 @@ class _Sim:
         si[1] += impulse_mag_j_to_i * n[1]
         sj[0] -= impulse_mag_i_to_j * n[0]
         sj[1] -= impulse_mag_i_to_j * n[1]
+        # E-12 D6: a knockback must not push a car into a wall (undo that car's displacement)
+        if not _footprint_clear(si):
+            si[0] -= impulse_mag_j_to_i * n[0]
+            si[1] -= impulse_mag_j_to_i * n[1]
+        if not _footprint_clear(sj):
+            sj[0] += impulse_mag_i_to_j * n[0]
+            sj[1] += impulse_mag_i_to_j * n[1]
 
         # --- Subtle velocity influence (preserve sign) ---
 
@@ -612,6 +655,12 @@ class _Sim:
                     continue
                 wall = bool(self._sim.agents[i].in_collision)
                 veh  = int(self._sim.collision_idx[i]) >= 0
+                # E-12 D6: the iTTC check misses slow contacts (window ~1 mm at v~0) and
+                # never fires once the body is inside a wall; the occupancy grid does not.
+                if not wall and not _footprint_clear(self._sim.agents[i].state):
+                    wall = True
+                    self._wall_hit[i] = True
+                    self._sim.agents[i].state[3:] = 0.0  # what the engine does on iTTC
 
                 
 

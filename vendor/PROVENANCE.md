@@ -20,7 +20,15 @@ sha256sum simulation.zip
 
 Seules les métadonnées macOS (`__MACOSX/`) ont été écartées.
 
-**Aucune modification à ce stade.** Tous les autres fichiers sont identiques à l'archive.
+Tous les autres fichiers étaient identiques à l'archive jusqu'au ticket E-12.
+
+## Modifications (E-12)
+
+Chaque correctif est un commit séparé, lié au défaut reproduit par l'audit E-10 (`docs/audit_simulateur.md`) et au test qui le vérifie dans `tests/test_simulator_defects.py`. Le contrat d'inférence (`get_obs`, `apply_action`, `get_step_info` : clés, types, bornes) n'est pas modifié.
+
+| Défaut | Fichier | Correctif | Tests |
+|---|---|---|---|
+| D6 murs traversables | `env_simulation.py` | Après chaque sous-pas, l'empreinte de la voiture (trois disques de rayon largeur/2 sur l'axe long) est testée sur la distance transform de la grille d'occupation ; un contact déclenche le même retour à la pose légale que l'iTTC. Un point hors de l'image compte comme occupé. Un knockback qui pousserait une voiture dans un mur est annulé pour cette voiture. | `test_wall_is_impassable_when_pushing_for_10_seconds`, `test_car_pinned_against_a_wall_is_dnf_by_stagnation`, `test_reverse_frees_car_after_wall_push` |
 
 ## Remarques
 

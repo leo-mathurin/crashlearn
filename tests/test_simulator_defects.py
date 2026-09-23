@@ -131,7 +131,13 @@ def test_failed_set_map_does_not_poison_singleton(monkeypatch):
 
 
 def _drive_into_nearest_wall(steps: int) -> float:
-    """Point the car at the nearest wall and floor it; returns the distance traveled."""
+    """Point the car at the nearest wall and floor it.
+
+    Returns the farthest distance from the start reached while the car was ACTIVE: a car
+    pinned against a wall is DNF'd by the 4 s stagnation rule and teleported off-map, which
+    is expected and must not count as going through the wall. Every active pose must also
+    leave the body in free space.
+    """
     from f110_gym.envs.base_classes import RaceCar
 
     es.reset(1)
@@ -141,47 +147,43 @@ def _drive_into_nearest_wall(steps: int) -> float:
     st[4] += float(RaceCar.scan_angles[int(np.argmin(scan))])
     st[3] = 0.0
     x0, y0 = float(st[0]), float(st[1])
+    farthest = 0.0
     for _ in range(steps):
         es.apply_action(0, es._TARGET_SPEED_MAX, 0.0)
         es.simulation_step()
-    st = sim._sim.agents[0].state
-    return float(np.hypot(st[0] - x0, st[1] - y0))
+        if es.get_step_info()["agent_status"][0] != 1:
+            break
+        st = sim._sim.agents[0].state
+        assert es._footprint_clear(st), "an active car ended a step inside a wall"
+        farthest = max(farthest, float(np.hypot(st[0] - x0, st[1] - y0)))
+    return farthest
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="D6: creep then tunnel through - the iTTC check never fires at v~=0 nor once the "
-    "body is inside the wall; measured 133 m off-map in 400 steps, status ACTIVE",
-)
 def test_wall_is_impassable_when_pushing_for_10_seconds():
+    """D6, fixed in E-12: before the fix the car crept then tunneled (133 m off-map in 400
+    steps, still ACTIVE) because the iTTC check never fires at v~=0 nor inside a wall."""
     moved = _drive_into_nearest_wall(200)
     assert moved < 1.0, f"car went through the wall: {moved:.1f} m traveled"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="D6: a car that left the map stays ACTIVE (centerline projection keeps advancing, "
-    "so it never gets DNF'd)",
-)
-def test_car_leaving_the_map_is_not_active():
+def test_car_pinned_against_a_wall_is_dnf_by_stagnation():
+    """D6, fixed in E-12: a car that tunneled kept progressing and was never DNF'd."""
     _drive_into_nearest_wall(400)
-    assert es.get_step_info()["agent_status"][0] != 1
+    assert es.get_step_info()["agent_status"][0] == 0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="D6: reversing no longer frees a car that has penetrated the wall (rear rays are "
-    "also below the threshold)",
-)
-def test_reverse_frees_car_after_long_wall_push():
-    _drive_into_nearest_wall(120)
+def test_reverse_frees_car_after_wall_push():
+    """D6, fixed in E-12: reversing did not free a car that had penetrated the wall.
+    The push lasts 3 s, under the 4 s stagnation window (the car must still be ACTIVE)."""
+    _drive_into_nearest_wall(60)
+    assert es.get_step_info()["agent_status"][0] == 1
     sim = es._get_sim()
-    for _ in range(60):
+    for _ in range(20):
         es.apply_action(0, es._TARGET_SPEED_MIN, 0.0)
         es.simulation_step()
         if float(sim._sim.agents[0].state[3]) < -0.1:
             return
-    pytest.fail("speed is still zero after 60 reverse steps")
+    pytest.fail("speed is still zero after 20 reverse steps")
 
 
 # --- Documentation vs code -------------------------------------------------------
