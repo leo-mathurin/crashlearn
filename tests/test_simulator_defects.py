@@ -263,6 +263,25 @@ def test_crossing_the_line_does_not_dnf():
         assert info["step_count"] < 3000, "no lap in 150 s"
 
 
+# --- Steered reverse (found by the E-11 control driver) ---------------------------
+
+
+def test_steered_reverse_stays_stable():
+    """E-12, bug 3 of docs/scripted_driver.md: at |v| >= 0.5 m/s the engine switched to the
+    dynamic single-track model even in reverse, where its yaw damping changes sign: 0.02 rad of
+    steering at -1.3 m/s drove the yaw rate to 1e30 rad/s and the heading became random."""
+    es.set_map("IMS")
+    es.reset(1)
+    sim = es._get_sim()
+    for _ in range(30):  # 1.5 s, reaches about -1.5 m/s
+        es.apply_action(0, -2.0, 0.05)
+        es.simulation_step()
+        st = sim._sim.agents[0].state
+        assert np.all(np.isfinite(st))
+        assert abs(float(st[5])) < 5.0, f"yaw rate {float(st[5]):.3g} rad/s"
+    assert float(sim._sim.agents[0].state[3]) < -1.0  # really reversing past 0.5 m/s
+
+
 # --- Parameter consistency (E-12) ------------------------------------------------
 
 
