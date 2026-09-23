@@ -11,6 +11,7 @@ import importlib
 import env_simulation as es
 import numpy as np
 import pytest
+from conftest import pure_pursuit
 
 
 @pytest.fixture(autouse=True)
@@ -220,6 +221,46 @@ def test_reverse_frees_car_after_wall_push():
         if float(sim._sim.agents[0].state[3]) < -0.1:
             return
     pytest.fail("speed is still zero after 20 reverse steps")
+
+
+# --- Lap-line stagnation DNF (found by the E-11 control driver) --------------------
+
+
+def test_reversing_over_the_start_line_is_not_dnf():
+    """E-12, bug 2 of docs/scripted_driver.md: backing over the line put the lap phase near
+    0.99, the stagnation max stuck there and the car was DNF'd at step 81 while driving on."""
+    es.set_map("IMS")
+    es.reset(1)
+    sim = es._get_sim()
+    for _ in range(10):
+        es.apply_action(0, -1.0, 0.0)
+        es.simulation_step()
+    for _ in range(120):  # straight on down the start straight, well past the 80-step window
+        es.apply_action(0, 2.0, 0.0)
+        es.simulation_step()
+        info = es.get_step_info()
+        assert info["collisions"]["wall"][0] == 0
+        assert info["agent_status"][0] == 1, f"DNF at step {info['step_count']}"
+    assert sim._cum[0] > 0.01  # it did make progress past its start
+
+
+@pytest.mark.slow
+def test_crossing_the_line_does_not_dnf():
+    """E-12, bug 1 of docs/scripted_driver.md: on the line the projection is exactly 0.0 and
+    (0.0 - p0) % 1.0 == 1.0 when p0 ~ 1e-19, so the phase hit 1.0 right after the lap was
+    booked, the stagnation max stuck at 1.0 and the car was DNF'd 80 decisions later."""
+    es.set_map("IMS")
+    es.reset(1)
+    sim = es._get_sim()
+    after_line = 0
+    while after_line < 120:
+        es.apply_action(0, *pure_pursuit(sim, 0, speed=3.0))
+        es.simulation_step()
+        info = es.get_step_info()
+        assert info["agent_status"][0] == 1, f"DNF at step {info['step_count']}"
+        assert 0.0 <= es.get_obs(0)["progress"] < 1.0
+        after_line += es.get_obs(0)["lap_count"] >= 1
+        assert info["step_count"] < 3000, "no lap in 150 s"
 
 
 # --- Parameter consistency (E-12) ------------------------------------------------

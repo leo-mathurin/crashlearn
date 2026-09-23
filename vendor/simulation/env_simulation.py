@@ -747,6 +747,9 @@ class _Sim:
             y = float(obs["poses_y"][i])
             p_abs = self._compute_progress(x, y)              # absolute, [0,1)
             rel   = (p_abs - self._progress_start[i]) % 1.0   # own-start phase, [0,1)
+            if rel >= 1.0:
+                # E-12: (0.0 - 1e-19) % 1.0 == 1.0 in floating point, right on the line
+                rel = 0.0
 
             d     = rel - self._rel_prev[i]
             if d < -0.5:
@@ -787,19 +790,24 @@ class _Sim:
                 self._stagnation_flag[i] = False
                 continue
 
-            # Progress-based DNF: update running max within current lap
+            # Running max of the lap phase, reported as info["max_progress"]
             self._max_progress[i] = max(float(self._progress[i]), self._max_progress[i])
 
-            # Record running max in history deque (maxlen=_DNF_WINDOW_STEPS+1)
-            self._progress_history[i].append(self._max_progress[i])
+            # E-12: the DNF window follows the running max of the CUMULATIVE progress. The
+            # shipped code used the lap phase, which comes back near 1.0 right after the line
+            # (float wrap, or a car backing over it): the max stuck at 1.0 and the car was
+            # DNF'd 4 s later however well it drove.
+            hist = self._progress_history[i]
+            best = max(float(self._cum[i]), hist[-1]) if hist else float(self._cum[i])
+            hist.append(best)
 
-            if len(self._progress_history[i]) < _DNF_WINDOW_STEPS + 1:
+            if len(hist) < _DNF_WINDOW_STEPS + 1:
                 self._stagnation_flag[i] = False
                 continue
 
-            # DNF: strictly increasing max-progress required over window.
-            window_start = self._progress_history[i][0]
-            stag = (self._max_progress[i] <= window_start)
+            # DNF: strictly increasing max cumulative progress required over the window.
+            window_start = hist[0]
+            stag = (best <= window_start)
             self._stagnation_flag[i] = stag
             if stag:
                 self._freeze_dnf(i)
