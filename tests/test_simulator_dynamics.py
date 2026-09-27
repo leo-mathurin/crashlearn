@@ -73,17 +73,18 @@ def test_lidar_sees_walls_not_cars():
 
 
 def test_idle_car_is_dnf_after_window_plus_one_steps():
-    """An idle car is DNF'd at exactly step 81 (80-step window = 4s at 20 Hz)."""
+    """An idle car is DNF'd at exactly step 201 (200-step window = 10 s at 20 Hz)."""
     es.reset(1)
     dnf_step = None
-    for k in range(1, 200):
+    for k in range(1, 400):
         es.apply_action(0, 0.0, 0.0)
         es.simulation_step()
         info = es.get_step_info()
         if info["agent_status"][0] == 0:
             dnf_step = k
             break
-    assert dnf_step == es._DNF_WINDOW_STEPS + 1 == 81
+    assert dnf_step == es._DNF_WINDOW_STEPS + 1 == 201
+    assert es._DNF_MIN_GAIN_M == 1.0, "less than 1 m of progress over the window is stagnation"
     assert info["race_over"] is True
     assert info["ranks"][0] == 1, "sole car: rank 1 even while DNF"
 
@@ -106,8 +107,9 @@ def test_dnf_car_is_teleported_off_track_and_frozen():
 
 def test_moving_car_is_not_dnf_over_the_window():
     es.reset(1)
+    sim = es._get_sim()
     for _ in range(es._DNF_WINDOW_STEPS + 20):
-        es.apply_action(0, 3.0, 0.0)
+        es.apply_action(0, *pure_pursuit(sim, 0, speed=3.0))
         es.simulation_step()
     assert es.get_step_info()["agent_status"][0] == 1
 
@@ -128,8 +130,9 @@ def _state(cid: int = 0) -> np.ndarray:
     return es._get_sim()._sim.agents[cid].state
 
 
-def test_wall_contact_zeroes_speed_keeps_yaw_and_does_not_terminate():
-    """First wall contact: flag raised, speed zeroed, heading kept, status stays ACTIVE."""
+def test_wall_contact_bounces_back_keeps_yaw_and_does_not_terminate():
+    """First wall contact: flag raised, speed reversed (0.3 x impact, capped at 0.45 m/s),
+    heading kept, status stays ACTIVE."""
     es.reset(1)
     _face_nearest_wall(0)
     hit_at = None
@@ -141,15 +144,14 @@ def test_wall_contact_zeroes_speed_keeps_yaw_and_does_not_terminate():
         if info["collisions"]["wall"][0]:
             hit_at = k
             assert info["agent_status"][0] == 1
-            assert float(_state()[3]) == 0.0
+            assert -es._WALL_REST_MAX <= float(_state()[3]) < 0.0
             assert float(_state()[4]) == pytest.approx(yaw_before), "yaw is not clobbered to 0"
             break
     assert hit_at is not None and hit_at < 20
 
 
 def test_reverse_frees_car_shortly_after_wall_contact():
-    """Measured: after 10 steps of pushing, reversing frees the car within <=10 steps (see the
-    D6 defect tests for the case where the car has already penetrated the wall)."""
+    """Measured: after 10 steps of pushing, reversing frees the car within <=10 steps."""
     es.reset(1)
     _face_nearest_wall(0)
     while not es.get_step_info()["collisions"]["wall"][0]:
@@ -193,10 +195,9 @@ def test_pure_pursuit_completes_three_laps_and_finishes():
     assert info["race_over"] is True
     assert len(info["lap_times"][0]) == es._REQUIRED_LAPS == 3
     assert all(t > 0 for t in info["lap_times"][0])
-    # The last lap's lap_complete is masked because the car is no longer active (returned as
-    # np.bool_ rather than a Python bool in that case: see O3 in the audit).
-    assert len(lap_steps) == es._REQUIRED_LAPS - 1
-    assert not info["lap_complete"][0]
+    # Since 2026-09-18 the winning lap is reported on the finish step too.
+    assert len(lap_steps) == es._REQUIRED_LAPS
+    assert lap_steps[-1] == final
     # Order of magnitude: ~52s per lap at 3 m/s over 156 m (measured: 1045/2084/3124).
     assert 900 < lap_steps[0] < 1200
     assert 2800 < final < 3400
