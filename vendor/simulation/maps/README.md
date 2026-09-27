@@ -54,6 +54,12 @@ We applied a smoothing algorithm to the center lines. The track widths were extr
 image processing algorithm. Afterwards the data was downscaled 1:10 with a fixed track width of 2,20m so it can be
 used in the F1TENTH environments.
 
+> **Note (Crash&Learn)** — that "fixed track width of 2,20m" is no longer what the
+> maps actually contain: the per-circuit rescaling applied afterwards left the
+> corridor between ~1.44 m (Montreal) and ~2.60 m (Brands Hatch), while the
+> `w_tr_right_m` / `w_tr_left_m` columns kept the stale `1.1, 1.1`. Those columns
+> have been regenerated from the occupancy images by `measure_widths.py`.
+
 # Content and Data Format
 - maps: The tracks are displayed as occupancy grid maps based on a .png file. That maps have a corresponding .yaml file
 that includes both resolution and origin of the maps. These maps can be used in both the [F1TENTH Gym](https://github.com/f1tenth/f1tenth_gym) and [F1TENTH Simulator](https://github.com/f1tenth/f1tenth_simulator).

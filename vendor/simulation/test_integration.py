@@ -21,33 +21,48 @@ from f110_gym.envs.base_classes import RaceCar
 # ---------------------------------------------------------------------------
 def t05_vehicle_collision_no_terminate_knockback():
     """
-    Place 2 cars on a direct collision course in open space.
+    Head-on: 2 cars launched at each other, the most violent contact there is
+    (relative speed is doubled, so the impulse saturates _KNOCKBACK_MAX_M).
     Verify:
-    - collision flag fires
+    - collision flag fires on both cars
     - episode does NOT terminate (no done, no status change)
-    - after contact, distance between cars increases (knockback)
+    - the cars separate instead of interpenetrating
+    - each car is pushed back along its OWN heading, i.e. in opposite directions
     """
     reset(2)
     sim_obj = _get_sim()
     assert sim_obj._sim is not None
     engine = sim_obj._sim
 
-    # Override start positions: face each other ~1.0 m apart
+    # Override start positions: face each other ~1.2 m apart.
+    # Car 0 keeps its (legal, on-track) start pose; car 1 is placed 1.2 m ahead
+    # along car 0's heading, facing back. Placing them at arbitrary map coords
+    # would land off the track edge and trigger the off-track DNF before contact.
+    x0 = float(engine.agents[0].state[0])
+    y0 = float(engine.agents[0].state[1])
+    yaw0 = float(engine.agents[0].state[4])
+
     engine.agents[0].state[:] = 0.0
-    engine.agents[0].state[0] = 8.0
-    engine.agents[0].state[1] = 0.0
-    engine.agents[0].state[4] = 0.0   # facing +x
+    engine.agents[0].state[0] = x0
+    engine.agents[0].state[1] = y0
+    engine.agents[0].state[4] = yaw0
 
     engine.agents[1].state[:] = 0.0
-    engine.agents[1].state[0] = 9.2
-    engine.agents[1].state[1] = 0.0
-    engine.agents[1].state[4] = math.pi  # facing -x
+    engine.agents[1].state[0] = x0 + 1.2 * math.cos(yaw0)
+    engine.agents[1].state[1] = y0 + 1.2 * math.sin(yaw0)
+    engine.agents[1].state[4] = yaw0 + math.pi  # facing car 0
+
+    # Unit vector along car 0's heading; car 1 faces exactly the other way.
+    nx, ny = math.cos(yaw0), math.sin(yaw0)
 
     collision_detected = False
-    dist_prev = None
-    dist      = None
+    # Seeded with the real pre-step gap so the first iteration compares against a
+    # number, not None (a contact on step 0 would otherwise raise TypeError).
+    prev_0 = (x0, y0)
+    prev_1 = (float(engine.agents[1].state[0]), float(engine.agents[1].state[1]))
+    dist_prev = math.hypot(prev_1[0] - prev_0[0], prev_1[1] - prev_0[1])
 
-    for i in range(60):
+    for _ in range(60):
         apply_action(0, _PARAMS["v_max"], 0.0)
         apply_action(1, _PARAMS["v_max"], 0.0)
         simulation_step()
@@ -61,25 +76,118 @@ def t05_vehicle_collision_no_terminate_knockback():
 
         if info["collisions"]["vehicle"][0] and not collision_detected:
             collision_detected = True
+            assert info["collisions"]["vehicle"][1], \
+                "a head-on contact must be flagged on both cars"
             # No termination: status must still be ACTIVE
             assert info["agent_status"][0] == 1, "car 0 must be ACTIVE after collision"
             assert info["agent_status"][1] == 1, "car 1 must be ACTIVE after collision"
             assert dist >= dist_prev, (
                 f"cars interpenetrating after knockback: at_hit={dist_prev:.4f}, after={dist:.4f}"
             )
-
-        if collision_detected and i > 30:
-            x0 = float(engine.agents[0].state[0])
-            y0 = float(engine.agents[0].state[1])
-            x1 = float(engine.agents[1].state[0])
-            y1 = float(engine.agents[1].state[1])
+            # Each car must be shoved backwards along its own heading. Both were
+            # driving forward, so without a knockback each advance stays positive.
+            adv_0 = (x0 - prev_0[0]) * nx + (y0 - prev_0[1]) * ny
+            adv_1 = -((x1 - prev_1[0]) * nx + (y1 - prev_1[1]) * ny)
+            assert adv_0 < 0.0 and adv_1 < 0.0, (
+                f"cars not bounced in opposite directions: car 0 advanced {adv_0:+.4f} m, "
+                f"car 1 advanced {adv_1:+.4f} m over the contact step"
+            )
             break
 
         dist_prev = dist
+        prev_0 = (x0, y0)
+        prev_1 = (x1, y1)
 
     assert collision_detected, "vehicle-vehicle collision not detected"
-    assert dist is not None
-    
+
+
+# ---------------------------------------------------------------------------
+# T05b — rear-end on a stopped car: the stopped car is shoved, the rammer pays too
+# ---------------------------------------------------------------------------
+def t05b_collision_with_stopped_car():
+    """
+    Car 1 drives head-on into car 0, which stays at zero throttle.
+    Verify:
+    - collision flag fires on BOTH cars
+    - no termination (both still ACTIVE)
+    - the stopped car is actually pushed away from the impact
+    - the rammer does not walk through untouched: distance never collapses
+    """
+    reset(2)
+    sim_obj = _get_sim()
+    assert sim_obj._sim is not None
+    engine = sim_obj._sim
+
+    # Same on-track placement as T05: car 0 keeps its legal start pose,
+    # car 1 sits 1.2 m ahead along car 0's heading, facing back.
+    x0 = float(engine.agents[0].state[0])
+    y0 = float(engine.agents[0].state[1])
+    yaw0 = float(engine.agents[0].state[4])
+
+    engine.agents[0].state[:] = 0.0
+    engine.agents[0].state[0] = x0
+    engine.agents[0].state[1] = y0
+    engine.agents[0].state[4] = yaw0
+
+    engine.agents[1].state[:] = 0.0
+    engine.agents[1].state[0] = x0 + 1.2 * math.cos(yaw0)
+    engine.agents[1].state[1] = y0 + 1.2 * math.sin(yaw0)
+    engine.agents[1].state[4] = yaw0 + math.pi
+
+    # Impact direction, seen from car 0: it must be shoved backwards (-heading).
+    nx, ny = math.cos(yaw0), math.sin(yaw0)
+    x0_init, y0_init = x0, y0
+
+    collision_detected = False
+    dist_prev = math.hypot(
+        float(engine.agents[1].state[0]) - x0,
+        float(engine.agents[1].state[1]) - y0,
+    )
+    # Per-step advance of the rammer along its own heading (= -n). Free of contact
+    # it accelerates, so this grows monotonically; the impact must break that.
+    prev_b = (float(engine.agents[1].state[0]), float(engine.agents[1].state[1]))
+    advance_prev = 0.0
+
+    for _ in range(60):
+        apply_action(0, 0.0, 0.0)              # stopped car: no throttle
+        apply_action(1, _PARAMS["v_max"], 0.0)  # rammer
+        simulation_step()
+        info = get_step_info()
+
+        xa = float(engine.agents[0].state[0])
+        ya = float(engine.agents[0].state[1])
+        xb = float(engine.agents[1].state[0])
+        yb = float(engine.agents[1].state[1])
+        dist = math.hypot(xb - xa, yb - ya)
+        advance = -((xb - prev_b[0]) * nx + (yb - prev_b[1]) * ny)
+
+        if info["collisions"]["vehicle"][0] and not collision_detected:
+            collision_detected = True
+            assert info["collisions"]["vehicle"][1], \
+                "collision must be flagged on both cars, not only on the rammer"
+            assert info["agent_status"][0] == 1, "stopped car must stay ACTIVE"
+            assert info["agent_status"][1] == 1, "rammer must stay ACTIVE"
+            assert dist >= dist_prev, (
+                f"cars interpenetrating after knockback: at_hit={dist_prev:.4f}, after={dist:.4f}"
+            )
+            # The stopped car must have been pushed back along -heading.
+            push = (xa - x0_init) * nx + (ya - y0_init) * ny
+            assert push < -1e-3, f"stopped car was not shoved backwards (push={push:.4f} m)"
+            # The rammer must pay too: without a floor on its share of the contact,
+            # ramming a stopped car costs it nothing and it keeps accelerating
+            # straight through. Its advance over the contact step must drop.
+            assert advance < advance_prev, (
+                f"rammer went through untouched: advance {advance_prev:.4f} m before "
+                f"contact, {advance:.4f} m during contact"
+            )
+            break
+
+        dist_prev = dist
+        prev_b = (xb, yb)
+        advance_prev = advance
+
+    assert collision_detected, "collision with a stopped car not detected"
+
 
 # ---------------------------------------------------------------------------
 # T10 — DNF'd agent doesn't corrupt active car's collisions or scan
@@ -177,6 +285,7 @@ def t23_friction_initial_value():
 if __name__ == "__main__":
     run_all([
         ("T05 vehicle collision: no terminate, knockback", t05_vehicle_collision_no_terminate_knockback),
+        ("T05b collision with a stopped car",             t05b_collision_with_stopped_car),
         ("T10 DNF no corruption of active cars",          t10_dnf_no_corruption),
         ("T-wall drive into nearest wall (iTTC)",         t_wall_hit_physics),
         ("T15 progress in [0,1], delta plausible",        t15_progress_bounds),

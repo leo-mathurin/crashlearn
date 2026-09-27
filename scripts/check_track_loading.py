@@ -1,7 +1,8 @@
 """Really load every map (set_map, reset, a few straight decisions) and report OK/FAIL.
 
 Headless load check, not a policy evaluation. Exit code 1 if a canonical track fails;
-alias failures are reported but tolerated (simulator issue, see docs/tracks.md).
+failures of extra listed names are reported but tolerated
+(none since the 2026-09-18 archive, see docs/tracks.md).
 """
 
 import argparse
