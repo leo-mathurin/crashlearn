@@ -22,11 +22,13 @@ parser.add_argument("--steps",          type=int, default=2000)
 parser.add_argument("--laps",           type=int, default=2, help="Target number of laps to complete per car (default: 1)")
 parser.add_argument("--num-cars",       type=int, default=1)
 parser.add_argument("--model",          type=str, default="", help="ONNX model for car 0")
-parser.add_argument("--submissions",    type=str, default="", help="Path to a submission directory or parent directory with team subfolders")
+parser.add_argument("--submission",     type=str, default="", help="Path to a submission directory or parent directory with team subfolders")
 parser.add_argument("--controller",     type=str, default="auto", choices=["auto", "submission", "random", "onnx", "pure_pursuit"],
                     help="Controller policy for car 0 (default: auto, uses submission if available)")
 parser.add_argument("--recordings-dir", type=str, default="", help="Directory for saved episodes (default: /app/recordings or recordings/)")
 parser.add_argument("--out",            type=str, default=None, help="Output path (default: <recordings-dir>/episode_XXX.npz)")
+parser.add_argument("--map",            type=str, default="", help="Circuit name (e.g., 'bahrain', 'monaco', 'spa')")
+parser.add_argument("--seed",           type=int, default=None, help="Graine de l'aléa LiDAR. Fournie, l'épisode est rejouable à l'identique")
 args = parser.parse_args()
 
 # Determine recordings directory and ensure parent directories exist
@@ -125,7 +127,7 @@ team_names = [f"Car_{i}" for i in range(num_cars)]
 
 from agent_loader import discover_and_load_submissions
 
-sub_path = args.submissions.strip()
+sub_path = args.submission.strip()
 if not sub_path and args.controller in ("auto", "submission"):
     if os.path.exists("submission"):
         sub_path = "submission"
@@ -151,7 +153,7 @@ if sub_path:
                     team_agents.append((f"Car_{i}", None))
     except Exception as e:
         print(f"[ERROR] Failed loading submissions from '{sub_path}':\n{e}")
-        if args.submissions:
+        if args.submission:
             sys.exit(1)
 
 session = None
@@ -165,7 +167,7 @@ if args.model:
 # ---------------------------------------------------------------------------
 from env_simulation import (
     reset, get_obs, apply_action, simulation_step, get_step_info, close, _get_sim,
-    get_current_map,
+    get_current_map, set_map,
 )
 
 # ---------------------------------------------------------------------------
@@ -187,7 +189,9 @@ compute_time = np.zeros((T, num_cars),   dtype=np.float32)
 # ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------
-reset(num_cars=num_cars)
+if args.map:
+    set_map(args.map)
+reset(num_cars=num_cars, seed=args.seed)
 sim_obj = _get_sim()
 
 t_start = time.perf_counter()

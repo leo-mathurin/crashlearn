@@ -13,33 +13,48 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc g++ \
         python3-tk \
+        ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps — loose pins, confirmed working on numpy 2.x + numba 0.65
+# Core deps — EXACT pins. numba JIT-compiles the physics and the LiDAR ray casting,
+# and it declares a hard upper bound on numpy: a floating "numpy>=2.0" will eventually
+# pull a numpy that numba refuses to import, and the whole simulation stops booting.
 RUN pip install --no-cache-dir \
-        "numpy>=2.0" \
-        "numba>=0.65" \
-        "scipy>=1.7" \
-        "Pillow>=9" \
-        "pyyaml>=5.3" \
-        "imageio>=2.28" \
+        "numpy==2.4.6" \
+        "numba==0.65.1" \
+        "scipy==1.17.1" \
+        "Pillow==12.2.0" \
+        "pyyaml==6.0.3" \
+        "imageio==2.37.3" \
         "imageio-ffmpeg" \
-        "matplotlib>=3.7" \
+        "matplotlib==3.11.0" \
+        "opencv-python-headless" \
         "tensorboard" \
         "pytest"
 
-# Be careful to the version of torch and onxx !!!
+# torch — CPU-ONLY build, from PyTorch's cpu index.
+# The default PyPI wheel drags in ~2.7 GB of CUDA runtime that nothing here uses:
+# the simulation is pure CPU and the compose file exposes no GPU. Same version, same
+# API, same ONNX exporter — only the CUDA payload is gone.
+# Training on GPU is a deliberate opt-in: reinstall torch from the CUDA index yourself.
 RUN pip install --no-cache-dir \
-        "torch>=2.0" \
-        "onnx>=1.16,<2.0" \
-        "onnxscript>=0.1" \
-        "onnxruntime>=1.19,<2.0"
+        --index-url https://download.pytorch.org/whl/cpu \
+        "torch==2.13.0+cpu"
 
-# Install whatever dependencies you need for you RL here
+# ONNX toolchain — EXACT pins on purpose.
+# The tournament loads every submission with the onnxruntime below. Loose pins would
+# resolve to different versions depending on the build date, and a model written by a
+# newer onnx than the runtime fails at load with "Unsupported model IR version".
+# Announced maximum opset for submissions: 17.
 RUN pip install --no-cache-dir \
-        "gymnasium>=0.29" \
-        "tyro"
-        
+        "onnx==1.22.0" \
+        "onnxscript==0.7.1" \
+        "onnxruntime==1.29.0"
+
+# NOTE: no training framework is installed on purpose.
+# The image ships the simulation and the ONNX toolchain — everything needed to run
+# a race and to produce a model the tournament can load. Your training stack
+# (gymnasium, stable-baselines3, your own loop, ...) is yours to install.
 
 COPY . /app
 

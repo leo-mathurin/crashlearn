@@ -127,7 +127,7 @@ class RaceCar(object):
             RaceCar.side_distances = np.zeros((num_beams, ))
 
             dist_sides = params['width']/2.
-            dist_fr = (params['lf']+params['lr'])/2.
+            dist_fr = params['length']/2.
 
             for i in range(num_beams):
                 angle = -fov/2. + i*scan_ang_incr
