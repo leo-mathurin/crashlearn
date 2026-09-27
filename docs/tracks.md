@@ -16,7 +16,7 @@ tracks.sealed_test_tracks(unseal=True)  # test scellé, voir la règle
 
 ## Inventaire
 
-`vendor/simulation/maps/` contient 25 dossiers : 23 circuits distincts, le doublon `Mexico City` et `examples/`, la carte par défaut quand `set_map` n'est pas appelé. Chaque circuit fournit :
+`vendor/simulation/maps/` contient 24 dossiers : les 23 circuits et `examples/`, la carte par défaut quand `set_map` n'est pas appelé. La première archive (`simulation.zip`, 2026-09-08) contenait en plus le doublon `Mexico City/`, retiré par l'archive du 2026-09-18 (voir plus bas). Chaque circuit fournit :
 
 - `<Nom>_centerline.csv` : `x_m, y_m, w_tr_right_m, w_tr_left_m` ;
 - `<Nom>_map.png` et `<Nom>_map.yaml` : grille d'occupation, résolution et origine ;
@@ -24,6 +24,8 @@ tracks.sealed_test_tracks(unseal=True)  # test scellé, voir la règle
 - `<Nom>_raceline.csv`, **sauf Montreal et Shanghai**.
 
 Aucun `<Nom>_config.yaml` n'est fourni : le simulateur prend le premier point de la centerline comme pose de départ.
+
+Depuis l'archive du 2026-09-18, les colonnes `w_tr_right_m` et `w_tr_left_m` sont des demi-largeurs **mesurées** par point (`maps/measure_widths.py`), et non plus `1.1, 1.1` partout. Le couloir moyen va de 1,44 m (Montreal) à 2,60 m (Brands Hatch) et varie peu le long d'un tour. Le simulateur s'en sert pour le DNF de sortie de piste : centre de la voiture au-delà de la demi-largeur locale plus `_OFFTRACK_MARGIN_M` (1,00 m dans le code, 0,50 m annoncé par `INSTRUCTIONS.md`). La géométrie de la centerline, et donc le tableau ci-dessous, n'a pas changé.
 
 Le sha256 de chaque fichier est enregistré dans `tracks.yaml`. Deux commandes le contrôlent :
 - `uv run python scripts/track_inventory.py` compare le YAML aux fichiers vendorisés et renvoie le code de sortie 1 s'ils divergent ;
@@ -59,11 +61,9 @@ Les valeurs κ désignent la courbure absolue, en rad/m. Les chiffres exacts se 
 
 ## Doublon `Mexico City`
 
-`Mexico City/` est un doublon exact de `MexicoCity/`. Les 5 fichiers ont un sha256 identique, et ce test est rejoué par `track_inventory.py` et `tests/test_tracks.py`. Un seul nom de fichier diffère : `Mexico City_DonkeySim_waypoints.txt`. Le nom canonique retenu est `MexicoCity`, et `Mexico City` n'en est qu'un alias.
+La première archive contenait `Mexico City/`, un doublon exact de `MexicoCity/` : les 5 fichiers avaient un sha256 identique, seul `Mexico City_DonkeySim_waypoints.txt` changeait de nom. Comme ses fichiers restaient préfixés `MexicoCity_`, `set_map("Mexico City")` échouait (`FileNotFoundError`) et `get_available_maps()` renvoyait 24 noms (défaut D4 de l'audit E-10).
 
-Deux défauts du simulateur, à corriger dans E-12 et laissés tels quels ici :
-- `get_available_maps()` renvoie **24 noms**, alias compris. Il ne faut donc pas s'en servir pour lister les circuits.
-- `set_map("Mexico City")` échoue au `reset` : il cherche `maps/Mexico City/Mexico City_map.png`, qui n'existe pas (`FileNotFoundError`). Tant que ce n'est pas corrigé, toujours passer par `canonical_name`.
+L'archive du 2026-09-18 a supprimé ce dossier : `get_available_maps()` renvoie maintenant les 23 circuits. Le nom canonique reste `MexicoCity`, et `Mexico City` est conservé comme **alias de saisie** dans `tracks.yaml`, sans dossier : `canonical_name("Mexico City")` renvoie `"MexicoCity"`.
 
 ## Partitions
 
@@ -103,7 +103,7 @@ Si une récompense, une feature ou le replay venait à utiliser la raceline, il 
 
 `INSTRUCTIONS.md` cite Monaco en exemple, mais cette carte **n'est pas fournie**. Aucune configuration ne la référence, et `canonical_name("Monaco")` lève `KeyError`.
 
-Chargement réel : `uv run python scripts/check_track_loading.py` enchaîne `set_map`, `reset(num_cars=1)` et 20 décisions à 20 Hz sur chaque nom. Les 23 circuits se chargent ; seul l'alias échoue, comme décrit plus haut. La version pytest est `uv run pytest -m slow tests/test_tracks.py`. Le chargement par le visualiseur (`viz_replay.py`) n'est pas couvert ici.
+Chargement réel : `uv run python scripts/check_track_loading.py` enchaîne `set_map`, `reset(num_cars=1)` et 20 décisions à 20 Hz sur chaque nom. Les 23 circuits se chargent. La version pytest est `uv run pytest -m slow tests/test_tracks.py`. Le chargement par le visualiseur (`viz_replay.py`) n'est pas couvert ici.
 
 ## Métriques géométriques : limites
 

@@ -16,7 +16,7 @@ tracks:
       sha256: 5e035baf438957f194904fbc5c168b8e1aaea8a087020afee6195d6609470412
     centerline:
       file: Austin_centerline.csv
-      sha256: 74b5f86d89ca0a276e6b158c923161a0e47ed88404729852b6c13ada05d5af04
+      sha256: 9bd4eb1dc7a766d42fa86f682890e42036fe25dfa313f4ec998910ea99038ed4
     map_image:
       file: Austin_map.png
       sha256: 16501f0cf2333305c305efb6cc3110c7a31e2843263067ddc52edfe826633318
@@ -40,7 +40,7 @@ tracks:
       sha256: 6328b87e116d2a06146f2c5cf2ff46f4275594f5ad4fb6de8facb61d10f740f4
     centerline:
       file: BrandsHatch_centerline.csv
-      sha256: 1d6246e6e6db1e065d22c19e102292c70dca71e34ded44968a1d5a4c2a8649c4
+      sha256: f3e5c538b969f837002f2f2659103c8a8e660053c8848c38d5b28c02e05c6d32
     map_image:
       file: BrandsHatch_map.png
       sha256: e56c8cd34766ef38476ff3637dcec167ff275041f12a0cfc122e5f87aacd2eeb
@@ -64,7 +64,7 @@ tracks:
       sha256: d6d300e7a0ccb54f2329c5906565d16a59270d8ef9d4c326d9fff7ab0ddad106
     centerline:
       file: Budapest_centerline.csv
-      sha256: 759ff3fa6096a9de5354a177582889425f16c529dc350d3ec3817f3c8b1d14ad
+      sha256: 2362bf4bdd1563b2271521399ba677f744a4a542ba9c725291b589ce82b9c1e1
     map_image:
       file: Budapest_map.png
       sha256: 563d819bb68ee66236647f92ec68a2f7f60ecb90b92c9aab487be6f7840d04d6
@@ -88,7 +88,7 @@ tracks:
       sha256: 852830ad50ca09220c25235db57925575baed7eae0951b7dc9abb11780d80637
     centerline:
       file: Catalunya_centerline.csv
-      sha256: f1276de8d59c63f0285cdb79d8626b4ccddad5e97bd69b9bf0b6b1cc13a98365
+      sha256: 3e037d2cd82919ac9abc9686722afcfd16b2dffef9fa55dcf5675ce280b9ae53
     map_image:
       file: Catalunya_map.png
       sha256: fe7087e601144ba869496859de1194a0f9eaddaed6b20db523186e51bd28e79c
@@ -112,7 +112,7 @@ tracks:
       sha256: 84cb114659f4691b6263014504b92da05e2f40a925465b4a6055f1716f826aad
     centerline:
       file: Hockenheim_centerline.csv
-      sha256: 47c888fe26a5ffa01758b613c57e5eaf8d165b3507c2e9b277b0715031cc9ce9
+      sha256: e03f5fc3a497645af48b25eb36ab6cadb50b23a8a3fe6b6268ff338e839ea157
     map_image:
       file: Hockenheim_map.png
       sha256: 39a31a54cd59b1c1b983d2c5a57c9324d08148bb554034be335db8efed66c9fa
@@ -136,7 +136,7 @@ tracks:
       sha256: 077fd6d7afbe3a6472a2468448e61f7469cd72ce5f7e473bb87546ad4eb27458
     centerline:
       file: IMS_centerline.csv
-      sha256: ca9c4f2926650592f9041b40e323684cb1f8b985c483d24aef5cf9a42ac6ef3d
+      sha256: 9ac96e40615b3cb77ab3a39b81e009740d8465647d541a2ec52a61fe398891da
     map_image:
       file: IMS_map.png
       sha256: 72dc803ba3bdcddbfe10503abd4d1bf49c7b12e9f13ded01a7803360d3af21f8
@@ -160,7 +160,7 @@ tracks:
       sha256: 25c5bc0bc324d8ebe4c940a26c26c66937534adef3321d9fa1068ee02a8bcebc
     centerline:
       file: Melbourne_centerline.csv
-      sha256: 7445a6921dbd468ecc687bd5d00d8520178fc248bfa45b09544aa349c5232197
+      sha256: f5cd05134c9d6ba39c38c10c1891181bb35484dc4cf27168a334e5ecf7db8fe8
     map_image:
       file: Melbourne_map.png
       sha256: aea9221ae58b853b097cac0657b0311fe588219250a7500fd59a6de5a531a890
@@ -186,7 +186,7 @@ tracks:
       sha256: 0ebbc229c84d35cbee7b3eb5375af872b32e635e361c3da4b7472940d2d2e863
     centerline:
       file: MexicoCity_centerline.csv
-      sha256: 90af9b2f72ccf8481340ac5c1965bff4f8b2249fe182e947cf389c719566cf3b
+      sha256: c3bbcc0f738e943042c3a18630ce662e8eaec146c83472115650c76c5b040707
     map_image:
       file: MexicoCity_map.png
       sha256: b891887c5319774459aee5a2033c3134053e9e04d036a6198be0c292993bf857
@@ -210,7 +210,7 @@ tracks:
       sha256: 3e60ef9aeabfb39f257fc849d9f033d9d89cf08328b103a704e28fd8540b9e96
     centerline:
       file: Monza_centerline.csv
-      sha256: 198ea1f4d574477415c9f2065352574b34b120949c6ba9889fc26426312d31bf
+      sha256: f73a38b163315b8f3fd32d5a3a3b321118cb12ce8bf2195b101f9ca90512745c
     map_image:
       file: Monza_map.png
       sha256: a550c761e4f360703b374c714ee20920281fe25078862f52ae21b4570d47b2cf
@@ -234,7 +234,7 @@ tracks:
       sha256: f1a39dfaab48d6071416c091985a95a94df0ed3ace8abe478cbace0fc62ab1f2
     centerline:
       file: Nuerburgring_centerline.csv
-      sha256: 7b7c2f1d122d92e66fecb1d7510f70901b27cee9ad093bd946e5432590f5eeb2
+      sha256: 86ce84443ab0b72301491965d7b0c1b2f760d6266b8ef677b9f111ce4f4aa760
     map_image:
       file: Nuerburgring_map.png
       sha256: 6f933ceb7718bae7649ecbe6c20359c1d881ba109c2a76cf378fccb9fec2215b
@@ -258,7 +258,7 @@ tracks:
       sha256: 53a43b3cfeab8cb10268a7e89d0a74d31a407aa7a9c39f698b633acd2141a971
     centerline:
       file: Sakhir_centerline.csv
-      sha256: 910dc96da4e11895d59e4364eb13b7d2d4ea63ad799354718a86f3266efb169a
+      sha256: 821e62a55a47d8cb5a4fe44dccd567066b511a0a6902c0b83e827556940ca2d1
     map_image:
       file: Sakhir_map.png
       sha256: f3746a4d48a72ccc3cad020bc383e370dd3a915009c87d4d6041af06e7de85eb
@@ -282,7 +282,7 @@ tracks:
       sha256: b7af7a616f5838463279194bb0e65f979afeb67a1e6faec37d1844673ad6d781
     centerline:
       file: SaoPaulo_centerline.csv
-      sha256: 648d3dad6242690ccab34078995e85d5c2fb5362b8ab39975df47599b775ae83
+      sha256: 0fbb4c80ce12c953bf4aa0785f9b5f3fa00457209511ba53f74da07f7ac1e056
     map_image:
       file: SaoPaulo_map.png
       sha256: 88e6ef4fdf95478699afa5a3e5206494a34716f7327b64444cd8579f5ee594c9
@@ -306,7 +306,7 @@ tracks:
       sha256: ee6acbf610ef0f946f74969e77c354fccc47472b6c21e3165aa8349eebb3b75e
     centerline:
       file: Sepang_centerline.csv
-      sha256: fe92a57c4f51c10a6e216ec1fbbe324df466b0304e7f37e0c695493c1a1d88dd
+      sha256: 1ffc476568bfd7c8b747a1149ba73c29eb089845203c5dbb201f145512ab926b
     map_image:
       file: Sepang_map.png
       sha256: 869e8896a6e43e9648929f7c731c92501f79f92a10d2b273d60b15fe52f37f0f
@@ -330,7 +330,7 @@ tracks:
       sha256: 5c64b11f5994223db6258f341ab02b33e9edf62ae5ea5790dee1837f5d1fe655
     centerline:
       file: Silverstone_centerline.csv
-      sha256: c32b892aadee729368c56ece2064471be09d7b42f464491e2f28675d24d3150a
+      sha256: 9fc5cb10c322176fcd35fe88946f313c5f1b97593079cebc06f3ff65d331f517
     map_image:
       file: Silverstone_map.png
       sha256: 074bfe8080ab70b18068c77ab19179f8c289305b1964888ad72a503d4c7baf4a
@@ -354,7 +354,7 @@ tracks:
       sha256: 047419f203da442c4beac36c861bc6041fa36c6d1f97b06b70d55a9a08ca8b5f
     centerline:
       file: Zandvoort_centerline.csv
-      sha256: 7065587bea9f4e53502f6add44b5b5b9da141c4dbedb31eaf6027c2ab7d6fffa
+      sha256: 16392b02d9713dbd2c7d71001be64c37bb3b78ef2452d11052630a7dde9a987f
     map_image:
       file: Zandvoort_map.png
       sha256: 7d2dbc9682152f5567892752202e27c823856e4440e011fdc7e87797b31791c0
@@ -378,7 +378,7 @@ tracks:
       sha256: 2d142ca200b39d55f99e945de18e5765bf71486178ee9d3167869b54cc210d79
     centerline:
       file: Montreal_centerline.csv
-      sha256: d24aa9a86c7ac93d140a067a19734d1e1cd4c3a6ec40264b5c28a3dda98d8608
+      sha256: 185f05b271892a5378dd05466ae17e81d50c2622258ca9ea14acdaf5dfa10189
     map_image:
       file: Montreal_map.png
       sha256: 22cf9b8b8a15fa7c20a0cdf1348957e763e89be12201fe17820c9bbdff889308
@@ -399,7 +399,7 @@ tracks:
       sha256: d505f399aab236eff6ec0fa757959c1cfbf1b27802f3a0a1cac2b139a7a710d7
     centerline:
       file: Sochi_centerline.csv
-      sha256: af6af0333e42d60e7c033d772b028149da36fa2f760767fccd458b5b0d57b8e8
+      sha256: b6be98abaa66dc80494e56d22bb59be80e89db0939ccfa72549b2e76a2db2f28
     map_image:
       file: Sochi_map.png
       sha256: d4dea886ea0f036ef781026cd500e897c8cee8429192a1ce94d5defc1ee8c138
@@ -423,7 +423,7 @@ tracks:
       sha256: 9b904759007e39cb1255c2eeb0e2840bdd9525bf43875eaa229deacc4e39d49f
     centerline:
       file: Spielberg_centerline.csv
-      sha256: 3c690173dda7772bffc36190e6d6f0e11e61be86a65e3910cd78cdd0c098c602
+      sha256: 8874fbdfa68638802ab7ddc62ee18452f62e9c8201fb0384464e4300071f8513
     map_image:
       file: Spielberg_map.png
       sha256: 3378ea1da231e00b4c41015311f7f3a63fb62420d8c54aaa23b6d1ca7c947e56
@@ -447,7 +447,7 @@ tracks:
       sha256: c439b8fe0489bb93fe8be8808c2f72874a5dbb1150353eb9367d033a0aa23fbe
     centerline:
       file: YasMarina_centerline.csv
-      sha256: 317f95f1400a74ac368640a5c54a394690186ca9a8488fad1be1845659ef0c75
+      sha256: c95249e79fe181b077dc1f03da79e0ecc5c87aadab9cd10e0446cfdade3f2854
     map_image:
       file: YasMarina_map.png
       sha256: 13c6019c61b0891e4a2068bd7b0b34d499415d1d002c29c0b31dbc7bae632969
@@ -471,7 +471,7 @@ tracks:
       sha256: 8a392a8dfa3939260d3fcdaf1727d92279c051c6bb0add6e806caabc2d9e4da7
     centerline:
       file: MoscowRaceway_centerline.csv
-      sha256: d4db7d3419f17b86564ad447790be8d356f6c6f10235dd5abdc51bf990d959cd
+      sha256: 0d83b48cb7b808ee3630132987c488152444f97c0ff523dccb2ab7836c34ac3f
     map_image:
       file: MoscowRaceway_map.png
       sha256: af4c9818717b9f4066acd971fc65311c2794bc12f0fa5e1b742904e9bd634381
@@ -495,7 +495,7 @@ tracks:
       sha256: d197e47654a027e95601d02df115b50bd4cfc63888faabda410ae49125a253db
     centerline:
       file: Oschersleben_centerline.csv
-      sha256: 6d906ee0fde07fd3f80ef4339abe289b596385aa7ff6f5318836b0b9c4012d44
+      sha256: 8523c4170be4b8496b084f2dbacb787efe2190614c32511390fd060526c44726
     map_image:
       file: Oschersleben_map.png
       sha256: 3753d0ec3e0cb13602d4c34b172b877a1ba12eb6b4117dfd56da5d1b51ce4634
@@ -519,7 +519,7 @@ tracks:
       sha256: 72ecbf50294e2f0ca173c478a988270ed1be88160b08dfa88134514664e35fb8
     centerline:
       file: Shanghai_centerline.csv
-      sha256: 24bf4e88656937e84d11b66c8f06e6a0bb4a8de04674cc843fbfbcf316b61a9f
+      sha256: fff472478b7fbf6f97e532fa70cf6550db69edf7d86d79cc5b64ba5aa953f28b
     map_image:
       file: Shanghai_map.png
       sha256: e3f5cfed82160eca7401bbc91c7a44ac9b83bbb818e49b378e31ee1270055d43
@@ -540,7 +540,7 @@ tracks:
       sha256: 8448010c6293759637f4e3a9a0a8e5be1159f70188841a3a78439a7a358f493e
     centerline:
       file: Spa_centerline.csv
-      sha256: 9febbab07831915f51c297e4b7d9b4b938139157301689d4f36ea6cf050e5189
+      sha256: 3d387cb01109b9e2025f6f1972cad4baa27fbf4602dba9149276935fbe5e6d28
     map_image:
       file: Spa_map.png
       sha256: 0ac745f24fcc713ce9917327787ee725519e7e544de089bd43751a15ffcfd99c
