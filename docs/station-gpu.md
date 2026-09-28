@@ -69,3 +69,15 @@ tour off            # arrêt propre, puis coupure de la prise
 ```
 
 La connexion SSH utilise Tailscale et une clé, sans mot de passe dans le dépôt. La commande `tour` attend que le système choisi réponde ; l'allumage depuis une prise coupée passe par Home Assistant. Les identifiants W&B et les autres secrets restent hors Git. Pour interrompre un entraînement long, attendre la confirmation d'un checkpoint avant `tour off` ; la politique de checkpoints périodiques du véritable entraîneur reste à implémenter.
+
+### Extinction après inactivité
+
+Sur Ubuntu, `agent-awake.service` vérifie toutes les 15 secondes les sessions de travail, les agents, les conteneurs Docker, les calculs GPU et l'activité CPU. Il demande un arrêt propre après une heure sans signal d'activité. Les connexions SSH maintenues par Mutagen ne comptent pas comme du travail. Le compteur repart de zéro au démarrage du service. La commande `agent-awake acquire|heartbeat|release` permet aux hooks des agents de signaler une tâche en cours ; les leases expirent après dix minutes sans heartbeat. Un échec de lecture de Docker ou d'une base T3 existante bloque l'extinction par précaution.
+
+Le service s'installe avec `sudo ops/agent-awake/install.sh` sur la station. Vérification : `systemctl is-active agent-awake`, puis `sudo /usr/local/lib/tour/agent-awake-daemon --diagnose`. Il s'applique à Ubuntu ; Windows garde sa gestion d'alimentation séparée. L'arrêt automatique éteint l'OS, mais laisse la prise connectée sous tension pour permettre le prochain réveil à distance.
+
+### Migration ciblée depuis dev-tower
+
+Les dépôts de code sont à récupérer depuis GitHub. Les sauvegardes non reproductibles sont dans `/home/leo/backups/dev-tower/` sur Ubuntu : deux exports SQL Supabase, une archive du volume PostgreSQL Stremlist et l'archive complète des données utilisateur T3. Cette dernière est une **sauvegarde**, pas une base activée : sa reprise devra être vérifiée avec la version de T3 installée. La clé SOPS/age est dans `/home/leo/.config/sops/age/keys.txt` avec des permissions privées. Le VHDX original et l'archive `linux-projects-config.tar.gz` restent sur le SSD externe du Mac ; ils constituent la source de récupération si un autre fichier est nécessaire.
+
+Mutagen synchronise les réglages partagés des agents depuis le Mac vers la tour par l'alias SSH `tour`. Les sessions sont `tour-agents-shared`, `tour-claude-config`, `tour-codex-config` et `tour-t3-worktree-clean`. Les configurations Claude et Codex incluent les hooks `agent-awake`. Seuls les fichiers de configuration et compétences nécessaires sont synchronisés ; les historiques, caches, dépôts et réglages Codex propres à macOS restent hors de la synchronisation. Un `~/.codex/config.toml` Linux réduit est installé séparément pour éviter les chemins macOS. `mutagen sync list` sur le Mac affiche l'état des sessions. Bun, Node, Codex CLI et Claude Code sont installés sur Ubuntu ; leur connexion aux comptes respectifs peut demander une authentification lors de la première utilisation.
