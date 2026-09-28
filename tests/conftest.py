@@ -1,7 +1,9 @@
 import importlib
 import importlib.util
+import math
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from crashlearn import add_simulator_to_path
@@ -44,3 +46,32 @@ def sim():
     env_simulation.simulation_step()
     yield env_simulation
     env_simulation.close()
+
+
+def pure_pursuit(sim_instance, cid: int, speed: float = 3.0, lookahead: float = 1.0):
+    """Minimal scripted pure-pursuit driver (mirrors `sim_recorder._pure_pursuit_policy`),
+    used to make a car complete laps deterministically in dynamics tests.
+
+    `sim_instance` is the private `_Sim` singleton (`env_simulation._get_sim()`); the steering
+    bounds live on the `env_simulation` module itself, not on the singleton.
+    """
+    import env_simulation
+
+    st = sim_instance._sim.agents[cid].state
+    x, y, yaw = float(st[0]), float(st[1]), float(st[4])
+    w = sim_instance._waypoints
+    idx = int(np.argmin((w[:, 0] - x) ** 2 + (w[:, 1] - y) ** 2))
+    n = len(w)
+    cum = 0.0
+    target = idx
+    for i in range(1, n):
+        wi = (idx + i) % n
+        wj = (idx + i - 1) % n
+        cum += math.hypot(w[wi, 0] - w[wj, 0], w[wi, 1] - w[wj, 1])
+        if cum >= lookahead:
+            target = wi
+            break
+    angle = math.atan2(w[target, 1] - y, w[target, 0] - x) - yaw
+    angle = math.atan2(math.sin(angle), math.cos(angle))
+    params = env_simulation._PARAMS
+    return speed, max(params["s_min"], min(params["s_max"], angle))
