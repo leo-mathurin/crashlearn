@@ -109,6 +109,13 @@ uv run python scripts/track_inventory.py --write    # régénère assets et geom
 uv run python scripts/check_track_loading.py        # set_map + reset + 20 décisions sur chaque carte
 ```
 
+Pilote scripté de contrôle ([docs/scripted_driver.md](docs/scripted_driver.md)). C'est un témoin de diagnostic, pas un livrable.
+
+```bash
+uv run python scripts/control_race.py                          # 5 cartes train, 3 tours, seed 0 → runs/control_race.json
+uv run python scripts/control_race.py --map Austin --cars 4 --seed 1 --output runs/austin.json
+```
+
 ## Intégration continue
 
 GitHub Actions lance deux jobs, **Ruff** et **Pytest**, sur chaque PR et chaque push vers `develop` et `main`. Le workflow **Commitlint** s'exécute sur chaque PR et à chaque modification de son titre.
@@ -132,8 +139,8 @@ Le run de contrôle accepte `--map`, `--steps`, `--speed` et `--steer-gain`. Il 
 src/crashlearn/     package applicatif (code de l'équipe)
 scripts/            points d'entrée CLI (run de contrôle, …)
 src/crashlearn/tracks.yaml  circuits, alias et partitions train/validation/test (source unique)
-tests/              tests pytest (contrat simulateur, soumission, circuits, wrapper, features, export)
-docs/               documentation technique (circuits et partitions)
+tests/              tests pytest (contrat simulateur, soumission, circuits, pilote scripté, wrapper, features, export)
+docs/               documentation technique (circuits et partitions, pilote scripté)
 .github/workflows/  CI GitHub Actions (ci.yml, commitlint.yml)
 .pre-commit-config.yaml  hooks Git (ruff en local, commitlint en hook distant)
 .commitlintrc.json  règles des messages de commit ; .commitlintrc.ci.json ajoute defaultIgnores: false
