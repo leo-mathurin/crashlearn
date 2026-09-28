@@ -15,6 +15,7 @@ import numpy as np
 def create_dummy_obs() -> Dict[str, Any]:
     """Create a valid dummy observation dict conforming to get_obs() contract."""
     return {
+        "agent_id": 0,
         "lidar": np.full((100,), 5.0, dtype=np.float32),
         "velocity": 0.0,
         "steering": 0.0,
@@ -22,10 +23,14 @@ def create_dummy_obs() -> Dict[str, Any]:
         "lap_count": 0,
         "rank": 1,
         "opponents": {
-            0: {"rel_x": 0.0, "rel_y": 0.0, "rel_dist": 0.0, "rel_yaw": 0.0, "velocity": 0.0, "active": 0},
-            1: {"rel_x": 0.0, "rel_y": 0.0, "rel_dist": 0.0, "rel_yaw": 0.0, "velocity": 0.0, "active": 0},
-            2: {"rel_x": 0.0, "rel_y": 0.0, "rel_dist": 0.0, "rel_yaw": 0.0, "velocity": 0.0, "active": 0},
-            3: {"rel_x": 0.0, "rel_y": 0.0, "rel_dist": 0.0, "rel_yaw": 0.0, "velocity": 0.0, "active": 0},
+            0: {"x_rel": 0.0, "y_rel": 0.0, "yaw_rel": 0.0, "speed": 0.0,
+                "progress": 0.0, "lap_count": 0, "status": 0},
+            1: {"x_rel": 0.0, "y_rel": 0.0, "yaw_rel": 0.0, "speed": 0.0,
+                "progress": 0.0, "lap_count": 0, "status": 0},
+            2: {"x_rel": 0.0, "y_rel": 0.0, "yaw_rel": 0.0, "speed": 0.0,
+                "progress": 0.0, "lap_count": 0, "status": 0},
+            3: {"x_rel": 0.0, "y_rel": 0.0, "yaw_rel": 0.0, "speed": 0.0,
+                "progress": 0.0, "lap_count": 0, "status": 0},
         },
     }
 
@@ -34,14 +39,21 @@ def create_dummy_info() -> Dict[str, Any]:
     """Create a valid dummy info dict conforming to get_step_info() contract."""
     return {
         "step_count": 0,
-        "collisions": {"wall": [False] * 4, "vehicle": [False] * 4},
-        "opponents_mask": [True, False, False, False],
-        "agent_status": [1, 0, 0, 0],
+        "time_elapsed": 0.0,
+        "ranks": {0: 1, 1: 2, 2: 3, 3: 4},
+        "collisions": {
+            "wall":    {i: False for i in range(4)},
+            "vehicle": {i: False for i in range(4)},
+        },
+        "progress_delta": {i: 0.0 for i in range(4)},
+        "lap_complete": {i: False for i in range(4)},
+        "stagnation": {i: False for i in range(4)},
         "friction_current": 1.0,
-        "lap_complete": [False] * 4,
-        "stagnation": [False] * 4,
-        "lap_times": {0: [], 1: [], 2: [], 3: []},
-        "max_progress": [0.0] * 4,
+        "opponents_mask": np.array([True, False, False, False]),
+        "agent_status": {0: 1, 1: 0, 2: 0, 3: 0},
+        "lap_times": {i: [] for i in range(4)},
+        "race_over": False,
+        "max_progress": {i: 0.0 for i in range(4)},
     }
 
 
@@ -146,28 +158,43 @@ def discover_and_load_submissions(
     if not root.exists():
         raise FileNotFoundError(f"[ERROR] Submissions path does not exist: {root}")
 
-    # Check if root itself is a single submission directory
-    if (root / "agent.py").is_file():
+    # Discover team subdirectories first (grand-prix mode takes priority)
+    subdirs = sorted([d for d in root.iterdir() if d.is_dir() and not d.name.startswith((".", "_"))])
+
+    if subdirs:
+        # Multi-team directory: validate count and load
+        if len(subdirs) < max_teams:
+            raise ValueError(
+                f"[ERROR] Grand Prix mode requires at least {max_teams} team subdirectories, found {len(subdirs)} in: {root}\n"
+                f"Expected structure: <submission_dir>/<team_name>/{{'agent.py', 'model.onnx'}}"
+            )
+
+        loaded_teams: List[Tuple[str, Any]] = []
+        errors: List[str] = []
+
+        for idx, team_dir in enumerate(subdirs[:max_teams]):
+            try:
+                name, agent = validate_and_load_agent(team_dir, team_name=team_dir.name, unique_id=idx)
+                loaded_teams.append((name, agent))
+            except Exception as e:
+                errors.append(f"Team '{team_dir.name}': {e}")
+
+        if errors:
+            error_msg = "\n".join(errors)
+            raise RuntimeError(f"Failed to load team submissions from {root}:\n{error_msg}")
+
+        return loaded_teams
+
+    # No subdirectories: fallback to flat agent (self-play, only for max_teams == 1)
+    if max_teams == 1 and (root / "agent.py").is_file() and (root / "model.onnx").is_file():
         team_name, agent = validate_and_load_agent(root, team_name=root.name, unique_id=0)
         return [(team_name, agent)]
 
-    # Multi-team directory: discover subdirectories
-    subdirs = sorted([d for d in root.iterdir() if d.is_dir() and not d.name.startswith((".", "_"))])
-    if not subdirs:
+    # No subdirs and no flat agent, or multi-car with no teams
+    if subdirs:
         raise ValueError(f"[ERROR] No valid team subdirectories found in: {root}")
 
-    loaded_teams: List[Tuple[str, Any]] = []
-    errors: List[str] = []
-
-    for idx, team_dir in enumerate(subdirs[:max_teams]):
-        try:
-            name, agent = validate_and_load_agent(team_dir, team_name=team_dir.name, unique_id=idx)
-            loaded_teams.append((name, agent))
-        except Exception as e:
-            errors.append(str(e))
-
-    if errors:
-        error_msg = "\n".join(errors)
-        raise RuntimeError(f"Failed to load team submissions from {root}:\n{error_msg}")
-
-    return loaded_teams
+    raise RuntimeError(
+        f"[ERROR] Multi-team mode requires team subdirectories (e.g. team_alpha/, team_bravo/...) or a flat submission/ with agent.py + model.onnx for single-car.\n"
+        f"Expected structure: <submission_dir>/<team_name>/{{'agent.py', 'model.onnx'}}"
+    )

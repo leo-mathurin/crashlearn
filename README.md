@@ -45,7 +45,7 @@ uv run python scripts/smoke_sim.py --map Austin --steps 200  # run de contrôle 
 La commande `uv sync` n'installe pas les groupes lourds. Pour les ajouter :
 
 ```bash
-uv sync --group train             # torch, stable-baselines3, wandb
+uv sync --group train             # torch, onnx, onnxscript, stable-baselines3, wandb
 uv sync --only-group inference    # environnement minimal numpy + onnxruntime, sans le projet
 ```
 

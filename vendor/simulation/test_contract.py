@@ -13,7 +13,8 @@ from _harness import run_all, run_test, ok, fail
 from env_simulation import (
     reset, get_obs, apply_action, simulation_step, get_step_info, close,
     get_space_info, _LIDAR_RAYS, _MAX_SLOTS, _get_sim,
-    _REQUIRED_LAPS, _DECISION_FREQ_HZ, _KNOCKBACK_REST, _DNF_WINDOW_STEPS,
+    _REQUIRED_LAPS, _DECISION_FREQ_HZ, _KNOCKBACK_REST, _KNOCKBACK_MAX_M,
+    _DNF_WINDOW_STEPS,
     _PARAMS,
 )
 
@@ -33,6 +34,13 @@ def _get_sim_raw():
     """
     return _get_sim_instance()
 
+def _make_poses(sim, idx=0):
+    """Return poses dict using waypoints from the loaded centerline (safe for off-track DNF)."""
+    w = sim._waypoints
+    wx, wy = float(w[idx, 0]), float(w[idx, 1])
+    return {"poses_x": [wx] * sim._num_agents, "poses_y": [wy] * sim._num_agents}
+
+
 def _odo_advance(sim, i, target_rel):
     """Simulate one decision-step odometer update to a chosen own-start phase.
 
@@ -41,7 +49,7 @@ def _odo_advance(sim, i, target_rel):
     method in a finally block (to avoid singleton contamination across tests).
     """
     sim._progress_start[i] = 0.0          # so absolute == rel
-    obs = {"poses_x": [0.0] * sim._num_agents, "poses_y": [0.0] * sim._num_agents}
+    obs = _make_poses(sim)
     orig = sim._compute_progress
     sim._compute_progress = lambda x, y: target_rel
     try:
@@ -180,7 +188,7 @@ def t09_lap_time_after_crossing():
         # compute_progress returns the "current" absolute pos → rel = (p_abs - 0) % 1
         # We want rel=0.05 after this step, so set abs=0.05
         sim_obj._compute_progress = lambda x, y: 0.05
-        sim_obj._update_progress_and_laps({"poses_x": [0.0]*sim_obj._num_agents, "poses_y": [0.0]*sim_obj._num_agents})
+        sim_obj._update_progress_and_laps(_make_poses(sim_obj))
     finally:
         sim_obj._compute_progress = orig
 
@@ -206,7 +214,7 @@ def t17_lap_booked_on_cum_crossing():
 
         # absolute=0.05 → rel=(0.05-0)%1=0.05, d = (0.05-0.9)+1 = 0.15 => cum=1.05
         sim_obj._compute_progress = lambda x, y: 0.05
-        sim_obj._update_progress_and_laps({"poses_x": [0.0]*sim_obj._num_agents, "poses_y": [0.0]*sim_obj._num_agents})
+        sim_obj._update_progress_and_laps(_make_poses(sim_obj))
     finally:
         sim_obj._compute_progress = orig
 
@@ -239,7 +247,7 @@ def t18_finish_at_required_laps():
 
         # abs=0.05 → rel=0.05, d=(0.05-0.9)+1=0.15 => cum=3.05 >= _REQUIRED_LAPS=3
         sim_obj._compute_progress = lambda x, y: 0.05
-        sim_obj._update_progress_and_laps({"poses_x": [0.0]*sim_obj._num_agents, "poses_y": [0.0]*sim_obj._num_agents})
+        sim_obj._update_progress_and_laps(_make_poses(sim_obj))
     finally:
         sim_obj._compute_progress = orig
 
@@ -271,7 +279,7 @@ def t19_two_laps_two_times():
         sim_obj._lap_start_step[0] = 50
 
         sim_obj._compute_progress = lambda x, y: 0.05
-        sim_obj._update_progress_and_laps({"poses_x": [0.0]*sim_obj._num_agents, "poses_y": [0.0]*sim_obj._num_agents})
+        sim_obj._update_progress_and_laps(_make_poses(sim_obj))
 
         assert sim_obj._lap_count[0] == 1, f"first lap not booked: count={sim_obj._lap_count[0]}"
         # lap_time = (100 - 50) / 20 = 2.5 > 0
@@ -286,7 +294,7 @@ def t19_two_laps_two_times():
         sim_obj._cum[0] = 1.95
 
         sim_obj._compute_progress = lambda x, y: 0.05  # rel=(0.05-0)%1=0.05, d=(0.05-0.95)+1=0.1 => cum=2.05
-        sim_obj._update_progress_and_laps({"poses_x": [0.0]*sim_obj._num_agents, "poses_y": [0.0]*sim_obj._num_agents})
+        sim_obj._update_progress_and_laps(_make_poses(sim_obj))
     finally:
         sim_obj._compute_progress = orig
 
@@ -312,6 +320,38 @@ def t_anti_rebound():
         _odo_advance(sim_obj, 0, target)
     assert sim_obj._lap_count[0] == 0, f"anti-rebound: lap_count {sim_obj._lap_count[0]} != 0"
     assert abs(sim_obj._cum[0]) < 0.05, f"anti-rebound: cum {sim_obj._cum[0]} >= 0.05"
+
+
+# ---------------------------------------------------------------------------
+# T28 — FIX E6: DNFs are ranked by distance covered, not by slot number.
+# Values taken from a real 4-car Austin recording, where car 2 covered more than
+# car 0 yet was ranked behind it purely because its slot index was higher.
+# ---------------------------------------------------------------------------
+def t28_dnf_ranked_by_distance():
+    reset(4)
+    sim_obj = _get_sim_raw()
+    orig_status = list(sim_obj._status[:])
+    try:
+        sim_obj._status[0] = 0        # DNF, covered the least
+        sim_obj._status[2] = 0        # DNF, covered more than car 0
+        sim_obj._max_progress[0] = 0.1260
+        sim_obj._max_progress[2] = 0.1308
+        sim_obj._cum[1] = 1.0131      # active
+        sim_obj._cum[3] = 1.1777      # active, leads
+
+        ranks = get_step_info()["ranks"]
+        assert int(ranks[3]) == 1 and int(ranks[1]) == 2, \
+            f"active cars must lead: got {ranks}"
+        assert int(ranks[2]) == 3 and int(ranks[0]) == 4, \
+            f"DNF car 2 (0.1308) must outrank car 0 (0.1260): got {ranks}"
+
+        # Equal distance -> slot order decides, deterministically.
+        sim_obj._max_progress[2] = 0.1260
+        ranks2 = get_step_info()["ranks"]
+        assert int(ranks2[0]) == 3 and int(ranks2[2]) == 4, \
+            f"tie must fall back to slot order: got {ranks2}"
+    finally:
+        np.copyto(sim_obj._status, np.array(orig_status, dtype=sim_obj._status.dtype))
 
 
 # ---------------------------------------------------------------------------
@@ -373,19 +413,14 @@ def t15_progress_bounds():
 # ---------------------------------------------------------------------------
 # T20 — knockback subtle velocity modulation verification
 #
-# Scenario: two cars on a straight, moving head-on along +x, 2 m apart.
-#   Car-0 at x=5 heading +x at v=+2 m/s ; Car-1 at x=7 heading -x at v=−2 m/s
-# Contact normal n = (p0−p1)/|..| = [−1, 0]. vrel = (v0−v1)·n = −4 m/s.
-# Implementation (physics collision policy):
-#   impulse_mag = min(|vrel| × _KNOCKBACK_REST, 0.6) = min(4×0.6, 0.6) = 0.6
-#   split proportional to speeds (equal here) → 0.3 each
-#   vel_change  = 0.3 × 0.15 = 0.045
-#   Car-0: dot(v0, n) = −2 < 0 → v0' = max(2 − 0.045, −0.045) = +1.955
-#   Car-1: dot(v1, n) = +2 > 0 → v1' = min(−2 + 0.045, v_max) = −1.955
-#   Positions: car0 pushed +0.3 along n=[−1,0] → x0 −0.3 ; car1 → x1 +0.3.
+# Scenario: two cars head-on along +x, 2 m apart, equal speeds.
+#   Car-0 at x=5 at v=+2 m/s ; Car-1 at x=7 at v=−2 m/s
+# n = (p0−p1)/|..| = [−1, 0] ; vrel = (v0−v1)·n = −4 m/s ; split 50/50.
+# Expected values are recomputed below from the live constants, so the test
+# follows _KNOCKBACK_REST and the cap rather than pinning them.
 # ---------------------------------------------------------------------------
 def t20_knockback_impulse_math():
-    """Verify position-based knockback (speed-weighted split, cap 0.6, ±15% modulation)."""
+    """Verify position-based knockback (normal-weighted split, capped, ±15% modulation)."""
     reset(2)
     sim_obj = _get_sim_raw()
     engine = sim_obj._sim
@@ -399,7 +434,7 @@ def t20_knockback_impulse_math():
     car1_state[:] = [7.0, 4.5, 0.0, -v_forward, 0.0, 0.0, 0.0]  # moving -x
     sim_obj._apply_knockback(0, 1)
 
-    impulse_mag = min(2 * v_forward * _KNOCKBACK_REST, 0.6)
+    impulse_mag = min(2 * v_forward * _KNOCKBACK_REST, _KNOCKBACK_MAX_M)
     half = impulse_mag * 0.5                     # equal speeds → 50/50 split
     vel_change = half * 0.15
 
@@ -430,14 +465,12 @@ def t25_no_dnf_after_lap():
         sim_obj._progress_start[0] = 0.0
         prog = {"v": 0.0}
         sim_obj._compute_progress = lambda x, y: prog["v"] % 1.0
-        poses = {"poses_x": [0.0] * sim_obj._num_agents,
-                 "poses_y": [0.0] * sim_obj._num_agents}
         # Advance 0.01 lap/step until well past lap 1, then one more DNF window.
         n_steps = 110 + (_DNF_WINDOW_STEPS + 10)
         for _ in range(n_steps):
             prog["v"] += 0.01
             sim_obj._step_count += 1
-            sim_obj._update_progress_and_laps(poses)
+            sim_obj._update_progress_and_laps(_make_poses(sim_obj))
             sim_obj._update_stagnation_and_dnf()
             assert sim_obj._status[0] != 0, \
                 f"DNF at cum={sim_obj._cum[0]:.3f} (lap_count={sim_obj._lap_count[0]}) — C1 regression"
@@ -447,18 +480,121 @@ def t25_no_dnf_after_lap():
 
 
 # ---------------------------------------------------------------------------
-# T24 — lap_complete guard for FINISHED agent (contract-level, mocked)
+# T24 — FIX A5: the winning lap is reported, exactly once
 # ---------------------------------------------------------------------------
-def t24_lap_complete_guard():
+def t24_winning_lap_is_reported():
+    """_finish() flips status to 2 on the same step the last lap is booked.
+    lap_complete must stay True on that step (otherwise an agent counting laps
+    undercounts by one), then drop back to False on the next step (no sticky flag)."""
     reset(1)
     sim_obj = _get_sim_raw()
+    sim_obj._progress_start[0] = 0.0
 
-    # Fake a FINISHED car: status=2, lap_complete should be False
-    sim_obj._status[0] = 2
-    sim_obj._finish_step[0] = 100
+    orig = sim_obj._compute_progress
+    try:
+        for lap in range(1, _REQUIRED_LAPS + 1):
+            # just short of the line, then cross it: cum passes the integer `lap`
+            sim_obj._rel_prev[0] = 0.9
+            sim_obj._cum[0] = lap - 1 + 0.9
+            sim_obj._compute_progress = lambda x, y: 0.05
+            sim_obj._update_progress_and_laps(_make_poses(sim_obj))
 
-    info = get_step_info()
-    assert info["lap_complete"][0] is False, f"lap_complete={info['lap_complete'][0]} for FINISHED"
+            info = get_step_info()
+            assert bool(info["lap_complete"][0]) is True, \
+                f"lap {lap}: lap_complete must be True, got {info['lap_complete'][0]}"
+            assert sim_obj._lap_count[0] == lap, \
+                f"lap_count {sim_obj._lap_count[0]} != {lap}"
+
+        # last lap => FINISHED
+        assert sim_obj._status[0] == 2, f"status {sim_obj._status[0]} != 2 after the last lap"
+
+        # next step: the flag must not stick
+        sim_obj._update_progress_and_laps(_make_poses(sim_obj))
+        info = get_step_info()
+        assert bool(info["lap_complete"][0]) is False, \
+            f"sticky lap_complete after finish: {info['lap_complete'][0]}"
+    finally:
+        sim_obj._compute_progress = orig
+
+
+def t26_track_widths_are_real():
+    """E2 — largeurs reelles par waypoint, et test hors-piste coherent."""
+    import glob, os
+    from env_simulation import (
+        _project_lateral_offset_njit, _OFFTRACK_MARGIN_M,
+    )
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    csvs = sorted(glob.glob(os.path.join(here, "maps", "*", "*_centerline.csv")))
+    assert len(csvs) >= 20, f"only {len(csvs)} centerline files found"
+
+    def is_off(x, y, wpts, widths):
+        lat, seg = _project_lateral_offset_njit(x, y, wpts)
+        seg = min(max(int(seg), 0), widths.shape[0] - 1)
+        return lat > widths[seg, 0] + _OFFTRACK_MARGIN_M or \
+            lat < -(widths[seg, 1] + _OFFTRACK_MARGIN_M)
+
+    medians = []
+    probes = misses = 0
+    for csv in csvs:
+        name = os.path.basename(os.path.dirname(csv))
+        cl = np.loadtxt(csv, delimiter=",", comments="#")
+        wpts = np.ascontiguousarray(cl[:, :2])
+        widths = cl[:, 2:4]
+        assert widths.min() > 0.3, f"{name}: implausible half-width {widths.min()}"
+        medians.append(float(np.median(widths.sum(axis=1))))
+
+        # normale droite (lateral > 0 = droite)
+        dx = np.roll(wpts[:, 0], -1) - np.roll(wpts[:, 0], 1)
+        dy = np.roll(wpts[:, 1], -1) - np.roll(wpts[:, 1], 1)
+        nn = np.hypot(dx, dy)
+        nx, ny = dy / nn, -dx / nn
+
+        for i in range(len(wpts)):
+            assert not is_off(wpts[i, 0], wpts[i, 1], wpts, widths), \
+                f"{name}: centerline point {i} declared off-track"
+            for sign, col in ((1.0, 0), (-1.0, 1)):
+                d = widths[i, col] + _OFFTRACK_MARGIN_M + 0.10
+                probes += 1
+                if not is_off(wpts[i, 0] + sign * nx[i] * d,
+                              wpts[i, 1] + sign * ny[i] * d, wpts, widths):
+                    misses += 1
+
+    # Probes sit one margin past the edge, where centerline projection can pick a
+    # neighbouring segment in tight corners. Harmless: walls hug the track edge
+    # (median gap 0.00 m over 23 tracks), so no car can reach those positions.
+    rate = misses / probes
+    assert rate < 0.04, f"{100 * rate:.1f}% of off-track probes missed (>4%)"
+    spread = max(medians) - min(medians)
+    assert spread > 0.5, f"track widths still near-constant (spread {spread:.2f} m)"
+
+
+def t27_no_yaw_blowup_in_reverse():
+    """Le modele dynamique diverge en marche arriere : lacet borne a toute vitesse."""
+    import sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "gym"))
+    from f110_gym.envs.dynamic_models import vehicle_dynamics_st
+    from env_simulation import _PARAMS, _WALL_REST_MAX
+
+    assert _WALL_REST_MAX < 0.5, \
+        f"_WALL_REST_MAX={_WALL_REST_MAX} >= 0.5 : recul mur dans la branche dynamique"
+
+    keys = ("mu", "C_Sf", "C_Sr", "lf", "lr", "h", "m", "I",
+            "s_min", "s_max", "sv_min", "sv_max", "v_switch", "a_max", "v_min", "v_max")
+    prm = {k: _PARAMS[k] for k in keys}
+    lwb = _PARAMS["lf"] + _PARAMS["lr"]
+
+    for v0 in (-5.0, -2.0, -0.6, -0.51, -0.5, -0.49, -0.1, 0.49, 0.6, 3.0, 10.0):
+        x = np.array([0.0, 0.0, 0.25, v0, 0.0, 0.0, 0.0])
+        for _ in range(50):                      # 50 ms
+            x = x + 0.001 * vehicle_dynamics_st(x, np.array([0.0, 0.0]), **prm)
+        yaw = abs(math.degrees(x[4]))
+        # borne cinematique, large (x3) pour le derapage
+        lim = math.degrees(abs(v0) / lwb * math.tan(0.4189) * 0.05) * 3.0 + 1.0
+        assert yaw < lim, \
+            f"v0={v0}: yaw={yaw:.1f} deg en 50 ms (limite {lim:.1f}) -> modele divergent"
+        assert abs(math.degrees(x[5])) < 2000.0, \
+            f"v0={v0}: yaw_rate={math.degrees(x[5]):.0f} deg/s"
 
 
 # ---------------------------------------------------------------------------
@@ -481,6 +617,9 @@ if __name__ == "__main__":
         ("T-ranks ordering by descending cum",      t_ranks),
         ("T15 progress bounds & delta plausibility", t15_progress_bounds),
         ("T20 knockback impulse math",              t20_knockback_impulse_math),
-        ("T24 lap_complete guard for FINISHED",     t24_lap_complete_guard),
+        ("T24 winning lap is reported (A5)",        t24_winning_lap_is_reported),
         ("T25 no DNF right after lap complete (C1)", t25_no_dnf_after_lap),
+        ("T26 real per-waypoint track widths (E2)", t26_track_widths_are_real),
+        ("T27 no yaw blow-up in reverse",           t27_no_yaw_blowup_in_reverse),
+        ("T28 DNF ranked by distance (E6)",         t28_dnf_ranked_by_distance),
     ])

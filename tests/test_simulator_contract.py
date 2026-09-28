@@ -1,4 +1,4 @@
-"""Contract of the vendored simulator as observed at import time (guards E-12 fixes)."""
+"""Contract of the vendored simulator as observed at import time (archive 2026-09-18)."""
 
 import numpy as np
 
