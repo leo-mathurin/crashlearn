@@ -55,7 +55,7 @@ Le script utilise les mêmes matrices `float32`, dimensions, nombre de répétit
 
 Le calcul matriciel est environ 23 fois plus rapide sur GPU dans ce test. Pour ce petit PPO MLP, le CPU est environ deux fois plus rapide. L'image exécutée contient Python 3.11.16, PyTorch `2.13.0+cu130`, CUDA runtime 13.0, Stable-Baselines3 2.9.0, W&B 0.30.0, ONNX 1.22.0 et ONNX Runtime 1.29.0. Les deux checkpoints ont été rechargés dans le conteneur. Le checkpoint GPU a ensuite été copié sur un SSD externe, rapatrié dans un autre dossier de la station et rechargé sur CUDA avec `PPO.load` ; son SHA-256 après retour était `da60d672779f1b9c0a55272fd7626f4d204e98643b48a535f21f536457ef0283`. La reprise d'entraînement a fait passer le modèle de 8 192 à 8 448 étapes.
 
-Ce run est un **test de la station**, pas un entraînement du pilote Crash & Learn. Le wrapper Gymnasium et la boucle d'entraînement du projet ne sont pas encore intégrés à `develop`. Le débit PPO CartPole ne prédit pas celui du simulateur de course : la simulation peut être limitée par le CPU, et une petite politique MLP peut être plus lente sur GPU.
+Ce run est un **test de la station**, pas un entraînement du pilote Crash & Learn. L'entraînement du pilote avec le wrapper Gymnasium devra être validé séparément une fois la boucle d'entraînement du projet disponible. Le débit PPO CartPole ne prédit pas celui du simulateur de course : la simulation peut être limitée par le CPU, et une petite politique MLP peut être plus lente sur GPU.
 
 ## Démarrage et arrêt de la station
 
