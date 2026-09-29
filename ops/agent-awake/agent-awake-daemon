@@ -1,0 +1,324 @@
+#!/usr/bin/env bash
+# Agent de presence et d'activite de la tour Ubuntu. Une heure sans travail
+# declenche un arret propre. Le CLI agent-awake fournit les leases des agents.
+#
+# Ce qui compte comme activite :
+#   - une session de connexion qui fait autre chose que servir de transport a
+#     mutagen, lequel garde des connexions ssh ouvertes en permanence ;
+#   - une session d'agent T3 en cours de demarrage ou d'execution ;
+#   - une saisie recente sur le terminal d'une session restee au prompt ;
+#   - une charge processeur soutenue dans une fenetre de cinq minutes ;
+#   - un vrai processus de travail dans screen ou tmux, meme detache : un
+#     multiplexeur vide ne suffit pas.
+#
+# --diagnose evalue les signaux et sort sans arreter la machine.
+
+set -uo pipefail
+
+CONF=${AGENT_AWAKE_CONF:-/etc/tour/agent-awake.env}
+# shellcheck disable=SC1090
+[ ! -f "$CONF" ] || . "$CONF"
+
+INTERVAL=${INTERVAL:-15}
+IDLE_TIMEOUT=${IDLE_TIMEOUT:-3600}
+CHARGE_SEUIL=${CHARGE_SEUIL:-0.5}
+SAISIE_S=${SAISIE_S:-900}
+AGENT_LEASE_DIR=${AGENT_LEASE_DIR:-/run/user/1000/agent-awake/leases}
+AGENT_LEASE_TTL=${AGENT_LEASE_TTL:-600}
+T3_STATE_DB=${T3_STATE_DB:-/home/leo/.t3/userdata/state.sqlite}
+BUN=${BUN:-/home/leo/.bun/bin/bun}
+
+FENETRE_MESURES=${FENETRE_MESURES:-20}
+ACTIF_MESURES=${ACTIF_MESURES:-12}
+REPOS_MESURES=${REPOS_MESURES:-3}
+charge_mesures=()
+charge_soutenue=0
+
+# Processus qui ne servent que de tuyau : une session qui n'a qu'eux dedans ne
+# represente aucun travail.
+TRANSPORT=" sshd sshd-session mutagen-agent mutagen "
+# Un interpreteur seul veut dire un terminal ouvert, pas forcement utilise :
+# c'est la saisie sur son terminal qui tranche.
+SHELLS=" bash sh zsh fish dash -bash login "
+
+# Renvoie l'age en secondes de la derniere saisie sur le terminal d'une session,
+# ou une valeur enorme si la session n'a pas de terminal.
+age_terminal() {
+  local pids=$1 pid tty age plus_recent=999999
+  for pid in $pids; do
+    tty=$(readlink "/proc/$pid/fd/0" 2>/dev/null) || continue
+    case "$tty" in /dev/pts/*|/dev/tty[0-9]*) ;; *) continue ;; esac
+    age=$(( $(date +%s) - $(stat -c %X "$tty" 2>/dev/null || echo 0) ))
+    [ "$age" -lt "$plus_recent" ] && plus_recent=$age
+  done
+  echo "$plus_recent"
+}
+
+ligne_commande() {
+  tr '\0' ' ' < "/proc/$1/cmdline" 2>/dev/null | sed 's/ $//'
+}
+
+# Cursor laisse tourner son serveur distant apres la fermeture de la connexion.
+# Ses processus d'infrastructure, ainsi que leurs descendants, ne representent
+# pas un travail utilisateur.
+processus_cursor() {
+  local courant=$1 parent ligne profondeur=0
+  while [ "$courant" -gt 1 ] 2>/dev/null && [ "$profondeur" -lt 32 ]; do
+    ligne=$(ligne_commande "$courant")
+    case "$ligne" in
+      *'/.cursor-server/'*|*'/cursor-server/'*) return 0 ;;
+    esac
+    parent=$(awk '/^PPid:/ { print $2 }' "/proc/$courant/status" 2>/dev/null) || break
+    [ -n "$parent" ] || break
+    courant=$parent
+    profondeur=$((profondeur + 1))
+  done
+  return 1
+}
+
+# Le programme d'installation distant de Cursor garde une session SSH ouverte
+# avec une boucle "bash -> sleep 10". Apres une deconnexion incomplete, cette
+# boucle peut survivre dans une session systemd en etat closing. La signature
+# reste volontairement stricte pour ne pas ignorer le sleep d'un vrai script.
+attente_cursor() {
+  local pid=$1 parent ligne parent_ligne entree sortie
+  [ "$(cat "/proc/$pid/comm" 2>/dev/null)" = sleep ] || return 1
+  [ "$(ligne_commande "$pid")" = 'sleep 10' ] || return 1
+  parent=$(awk '/^PPid:/ { print $2 }' "/proc/$pid/status" 2>/dev/null) || return 1
+  ligne=$(cat "/proc/$parent/comm" 2>/dev/null) || return 1
+  case "$SHELLS" in *" $ligne "*) ;; *) return 1 ;; esac
+  parent_ligne=$(ligne_commande "$parent")
+  case "$parent_ligne" in bash|sh|zsh|fish|dash|-bash|login) ;; *) return 1 ;; esac
+  entree=$(readlink "/proc/$parent/fd/0" 2>/dev/null) || return 1
+  sortie=$(readlink "/proc/$parent/fd/1" 2>/dev/null) || return 1
+  [ "$entree" = /dev/null ] || return 1
+  case "$sortie" in 'pipe:['*) return 0 ;; esac
+  return 1
+}
+
+etat_session() {
+  local nom=${1##*/} id
+  id=${nom#session-}
+  id=${id%.scope}
+  loginctl show-session "$id" -p State --value 2>/dev/null || echo unknown
+}
+
+# Vrai si un multiplexeur a un descendant autre qu'un shell ou un processus de
+# transport. Un tmux abandonne au prompt ne garde donc plus la tour allumee.
+multiplexeur_travaille() {
+  local -a file=()
+  local ligne pid enfant comm i
+  while read -r pid comm; do
+    case "$comm" in SCREEN|screen|tmux:) file+=("$pid") ;; esac
+  done < <(ps -eo pid=,comm=)
+
+  for ((i = 0; i < ${#file[@]}; i++)); do
+    pid=${file[$i]}
+    for enfant in $(pgrep -P "$pid" 2>/dev/null || true); do
+      file+=("$enfant")
+      comm=$(cat "/proc/$enfant/comm" 2>/dev/null) || continue
+      case "$TRANSPORT $SHELLS tmux tmux: server SCREEN screen " in
+        *" $comm "*) continue ;;
+      esac
+      return 0
+    done
+  done
+  return 1
+}
+
+maj_charge_soutenue() {
+  local haute=0 somme=0 valeur
+  awk -v c="$charge" -v s="$CHARGE_SEUIL" 'BEGIN { exit !(c >= s) }' && haute=1
+  charge_mesures+=("$haute")
+  if [ ${#charge_mesures[@]} -gt "$FENETRE_MESURES" ]; then
+    charge_mesures=("${charge_mesures[@]:1}")
+  fi
+  for valeur in "${charge_mesures[@]}"; do somme=$((somme + valeur)); done
+  charge_hits=$somme
+  if [ "$charge_soutenue" = 1 ]; then
+    [ "$somme" -le "$REPOS_MESURES" ] && charge_soutenue=0
+  elif [ ${#charge_mesures[@]} -ge "$ACTIF_MESURES" ] && [ "$somme" -ge "$ACTIF_MESURES" ]; then
+    charge_soutenue=1
+  fi
+}
+
+evaluer_agents() {
+  agents_actifs=0
+  local now f pid _label mtime age
+  now=$(date +%s)
+  shopt -s nullglob
+  for f in "$AGENT_LEASE_DIR"/*; do
+    read -r pid _label < "$f" 2>/dev/null || { rm -f "$f"; continue; }
+    mtime=$(stat -c %Y "$f" 2>/dev/null || echo 0)
+    age=$((now - mtime))
+    if [ "${pid:-0}" != 0 ] && ! kill -0 "$pid" 2>/dev/null; then
+      rm -f "$f"
+      continue
+    fi
+    if [ "$age" -ge "$AGENT_LEASE_TTL" ]; then
+      rm -f "$f"
+      continue
+    fi
+    agents_actifs=$((agents_actifs + 1))
+  done
+  shopt -u nullglob
+}
+
+# T3 conserve l'etat de ses agents dans sa base SQLite. C'est la source de
+# verite : le serveur T3 reste lance en permanence, tandis que seules les
+# sessions "starting" et "running" correspondent a un agent qui travaille.
+# Une erreur de lecture bloque volontairement l'extinction. Une panne du
+# detecteur ne doit jamais etre interpretee comme une tour inactive.
+evaluer_t3() {
+  t3_agents=0
+  t3_claude=0
+  t3_codex=0
+  t3_etat=indisponible
+  [ -r "$T3_STATE_DB" ] || { t3_etat=absent; return 0; }
+  [ -x "$BUN" ] || { t3_etat=erreur; return 0; }
+
+  local resultat
+  # shellcheck disable=SC2016
+  resultat=$(T3_STATE_DB="$T3_STATE_DB" timeout 5 "$BUN" -e '
+    import { Database } from "bun:sqlite";
+    const db = new Database(process.env.T3_STATE_DB, { readonly: true });
+    const row = db.query(`
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN provider_name = "claudeAgent" THEN 1 ELSE 0 END) AS claude,
+        SUM(CASE WHEN provider_name = "codex" THEN 1 ELSE 0 END) AS codex
+      FROM projection_thread_sessions
+      WHERE status IN ("starting", "running")
+    `).get();
+    console.log(`${row.total} ${row.claude ?? 0} ${row.codex ?? 0}`);
+  ' 2>/dev/null) || { t3_etat=erreur; return 0; }
+
+  read -r t3_agents t3_claude t3_codex <<< "$resultat"
+  case "$t3_agents $t3_claude $t3_codex" in
+    *[!0-9\ ]*)
+      t3_agents=0
+      t3_claude=0
+      t3_codex=0
+      t3_etat=erreur
+      return 0
+      ;;
+  esac
+  t3_etat=ok
+}
+
+evaluer() {
+  signaux=()
+  sessions=0
+  saisie_s=-1
+  cursor_ignores=0
+  closing_ignores=0
+  local scope pids pid comm travail shell_seul age etat
+
+  for scope in /sys/fs/cgroup/user.slice/user-*.slice/session-*.scope; do
+    [ -r "$scope/cgroup.procs" ] || continue
+    pids=$(cat "$scope/cgroup.procs" 2>/dev/null)
+    [ -n "$pids" ] || continue
+    etat=$(etat_session "$scope")
+    if [ "$etat" = closing ]; then
+      closing_ignores=$((closing_ignores + 1))
+      continue
+    fi
+    travail=0
+    shell_seul=0
+    for pid in $pids; do
+      comm=$(cat "/proc/$pid/comm" 2>/dev/null) || continue
+      case "$TRANSPORT" in *" $comm "*) continue ;; esac
+      if processus_cursor "$pid" || attente_cursor "$pid"; then
+        cursor_ignores=$((cursor_ignores + 1))
+        continue
+      fi
+      case "$SHELLS" in *" $comm "*) shell_seul=1; continue ;; esac
+      travail=1
+    done
+    if [ "$travail" = 1 ]; then
+      sessions=$((sessions + 1))
+    elif [ "$shell_seul" = 1 ]; then
+      age=$(age_terminal "$pids")
+      if [ "$saisie_s" -lt 0 ] || [ "$age" -lt "$saisie_s" ]; then saisie_s=$age; fi
+    fi
+  done
+  [ "$sessions" -gt 0 ] && signaux+=(session)
+  [ "$saisie_s" -ge 0 ] && [ "$saisie_s" -lt "$SAISIE_S" ] && signaux+=(saisie)
+
+  charge=$(cut -d' ' -f1 /proc/loadavg)
+  maj_charge_soutenue
+  [ "$charge_soutenue" = 1 ] && signaux+=(charge_soutenue)
+
+  # Le nombre reste publie pour le diagnostic, mais seul un descendant de
+  # travail compte comme activite.
+  multiplexeur=$(pgrep -c -x 'screen|SCREEN|tmux|tmux: server' 2>/dev/null || true)
+  multiplexeur=${multiplexeur:-0}
+  multiplexeur_travaille && signaux+=(multiplexeur_travail)
+
+  evaluer_t3
+  if [ "$t3_etat" = erreur ]; then
+    signaux+=(t3_indisponible)
+  elif [ "$t3_agents" -gt 0 ]; then
+    signaux+=(t3_agent)
+  fi
+
+  evaluer_agents
+  [ "$agents_actifs" -gt 0 ] && signaux+=(agent)
+
+  # Les entrainements et services dans Docker ne figurent pas dans les
+  # sessions interactives ; un conteneur actif empeche l'arret.
+  conteneurs=$(docker ps -q 2>/dev/null) || signaux+=(docker_indisponible)
+  [ -z "$conteneurs" ] || signaux+=(docker)
+
+  # Un calcul GPU peut n'utiliser presque aucun CPU entre deux kernels.
+  if nvidia-smi --query-compute-apps=pid --format=csv,noheader,nounits 2>/dev/null \
+      | grep -Eq '^[[:space:]]*[0-9]+'; then
+    signaux+=(gpu)
+  fi
+
+  return 0
+}
+
+if [ "${1:-}" = --diagnose ]; then
+  evaluer
+  printf 'sessions     %s\n' "$sessions"
+  printf 'saisie_s     %s\n' "$saisie_s"
+  printf 'charge       %s\n' "$charge"
+  printf 'charge_hits  %s/%s\n' "$charge_hits" "$FENETRE_MESURES"
+  printf 'multiplexeur %s\n' "$multiplexeur"
+  printf 'cursor_ignores  %s\n' "$cursor_ignores"
+  printf 'closing_ignores %s\n' "$closing_ignores"
+  printf 't3_agents    %s (claude=%s codex=%s)\n' "$t3_agents" "$t3_claude" "$t3_codex"
+  printf 't3_etat      %s\n' "$t3_etat"
+  printf 'agents       %s\n' "$agents_actifs"
+  printf 'conteneurs   %s\n' "$(printf '%s\n' "$conteneurs" | grep -c . || true)"
+  printf 'signaux      %s\n' "${signaux[*]}"
+  printf 'seuils       charge=%s soutenue=%s/%s saisie_s=%s\n' \
+    "$CHARGE_SEUIL" "$ACTIF_MESURES" "$FENETRE_MESURES" "$SAISIE_S"
+  exit 0
+fi
+
+activite=$(date +%s)
+printf 'agent-awake demarre : intervalle=%ss inactivite=%ss\n' "$INTERVAL" "$IDLE_TIMEOUT"
+while :; do
+  maintenant=$(date +%s)
+  evaluer
+  if [ ${#signaux[@]} -gt 0 ]; then
+    activite=$maintenant
+  elif [ $(( maintenant - activite )) -ge "$IDLE_TIMEOUT" ]; then
+    # Recontrole au moment de l'arret pour ne pas couper un travail lance
+    # pendant le dernier intervalle.
+    evaluer
+    if [ ${#signaux[@]} -eq 0 ]; then
+      printf 'inactif depuis %ss : extinction propre\n' "$IDLE_TIMEOUT"
+      if systemctl poweroff; then
+        exit 0
+      fi
+      printf 'extinction refusee ; nouveau delai de securite\n' >&2
+      activite=$(date +%s)
+    fi
+    activite=$(date +%s)
+  fi
+
+  sleep "$INTERVAL"
+done
