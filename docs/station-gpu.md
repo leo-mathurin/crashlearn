@@ -55,9 +55,22 @@ Le script utilise les mêmes matrices `float32`, dimensions, nombre de répétit
 
 Le calcul matriciel est environ 23 fois plus rapide sur GPU dans ce test. Pour ce petit PPO MLP, le CPU est environ deux fois plus rapide. L'image exécutée contient Python 3.11.16, PyTorch `2.13.0+cu130`, CUDA runtime 13.0, Stable-Baselines3 2.9.0, W&B 0.30.0, ONNX 1.22.0 et ONNX Runtime 1.29.0. Les deux checkpoints ont été rechargés dans le conteneur. Le checkpoint GPU a ensuite été copié sur un SSD externe, rapatrié dans un autre dossier de la station et rechargé sur CUDA avec `PPO.load` ; son SHA-256 après retour était `da60d672779f1b9c0a55272fd7626f4d204e98643b48a535f21f536457ef0283`. La reprise d'entraînement a fait passer le modèle de 8 192 à 8 448 étapes.
 
-Le 29 septembre, un second test isolé a utilisé le wrapper Gymnasium de la [PR E-14](https://github.com/leo-mathurin/crashlearn/pull/9) avec la carte `example` et PPO sur CUDA. Il a entraîné 1 024 étapes en 7,651 s, sauvegardé un checkpoint de 298 245 octets, vérifié que le modèle rechargé prédit la même action déterministe, puis repris l'entraînement jusqu'à 1 280 étapes et sauvegardé un second checkpoint. Le résultat reste sur la station dans `/home/leo/runs/station-race-smoke/result.json`. La sauvegarde Stable-Baselines3 nécessitait de renseigner `gym.__version__` dans ce test : le paquet `gym` livré comme espace de noms par le simulateur n'expose pas cette métadonnée. Le test a été exécuté dans un checkout temporaire de E-14, ensuite retiré ; il ne modifie pas cette PR.
+Le 29 septembre, `scripts/station_race_smoke.py` a utilisé le wrapper Gymnasium de la [PR E-14](https://github.com/leo-mathurin/crashlearn/pull/9) avec la carte `example` et PPO sur CUDA. Il a entraîné 1 024 étapes en 7,711 s et créé des checkpoints périodiques aux étapes 256, 512, 768 et 1 024. Un checkpoint final, enregistré **après** la dernière mise à jour PPO, a été rechargé : les actions déterministes étaient identiques. L'entraînement a ensuite repris jusqu'à 1 280 étapes et un nouveau checkpoint a été enregistré. Le résultat et les empreintes SHA-256 restent sur la station dans `/home/leo/runs/station-race-periodic-v2/result.json`. Le script renseigne `gym.__version__` pour les métadonnées de sauvegarde Stable-Baselines3 : le paquet `gym` du simulateur est un espace de noms qui n'expose pas cette métadonnée.
 
-Ces runs valident la station et la sauvegarde puis reprise d'un petit pilote de course. Ils ne définissent pas encore la politique de checkpoints périodiques de l'entraîneur du projet. Le débit PPO CartPole ne prédit pas celui du simulateur de course : la simulation peut être limitée par le CPU, et une petite politique MLP peut être plus lente sur GPU.
+Le test a été exécuté avec un export temporaire de E-14, ensuite retiré. Pour le reproduire, placer la branche E-14 dans un répertoire temporaire sur la station, puis lancer depuis ce répertoire :
+
+```bash
+docker run --rm --runtime=nvidia --gpus all --user 1000:1000 \
+  -e HOME=/tmp \
+  -e PYTHONPATH=/workspace/src:/workspace/vendor/simulation:/workspace/vendor/simulation/gym \
+  -v "$PWD:/workspace:ro" -v "$HOME/runs:/home/leo/runs" -w /workspace \
+  crashlearn-train-gpu:20260928 \
+  python /home/leo/runs/station_race_smoke.py \
+  --output-dir /home/leo/runs/station-race-periodic-v2 \
+  --device cuda --steps 1024 --resume-steps 256 --checkpoint-every 256
+```
+
+Ces runs valident la station et la sauvegarde puis reprise d'un petit pilote de course. Le wrapper E-14 reste une PR séparée ; la politique de checkpoints de ce script est une validation courte, pas encore celle de l'entraîneur de production. Le débit PPO CartPole ne prédit pas celui du simulateur de course : la simulation peut être limitée par le CPU, et une petite politique MLP peut être plus lente sur GPU.
 
 ## Démarrage et arrêt de la station
 
