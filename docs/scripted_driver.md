@@ -38,7 +38,7 @@ Un nouvel épisode est détecté quand `info["step_count"] == 0`. C'est la valeu
 Trois mécanismes gèrent les situations bloquantes :
 - **Contact mur ou voiture immobile** pendant `stuck_steps` décisions : marche arrière pendant `reverse_steps` décisions, en braquant à l'opposé, pour réorienter le nez.
 - **Mauvais sens** (`progress` décroît pendant `wrong_way_steps` décisions alors que la voiture avance) : demi-tour à braquage maximal, du côté de l'espace arrière le plus dégagé.
-- **Pas de marche arrière près de la ligne** (`progress < no_reverse_below_progress`) : la voiture avance au pas en braquant (voir le bug 2 ci-dessous).
+- **Pas de marche arrière près de la ligne** (`progress < no_reverse_below_progress`) : la voiture avance au pas en braquant, pour ne pas faire reculer son maximum de progression juste après le passage de ligne.
 
 ### Contrat d'action
 
@@ -52,11 +52,12 @@ Le contrat tient donc pour **n'importe quelle** `DriverConfig`, pas seulement po
 - **configurations** : vitesses négatives ou supérieures à 10, gains nuls ou forts, fenêtres de 0° ou de 180°, seuils extrêmes, valeurs `nan` ou `inf` ;
 - **entrées** : LiDAR `None`, en 2D, vide, NaN ou inf ; adversaire au statut texte ou à la position `nan` ; observations factices d'`agent_loader`.
 
-Deux tests lents vérifient le même contrat dans une vraie course :
+Trois tests lents vérifient le même contrat dans une vraie course :
 - **isolation** : deux pilotes dans la même simulation, puis rejeu de chacun sur une instance neuve, avec des actions identiques ;
-- **course dégradée** : 10 rayons NaN par décision, statut d'adversaire en texte et `info` sans `step_count`.
+- **course dégradée** : 10 rayons NaN par décision, statut d'adversaire en texte et `info` sans `step_count` ;
+- **récupération réelle** : le pilote est aveuglé par un LiDAR à 15 m pendant 60 décisions, donc il entre dans le mur, puis retrouve le vrai LiDAR. Il doit repartir et dépasser d'au moins 0,1 tour la progression du contact. Aux valeurs par défaut, c'est le seul moyen d'exercer la marche arrière : le pilote ne touche aucun mur en course normale.
 
-Dans la course dégradée, un rayon NaN est lu comme un obstacle à 0,1 m, par prudence. La voiture se traîne donc (0,017 tour en 300 décisions, contre 0,237 sans dégradation), mais elle avance et ne viole jamais le contrat.
+Dans la course dégradée, un rayon NaN est lu comme un obstacle à 0,1 m, par prudence. La voiture se traîne donc, et elle peut finir en DNF pour stagnation autour de la décision 270 (fenêtre de 200 pas, gain minimal de 1 m). C'est un résultat, pas une violation du contrat : le test exige que le DNF vienne bien de la stagnation et non d'une sortie de piste.
 
 **Formes non supportées** : `opponents` en liste, `agent_id` à `None`, LiDAR en texte. Ces formes n'existent pas dans le simulateur. Leur prise en charge attendra que la ligue accepte des observations de sources externes.
 
@@ -75,13 +76,15 @@ Toutes les valeurs sont regroupées dans un dataclass figé et recopiées en ent
 | `speed_gain`, `min_speed`, `max_speed` | 1,5, 1, 7 m/s | Vitesse = `min_speed + speed_gain × (distance libre − front_margin)`, plafonnée à `max_speed`. |
 | `steer_slowdown` | 0,5 | Part de la vitesse perdue au braquage maximal. |
 | `stuck_speed`, `stuck_steps` | 0,2 m/s, 10 | Seuil de vitesse et durée pour considérer la voiture bloquée. |
-| `reverse_speed`, `reverse_steps` | −0,4 m/s, 20 | Marche arrière. **Doit rester au-dessus de −0,5 m/s** (voir le bug 3). |
+| `reverse_speed`, `reverse_steps` | −0,4 m/s, 20 | Marche arrière. **Garder au-dessus de −0,5 m/s**, seuil sous lequel le moteur reste cinématique : reculer plus vite en braquant faisait diverger l'ancienne archive, et la manœuvre lente suffit. |
 | `wrong_way_steps` | 5 | Délai avant de lancer un demi-tour. |
 | `no_reverse_below_progress` | 0,02 | Pas de marche arrière dans les premiers 2 % d'un tour. |
 
 Les valeurs ont été réglées à la main sur les cartes d'entraînement, sans optimisation automatique. Pour arriver à `max_speed = 7` et `speed_gain = 1,5`, deux configurations ont été essayées sur un tour de chacune des 15 cartes d'entraînement :
-- **7 m/s** : les 15 cartes bouclent le tour sans aucun contact ;
-- **10 m/s** : 14 cartes sur 15 finissent en DNF.
+- **7 m/s** : les 15 cartes bouclent le tour, sans aucun contact mur ;
+- **10 m/s** : 2 cartes sur 15 seulement, 13 DNF et 14 cartes avec contact mur.
+
+Mesure refaite sur l'archive 2026-09-18.
 
 ## Commandes
 
@@ -113,137 +116,96 @@ Précisions sur ces champs :
 
 Le script sort avec le code 0 même en cas de DNF : un échec est une mesure.
 
-**Seed** : le simulateur n'en expose aucun. Son générateur de bruit (`default_rng(0)`) est créé une seule fois avec le singleton, et `reset()` ne le réinitialise pas. Le script fait donc `close()` avant chaque course, puis remplace ce générateur privé par `default_rng(seed)`. Ce contournement est testé (reproductibilité) et devra être revu après E-12.
+**Seed** : `reset(num_cars, seed=)` de l'archive 2026-09-18 réarme le bruit du wrapper et le moteur. Le script l'appelle avant chaque course, sans aucun accès à l'état privé du simulateur. Deux tests le couvrent : même seed, mêmes JSON ; seed différent, hash de trajectoire différent.
 
 ## Résultats
 
 Provenance commune :
-- commit `1fedea9`, arbre propre (`dirty = false`) ;
-- `sim_sha256` `eb6e0732…6ae8`, `f110_gym` 0.2.1, pilote v1 ;
+- commit `9c290bc`, arbre propre (`dirty = false`) ;
+- `sim_sha256` `3f4aac8e…92cb` (archive 2026-09-18), `f110_gym` 0.2.1, pilote v1 ;
 - `max_time` 600 s, friction observée `[1.0]`.
 
 Les données complètes sont dans les JSON produits (`--output`).
 
-Deux protocoles ont été utilisés et **ne sont pas comparables** :
+Deux protocoles, qui **ne sont pas comparables** :
 - **P3** : 3 tours, sur les 5 cartes par défaut. C'est le format standard des évaluations internes.
 - **P1** : 1 tour, sur les 10 autres cartes d'entraînement. Il ne vérifie que la capacité à boucler un tour.
-
-La course s'arrête dès le tour bouclé. P1 **ne peut donc pas révéler le DNF au passage de ligne** (bug 1), qui ne se déclenche que 80 décisions plus tard.
 
 Dans les tableaux, « Prog. » est la progression cumulée (tours + phase) ; les temps sont en secondes simulées.
 
 ### P3, 1 voiture, seeds 0, 1 et 2
 
-| Protocole | Seed | Carte | Statut | Tours | Prog. | Total (s) | Contacts mur | Temps au tour (s) |
-|---|---|---|---|---|---|---|---|---|
-| P3 | 0 | IMS | DNF | 1 | 1,0916 | – | 0 | 44,35 |
-| P3 | 0 | BrandsHatch | DNF | 1 | 1,0737 | – | 0 | 54,95 |
-| P3 | 0 | Austin | FINISHED | 3 | 3,0000 | 224,85 | 0 | 75,0 / 74,8 / 75,05 |
-| P3 | 0 | MexicoCity | DNF | 2 | 2,0752 | – | 0 | 59,3 / 59,35 |
-| P3 | 0 | Budapest | FINISHED | 3 | 3,0000 | 189,10 | 0 | 63,15 / 62,85 / 63,1 |
-| P3 | 1 | IMS | DNF | 1 | 1,0922 | – | 0 | 44,3 |
-| P3 | 1 | BrandsHatch | DNF | 1 | 1,0741 | – | 0 | 54,9 |
-| P3 | 1 | Austin | FINISHED | 3 | 3,0000 | 224,50 | 0 | 75,05 / 74,75 / 74,7 |
-| P3 | 1 | MexicoCity | DNF | 1 | 1,0753 | – | 0 | 59,5 |
-| P3 | 1 | Budapest | FINISHED | 3 | 3,0000 | 189,20 | 0 | 63,2 / 63,0 / 63,0 |
-| P3 | 2 | IMS | DNF | 1 | 1,0919 | – | 0 | 44,3 |
-| P3 | 2 | BrandsHatch | DNF | 1 | 1,0740 | – | 0 | 55,0 |
-| P3 | 2 | Austin | FINISHED | 3 | 3,0000 | 224,00 | 0 | 74,7 / 74,75 / 74,55 |
-| P3 | 2 | MexicoCity | DNF | 1 | 1,0753 | – | 0 | 59,25 |
-| P3 | 2 | Budapest | FINISHED | 3 | 3,0000 | 189,05 | 0 | 63,3 / 62,8 / 62,95 |
+Aucun DNF, aucun contact mur, aucune collision entre voitures.
 
-Deux exécutions avec le seed 0 donnent des JSON identiques, hors date.
+| Carte | Statut | Total seed 0 | Total seed 1 | Total seed 2 | Temps au tour, seed 0 |
+|---|---|---|---|---|---|
+| IMS | FINISHED | 132,35 | 132,20 | 132,20 | 44,3 / 44,1 / 43,95 |
+| BrandsHatch | FINISHED | 163,50 | 163,40 | 163,80 | 54,85 / 54,3 / 54,35 |
+| MexicoCity | FINISHED | 176,80 | 177,30 | 177,10 | 59,2 / 58,8 / 58,8 |
+| Budapest | FINISHED | 189,45 | 189,20 | 189,30 | 63,35 / 63,05 / 63,05 |
+| Austin | FINISHED | 224,30 | 223,75 | 223,75 | 75,1 / 74,95 / 74,25 |
+
+L'écart entre seeds reste sous 0,6 s sur 3 tours. Deux exécutions avec le même seed donnent des JSON identiques, hors date.
 
 ### P3, 4 voitures, seed 0
 
-| Protocole | Carte | Voiture | Statut | Tours | Prog. | Total (s) | Contacts mur | Temps au tour (s) |
-|---|---|---|---|---|---|---|---|---|
-| P3 | Austin | 0 | FINISHED | 3 | 3,0051 | 225,00 | 0 | 75,3 / 74,95 / 74,75 |
-| P3 | Austin | 1 | FINISHED | 3 | 3,0000 | 229,95 | 1 | 79,85 / 74,85 / 75,25 |
-| P3 | Austin | 2 | FINISHED | 3 | 3,0000 | 226,80 | 0 | 76,85 / 74,9 / 75,05 |
-| P3 | Austin | 3 | FINISHED | 3 | 3,0002 | 228,35 | 0 | 78,25 / 74,8 / 75,3 |
-| P3 | Budapest | 0 | FINISHED | 3 | 3,0050 | 189,65 | 0 | 63,7 / 62,85 / 63,1 |
-| P3 | Budapest | 1 | DNF | 2 | 2,0665 | – | 0 | 65,05 / 62,95 |
-| P3 | Budapest | 2 | FINISHED | 3 | 3,0001 | 192,45 | 0 | 66,25 / 63,1 / 63,1 |
-| P3 | Budapest | 3 | FINISHED | 3 | 3,0000 | 193,50 | 2 | 67,3 / 63,05 / 63,15 |
+| Carte | Voiture | Statut | Total | Temps au tour |
+|---|---|---|---|---|
+| Austin | 0 | FINISHED | 224,85 | 74,85 / 74,95 / 75,05 |
+| Austin | 1 | FINISHED | 227,75 | 77,85 / 75,3 / 74,6 |
+| Austin | 2 | FINISHED | 226,00 | 76,25 / 75,15 / 74,6 |
+| Austin | 3 | FINISHED | 229,15 | 79,2 / 75,35 / 74,6 |
+| Budapest | 0 | FINISHED | 190,35 | 64,5 / 63,05 / 62,8 |
+| Budapest | 1 | FINISHED | 189,25 | 63,45 / 63,1 / 62,7 |
+| Budapest | 2 | FINISHED | 191,90 | 66,0 / 62,75 / 63,15 |
+| Budapest | 3 | FINISHED | 193,40 | 67,0 / 63,1 / 63,3 |
 
-Aucune collision entre voitures n'a été relevée.
+Les quatre voitures terminent, sans contact mur ni contact entre elles. Les places arrière de la grille perdent 1 à 4 s au premier tour, puis roulent aux mêmes temps.
 
-### P1, 1 voiture, seed 0
+### P1, 10 autres cartes d'entraînement, seed 0
 
-| Protocole | Carte | Statut | Tours | Prog. | Temps (s) | Contacts mur | Exposée au bug 1 |
-|---|---|---|---|---|---|---|---|
-| P1 | Catalunya | FINISHED | 1 | 1,0000 | 65,80 | 0 | oui |
-| P1 | Hockenheim | FINISHED | 1 | 1,0000 | 60,85 | 0 | non |
-| P1 | Melbourne | FINISHED | 1 | 1,0000 | 75,05 | 0 | non |
-| P1 | Monza | FINISHED | 1 | **2,0000** | 73,45 | 0 | oui |
-| P1 | Nuerburgring | FINISHED | 1 | 1,0000 | 72,20 | 0 | oui |
-| P1 | Sakhir | FINISHED | 1 | 1,0000 | 72,50 | 0 | oui |
-| P1 | SaoPaulo | FINISHED | 1 | 1,0000 | 56,80 | 0 | non |
-| P1 | Sepang | FINISHED | 1 | **2,0000** | 77,45 | 0 | oui |
-| P1 | Silverstone | FINISHED | 1 | 1,0000 | 76,05 | 0 | non |
-| P1 | Zandvoort | FINISHED | 1 | 1,0000 | 65,85 | 0 | oui |
+Les 10 cartes bouclent leur tour, sans contact mur.
 
-Sur Monza et Sepang, la valeur **2,0000** pour un seul tour est un effet du bug 1 : la course s'est arrêtée à la décision exacte où la phase valait 1,0. Sous le protocole P3, ces deux cartes auraient probablement fini en DNF.
+| Carte | Temps (s) | Carte | Temps (s) |
+|---|---|---|---|
+| SaoPaulo | 56,90 | Nuerburgring | 72,20 |
+| Hockenheim | 60,40 | Sakhir | 72,40 |
+| Catalunya | 65,80 | Melbourne | 75,00 |
+| Zandvoort | 65,80 | Silverstone | 76,20 |
+| Monza | 71,30 | Sepang | 77,50 |
 
-### Référence de non-régression
+Le test lent `test_one_lap_on_every_training_track` rejoue ce protocole sur les **15** cartes d'entraînement et échoue au moindre DNF ou contact mur (environ 20 s).
+
+### Référence de reproductibilité
 
 Commande : `--map Budapest --laps 1 --cars 2`.
 
-| Protocole | Voiture | Statut | Temps (s) |
-|---|---|---|---|
-| 1 tour, 2 voitures | 0 | FINISHED | 63,70 |
-| 1 tour, 2 voitures | 1 | FINISHED | 65,40 |
-
-Ces temps sont identiques avant et après les correctifs de revue, et le hash de course aussi (`a1f2643b…`). Ces correctifs n'ont donc pas changé la trajectoire obtenue avec la configuration par défaut.
+| Voiture | Statut | Temps (s) |
+|---|---|---|
+| 0 | FINISHED | 64,65 |
+| 1 | FINISHED | 63,45 |
 
 ### Lecture
 
-- **Aucun DNF ne vient du pilote.**
-  - Sous P3, aucune voiture seule ne touche un mur, et chaque DNF suit un passage de ligne sur une position exposée au bug 1 : IMS, BrandsHatch, MexicoCity, et la voiture 1 sur Budapest.
-  - Austin et Budapest (voiture 0) ne sont pas exposées et bouclent leurs 3 tours.
-  - À 4 voitures, deux voitures touchent brièvement le mur (1 et 2 pas en contact) et terminent quand même.
-- **Premier tour à plusieurs voitures** : les voitures parties plus loin sur la grille perdent 1 à 4 s, puis roulent aux mêmes temps.
-- **P1** : les 10 cartes sont bouclées sans aucun contact. Six d'entre elles sont exposées au bug 1, ce que ce protocole ne permet pas de vérifier.
+- **Le pilote boucle les 15 cartes d'entraînement**, à 1 comme à 3 tours, seul ou à 4 voitures, sans jamais toucher un mur aux valeurs par défaut.
+- **Les DNF mesurés sur l'archive 2026-09-08 ont disparu.** Ils venaient du faux DNF après le passage de ligne, corrigé en amont : à configuration de pilote inchangée, IMS, BrandsHatch et MexicoCity terminent désormais leurs 3 tours. C'est la confirmation du diagnostic, et l'intérêt d'un témoin déterministe.
+- **Les temps au tour sont stables** : moins de 1 s d'écart entre les tours d'une même course, et moins de 0,6 s entre seeds.
 
-## Bugs du simulateur révélés (non corrigés, à traiter dans E-12)
+## Ce que ce pilote a révélé dans le simulateur
 
-1. **DNF systématique après un passage de ligne.**
-   - Mécanisme :
-     - la centerline est ouverte : 0,36 à 0,46 m séparent son dernier point du premier ;
-     - au passage de la ligne, la projection vaut exactement `p_abs = 0.0` ;
-     - si la progression de départ de la voiture `p0` vaut environ 1e-19 au lieu de 0, alors `(0.0 - p0) % 1.0` donne exactement `1.0` ;
-     - `max_progress` passe donc à 1,0 juste après la remise à zéro du tour, et la voiture ne peut plus le dépasser ;
-     - résultat : DNF 80 décisions plus tard, que le pilote soit bon ou non.
-   - Traces observées sur IMS : au pas 1310, `rel` vaut 0,0 et le tour est compté. Au pas 1311, `rel` vaut 1,0 et `max_progress` aussi. Le DNF tombe au pas 1391.
-   - **Cartes exposées (voiture 0)** : 9 cartes d'entraînement sur 15.
-     - Exposées : BrandsHatch, Catalunya, IMS, MexicoCity, Monza, Nuerburgring, Sakhir, Sepang, Zandvoort.
-     - Non exposées (`p0 == 0.0`) : Austin, Budapest, Hockenheim, Melbourne, SaoPaulo, Silverstone.
-     - Chaque position sur la grille a son propre `p0` : sur Budapest, seule la voiture 1 est exposée.
-   - Le déclenchement dépend de la tombée exacte d'une décision sur `p_abs = 0.0`, d'où les variations selon le seed (MexicoCity).
-   - **Tout agent RL en est victime** : une évaluation à 3 tours est impossible sur ces cartes tant que ce n'est pas corrigé.
-2. **Marche arrière au départ d'un tour.**
-   - Même origine : reculer juste après la ligne ramène `rel` vers 0,99, donc `max_progress` vers 1,0, puis DNF au bout de 4 s.
-   - Constaté au départ sur IMS : 10 décisions à −1 m/s, puis `max_progress` à 1,0 et DNF au pas 81 alors que la voiture avance.
-   - Parade du pilote : `no_reverse_below_progress`.
-3. **Divergence du modèle dynamique en marche arrière braquée.**
-   - Le moteur passe au modèle dynamique à partir de |v| ≥ 0,5 m/s.
-   - En marche arrière à −1,3 m/s, même 0,02 rad de braquage fait exploser la vitesse de lacet (jusqu'à 1e32 rad/s) et le cap devient aléatoire.
-   - En ligne droite, ou sous 0,5 m/s (modèle cinématique), le comportement reste stable. La voiture se rétablit en repartant droit en avant.
-   - Parade du pilote : `reverse_speed = -0.4`.
-   - **Un agent RL qui recule vite en braquant exploitera ou subira ce bug.**
-4. **Friction fixe à 1** : `_update_friction` ne modifie pas la physique. Toutes les mesures ci-dessus sont faites à friction constante (`friction_seen = [1.0]`) et ne disent rien du comportement sous pluie.
-5. **Pas de seed public**, et `reset()` ne réinitialise pas le générateur (voir « Commandes »).
+Les défauts trouvés avec ce témoin sur la première archive, et leur devenir, sont consignés dans [docs/audit_simulateur.md](audit_simulateur.md) :
+- **faux DNF après le passage de ligne** (la progression de départ valait environ 1e-19 au lieu de 0, donc le maximum de progression passait à 1,0) : corrigé en amont ;
+- **divergence du modèle dynamique en marche arrière braquée** au-delà de 0,5 m/s (vitesse de lacet jusqu'à 1e32 rad/s) : corrigée en amont ;
+- **absence de graine** : `reset` en prend une désormais.
+
+Reste ouvert : la **friction est figée à 1,0** (`_update_friction` ne l'applique pas). Toutes les mesures ci-dessus valent donc à friction constante et ne disent rien du comportement sous pluie. La friction variable est traitée côté entraînement (E-23).
 
 ## Limites connues
 
-- **Cartes mesurées sur 3 tours** : IMS, BrandsHatch, Austin, MexicoCity et Budapest.
-  - Les 10 autres cartes d'entraînement n'ont été mesurées que sous P1 (1 tour), qui ne peut pas révéler le bug 1. Six d'entre elles y sont exposées.
-  - Validation et test scellé sont exclus volontairement : le test n'est ouvert qu'une fois, après le gel.
-- **Récupération limitée.**
-  - Elle fonctionne après un contact simple : sur Austin à 10 m/s, la voiture recule puis reprend sa progression.
-  - Après un tête-à-queue qui laisse la voiture en travers de la piste (2,2 m de large), le demi-tour en plusieurs manœuvres dépasse les 4 s de la règle de stagnation, puisqu'il faut reculer à moins de 0,5 m/s. La voiture finit en DNF.
-  - Aux valeurs par défaut, ce cas ne s'est pas produit.
+- **Périmètre mesuré** : 5 cartes sur 3 tours, 10 cartes sur 1 tour, seeds 0 à 2. Validation et test scellé sont exclus volontairement : le test n'est ouvert qu'une fois, après le gel.
+- **Récupération peu exercée** : aux valeurs par défaut, le pilote ne touche aucun mur. Seul le test lent qui l'aveugle volontairement en exerce la marche arrière.
+  - Une fois en travers d'une piste large d'environ 2,2 m, le demi-tour reste lent, puisqu'il faut reculer à moins de 0,5 m/s pour rester dans le modèle cinématique. Il peut donc dépasser la fenêtre de stagnation (200 pas, soit 10 s, avec 1 m de gain minimal) et finir en DNF.
 - **Pas de notion de sens de course** : le gap follower peut faire demi-tour après un contact. Seule la détection par `progress` le corrige.
 - **Temps au tour non optimisés** : trajectoire par le centre libre et plafond à 7 m/s. Ce pilote est une référence basse, pas un objectif.
 - **Résolution angulaire** : environ 3,6° par rayon, ce qui rend le pilote moins précis dans les chicanes serrées.
+- **Friction figée à 1,0** : voir ci-dessus.
