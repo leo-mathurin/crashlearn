@@ -45,15 +45,17 @@ class DriverConfig:
     steer_slowdown: float = 0.5  # speed factor lost at full lock
     stuck_speed: float = 0.2  # m/s, below this the car counts as stuck
     stuck_steps: int = 10  # decisions stuck before reversing
-    # Below |v| = 0.5 m/s the engine uses its kinematic model. Faster steered reversing makes
-    # the dynamic single-track model diverge (yaw rate -> 1e30, see docs): stay under it.
+    # The steered-reverse divergence that forced this value is fixed in the 2026-09-18 archive
+    # (docs/audit_simulateur.md). Kept under 0.5 m/s, where the engine stays kinematic: slow
+    # reversing is enough to turn the nose around, and it keeps the measured runs comparable.
     reverse_speed: float = -0.4  # m/s
     reverse_steps: int = 20  # decisions spent reversing
     # A gap follower has no sense of direction: after a contact it may turn around. Progress
     # falling for this many decisions while moving forward triggers a full-lock U-turn.
     wrong_way_steps: int = 5
-    # Reversing right after the start/finish line makes the simulator book ~1.0 max progress
-    # and DNF the car 4 s later (see docs/scripted_driver.md): never reverse below this.
+    # The false DNF that followed reversing right after the start/finish line is fixed in the
+    # 2026-09-18 archive (docs/audit_simulateur.md). Kept: reversing over the line still walks
+    # max progress backwards, and crawling forward instead costs nothing.
     no_reverse_below_progress: float = 0.02
 
 
