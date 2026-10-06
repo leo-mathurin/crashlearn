@@ -62,11 +62,9 @@ def provenance(args: argparse.Namespace, config: DriverConfig) -> dict:
 
 
 def run_race(sim, name: str, args: argparse.Namespace, config: DriverConfig) -> list[dict]:
-    sim.close()  # fresh singleton: its noise RNG is only created at construction
     sim.set_map(name)
-    sim.reset(num_cars=args.cars)
-    # ponytail: private hook, the simulator exposes no seed (E-12); only drives LiDAR noise
-    sim._get_sim()._rng = np.random.default_rng(args.seed)
+    # an explicit seed rebuilds the simulator and re-arms both RNGs (wrapper noise and engine)
+    sim.reset(num_cars=args.cars, seed=args.seed)
 
     drivers = [ScriptedDriver(config) for _ in range(args.cars)]
     cars = [
@@ -144,7 +142,9 @@ def main() -> int:
         dest="maps",
         help=f"training track, repeatable (default: {' '.join(DEFAULT_MAPS)})",
     )
-    parser.add_argument("--seed", type=int, default=0, help="LiDAR noise seed (default 0)")
+    parser.add_argument(
+        "--seed", type=int, default=0, help="seed for the LiDAR noise and the engine (default 0)"
+    )
     parser.add_argument(
         "--laps",
         type=int,
