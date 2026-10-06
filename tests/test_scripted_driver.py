@@ -12,7 +12,8 @@ from agent_loader import create_dummy_info, create_dummy_obs
 from conftest import ROOT
 from test_submission_contract import check_action
 
-from crashlearn.scripted_driver import DriverConfig, ScriptedDriver
+from crashlearn import tracks
+from crashlearn.scripted_driver import LIDAR_MAX, STEER_MAX, DriverConfig, ScriptedDriver
 
 SCRIPT = ROOT / "scripts" / "control_race.py"
 
@@ -194,6 +195,23 @@ def test_wall_contact_reverses_slowly_except_near_the_line():
     assert speed == config.min_speed
 
 
+@pytest.mark.parametrize(("ray", "side"), [(85, 1.0), (14, -1.0)], ids=["left_rear", "right_rear"])
+def test_wrong_way_turns_toward_the_clearest_rear_space(ray, side):
+    """Progress falling while the car moves forward: full lock toward the free rear side."""
+    config = DriverConfig()
+    scan = np.full(100, 1.0)
+    scan[ray] = 15.0  # only free rear ray; the front window stays walled in
+    driver = ScriptedDriver(config)
+    actions = [
+        driver.predict(obs(scan, velocity=3.0, progress=0.5 - 0.001 * k), info(k))
+        for k in range(config.wrong_way_steps + 2)
+    ]
+    assert abs(actions[0][1]) < STEER_MAX  # no u-turn before the delay
+    speed, steer = actions[-1]
+    assert steer == pytest.approx(side * STEER_MAX)
+    assert speed == config.min_speed
+
+
 def test_opponent_ahead_is_avoided():
     open_track = obs(np.full(100, 15.0))
     ahead = {1: {"x_rel": 1.0, "y_rel": 0.0, "status": 1}}
@@ -273,6 +291,13 @@ def test_control_race_is_reproducible_with_provenance(tmp_path):
     assert runs[0] == runs[1]
     assert [r["car"] for r in runs[0]] == [0, 1]
 
+    # --seed goes through the public reset, which re-arms the LiDAR noise and the engine
+    other = tmp_path / "seed1.json"
+    subprocess.run([*cmd, "--seed", "1", "--output", str(other)], check=True, capture_output=True)
+    seeded = json.loads(other.read_text())
+    assert [r["seed"] for r in seeded] == [1, 1]
+    assert seeded[0]["race_trajectory_sha256"] != runs[0][0]["race_trajectory_sha256"]
+
 
 # --- real simulator, single process -----------------------------------------
 
@@ -314,9 +339,10 @@ def test_drivers_in_one_simulation_share_no_state(budapest):
 
 @pytest.mark.slow
 def test_degraded_inputs_during_a_real_race(budapest):
-    budapest.reset(num_cars=1)
+    budapest.reset(num_cars=1, seed=0)
     driver = ScriptedDriver()
     info = budapest.get_step_info()
+    end = None
     for k in range(300):
         o = budapest.get_obs(0)
         lidar = o["lidar"].astype(np.float64)
@@ -330,7 +356,62 @@ def test_degraded_inputs_during_a_real_race(budapest):
         budapest.apply_action(0, *action)
         budapest.simulation_step()
         info = budapest.get_step_info()
-    assert info["agent_status"][0] == 1
-    # NaN rays read as 0.1 m obstacles: the car crawls (about 0.017 lap vs 0.237 undegraded
-    # over these 300 decisions) but keeps moving and never breaks the action contract
+        if info["agent_status"][0] != 1 and end is None:
+            end = info
+    # NaN rays read as 0.1 m obstacles, so the car crawls. It keeps the action contract and
+    # keeps moving, but the 2026-09-18 archive DNFs it for stagnation (10 s window, 1 m gain)
+    # around decision 270: a result, not a contract break. Off-track would DNF it too.
+    assert info["agent_status"][0] in (0, 1)
     assert budapest.get_obs(0)["progress"] > 0
+    if end is not None:
+        assert end["stagnation"][0], "DNF should come from the crawl, not from leaving the track"
+
+
+@pytest.mark.slow
+def test_recovery_after_a_real_wall_contact(budapest):
+    """Blind driver until it hits the wall, then real LiDAR: it must get going again."""
+    budapest.reset(num_cars=1, seed=0)
+    driver = ScriptedDriver()
+    info = budapest.get_step_info()
+    hit = None
+    for k in range(400):
+        o = budapest.get_obs(0)
+        if k < 60:  # an empty-looking track: the driver drives straight into the wall
+            o = {**o, "lidar": np.full(100, LIDAR_MAX, dtype=np.float32)}
+        action = driver.predict(o, info)
+        check_action(action)
+        budapest.apply_action(0, *action)
+        budapest.simulation_step()
+        info = budapest.get_step_info()
+        if hit is None and info["collisions"]["wall"][0]:
+            hit = float(budapest.get_obs(0)["progress"])
+    assert hit is not None, "the blind phase should end in a wall contact"
+    assert info["agent_status"][0] == 1, "the car should still be racing after the contact"
+    assert budapest.get_obs(0)["progress"] > hit + 0.1  # reversed, turned around, moved on
+
+
+@pytest.mark.slow
+def test_one_lap_on_every_training_track(tmp_path):
+    """The 15 training tracks, one lap each: no DNF, no wall contact. About 20 s."""
+    out = tmp_path / "laps.json"
+    maps = [arg for name in tracks.train_tracks() for arg in ("--map", name)]
+    subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            *maps,
+            "--laps",
+            "1",
+            "--max-time",
+            "150",
+            "--output",
+            str(out),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    records = json.loads(out.read_text())
+    assert len(records) == len(tracks.train_tracks())
+    failed = {r["map"]: r["status"] for r in records if r["status"] != "FINISHED"}
+    assert not failed, f"did not complete a lap: {failed}"
+    assert not [r["map"] for r in records if r["wall_collision_steps"]]
