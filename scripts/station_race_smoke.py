@@ -93,6 +93,17 @@ def main() -> None:
         resumed = output / f"ppo-race-resumed-{restored.num_timesteps}.zip"
         restored.save(resumed)
 
+        # An interrupted run restarts from its last periodic checkpoint, not from
+        # a final save: check that this file restores and resumes too.
+        periodic_restored = PPO.load(checkpoints[-1], env=env, device=args.device)
+        if periodic_restored.num_timesteps != expected_steps[-1]:
+            raise RuntimeError(f"periodic checkpoint restored at {periodic_restored.num_timesteps}")
+        periodic_restored.learn(total_timesteps=args.resume_steps, reset_num_timesteps=False)
+        if periodic_restored.num_timesteps != expected_steps[-1] + args.resume_steps:
+            raise RuntimeError(
+                f"unexpected periodic resumed length: {periodic_restored.num_timesteps}"
+            )
+
         result = {
             "map": args.map,
             "device": args.device,
@@ -102,6 +113,7 @@ def main() -> None:
             "checkpoint_every_steps": args.checkpoint_every,
             "training_steps": model.num_timesteps,
             "resumed_steps": restored.num_timesteps,
+            "periodic_resumed_steps": periodic_restored.num_timesteps,
             "training_seconds": round(elapsed, 3),
             "checkpoint_reload_equal": True,
             "checkpoints": [_checkpoint(path) for path in checkpoints],
