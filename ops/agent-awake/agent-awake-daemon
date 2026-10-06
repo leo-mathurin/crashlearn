@@ -27,6 +27,9 @@ AGENT_LEASE_DIR=${AGENT_LEASE_DIR:-/run/user/1000/agent-awake/leases}
 AGENT_LEASE_TTL=${AGENT_LEASE_TTL:-600}
 T3_STATE_DB=${T3_STATE_DB:-/home/leo/.t3/userdata/state.sqlite}
 BUN=${BUN:-/home/leo/.bun/bin/bun}
+# bun vit dans le home de cet utilisateur : il est lance sous son identite,
+# jamais en root, pour qu'un binaire remplace ne puisse pas obtenir root.
+T3_USER=${T3_USER:-leo}
 
 FENETRE_MESURES=${FENETRE_MESURES:-20}
 ACTIF_MESURES=${ACTIF_MESURES:-12}
@@ -179,7 +182,7 @@ evaluer_t3() {
 
   local resultat
   # shellcheck disable=SC2016
-  resultat=$(T3_STATE_DB="$T3_STATE_DB" timeout 5 "$BUN" -e '
+  resultat=$(timeout 5 runuser -u "$T3_USER" -- env T3_STATE_DB="$T3_STATE_DB" "$BUN" -e '
     import { Database } from "bun:sqlite";
     const db = new Database(process.env.T3_STATE_DB, { readonly: true });
     const row = db.query(`
@@ -218,11 +221,10 @@ evaluer() {
     [ -r "$scope/cgroup.procs" ] || continue
     pids=$(cat "$scope/cgroup.procs" 2>/dev/null)
     [ -n "$pids" ] || continue
+    # Une session closing n'a plus de terminal utilisable : ses shells ne
+    # comptent pas, mais un travail qui a survecu a la deconnexion (nohup,
+    # disown) reste une activite. La boucle de Cursor est filtree plus bas.
     etat=$(etat_session "$scope")
-    if [ "$etat" = closing ]; then
-      closing_ignores=$((closing_ignores + 1))
-      continue
-    fi
     travail=0
     shell_seul=0
     for pid in $pids; do
@@ -235,7 +237,9 @@ evaluer() {
       case "$SHELLS" in *" $comm "*) shell_seul=1; continue ;; esac
       travail=1
     done
-    if [ "$travail" = 1 ]; then
+    if [ "$travail" = 0 ] && [ "$etat" = closing ]; then
+      closing_ignores=$((closing_ignores + 1))
+    elif [ "$travail" = 1 ]; then
       sessions=$((sessions + 1))
     elif [ "$shell_seul" = 1 ]; then
       age=$(age_terminal "$pids")
