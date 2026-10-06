@@ -57,16 +57,16 @@ Le calcul matriciel est environ 23 fois plus rapide sur GPU dans ce test. Pour c
 
 Le 29 septembre, `scripts/station_race_smoke.py` a utilisé le wrapper Gymnasium de la [PR E-14](https://github.com/leo-mathurin/crashlearn/pull/9) avec la carte `example` et PPO sur CUDA. Il a entraîné 1 024 étapes en 7,711 s et créé des checkpoints périodiques aux étapes 256, 512, 768 et 1 024. Un checkpoint final, enregistré **après** la dernière mise à jour PPO, a été rechargé : les actions déterministes étaient identiques. L'entraînement a ensuite repris jusqu'à 1 280 étapes et un nouveau checkpoint a été enregistré. Le résultat et les empreintes SHA-256 restent sur la station dans `/home/leo/runs/station-race-periodic-v2/result.json`. Le script renseigne `gym.__version__` pour les métadonnées de sauvegarde Stable-Baselines3 : le paquet `gym` du simulateur est un espace de noms qui n'expose pas cette métadonnée.
 
-Le test a été exécuté avec un export temporaire de E-14, ensuite retiré. Pour le reproduire, placer la branche E-14 dans un répertoire temporaire sur la station, puis lancer depuis ce répertoire :
+Le test a été exécuté avec un export temporaire de E-14, ensuite retiré. Depuis, le script recharge aussi le dernier checkpoint périodique et reprend l'entraînement à partir de lui : c'est le fichier qui sert après une coupure. Pour le reproduire, depuis la racine d'un checkout qui contient le wrapper E-14 (`develop` une fois la PR #9 fusionnée) :
 
 ```bash
 docker run --rm --runtime=nvidia --gpus all --user 1000:1000 \
   -e HOME=/tmp \
   -e PYTHONPATH=/workspace/src:/workspace/vendor/simulation:/workspace/vendor/simulation/gym \
-  -v "$PWD:/workspace:ro" -v "$HOME/runs:/home/leo/runs" -w /workspace \
+  -v "$PWD:/workspace:ro" -v "$HOME/runs:/runs" -w /workspace \
   crashlearn-train-gpu:20260928 \
-  python /home/leo/runs/station_race_smoke.py \
-  --output-dir /home/leo/runs/station-race-periodic-v2 \
+  python /workspace/scripts/station_race_smoke.py \
+  --output-dir /runs/station-race-periodic \
   --device cuda --steps 1024 --resume-steps 256 --checkpoint-every 256
 ```
 
