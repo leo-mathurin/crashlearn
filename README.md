@@ -31,6 +31,8 @@ Socle retenu : Python 3.11, uv, Gymnasium, NumPy, Stable-Baselines3/PyTorch, PPO
 
 Le cadrage est maintenu dans Linear, y compris les ADR et le glossaire. Ce dépôt contient le code, les tests et la documentation technique.
 
+[`docs/memlog.md`](docs/memlog.md) garde l'historique daté des décisions : reward, MDP, simulateur, consignes de la pédagogie. On y ajoute une entrée à chaque décision ou changement, dans la PR qui l'introduit, sans jamais réécrire les anciennes entrées.
+
 Exemple de nom de branche : `feat/e-8-bootstrap`. Commits en anglais au format Conventional Commits (`feat:`, `fix:`, `build:`, `docs:`, `test:`, `chore:`).
 
 ## Démarrage local
