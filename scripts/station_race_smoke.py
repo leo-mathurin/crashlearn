@@ -10,9 +10,10 @@ import gym
 import numpy as np
 import stable_baselines3
 import torch
-from crashlearn.env import CrashLearnEnv
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback
+
+from crashlearn.env import CrashLearnEnv
 
 
 def _checkpoint(path: Path) -> dict[str, str | int]:
