@@ -1,5 +1,7 @@
 """Scripted diagnostic driver: determinism, bounded finite actions, isolation, CLI guards."""
 
+import argparse
+import importlib.util
 import json
 import math
 import subprocess
@@ -415,3 +417,30 @@ def test_one_lap_on_every_training_track(tmp_path):
     failed = {r["map"]: r["status"] for r in records if r["status"] != "FINISHED"}
     assert not failed, f"did not complete a lap: {failed}"
     assert not [r["map"] for r in records if r["wall_collision_steps"]]
+
+
+def control_race():
+    spec = importlib.util.spec_from_file_location("control_race", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.slow
+def test_reversing_across_the_line_is_not_a_lap(budapest):
+    """lap_count + progress used to report 0.999 lap here, the engine odometer -0.001."""
+    args = argparse.Namespace(seed=0, cars=1, laps=3, max_time=1.0)
+    config = DriverConfig(stuck_steps=0, no_reverse_below_progress=0)
+    (record,) = control_race().run_race(budapest, "IMS", args, config)
+    assert record["status"] == "TIMEOUT"
+    assert -0.01 < record["progress_laps"] < 0
+
+
+@pytest.mark.slow
+def test_metrics_are_taken_at_each_car_arrival(budapest):
+    """With --laps 1 a finished car stays on the track: car 1 used to report 1.0067 lap."""
+    args = argparse.Namespace(seed=0, cars=4, laps=1, max_time=150.0)
+    records = control_race().run_race(budapest, "Budapest", args, DriverConfig())
+    assert [r["status"] for r in records] == ["FINISHED"] * 4
+    assert all(1 <= r["progress_laps"] < 1.002 for r in records)
+    assert records[1]["decisions"] == 1269

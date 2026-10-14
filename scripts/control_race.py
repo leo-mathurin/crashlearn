@@ -61,6 +61,15 @@ def provenance(args: argparse.Namespace, config: DriverConfig) -> dict:
     }
 
 
+def end_state(sim, i: int, info: dict) -> dict:
+    return {
+        "step": info["step_count"],
+        "lap_count": sim.get_obs(i)["lap_count"],
+        "agent_status": info["agent_status"][i],
+        "lap_times": list(info["lap_times"][i]),
+    }
+
+
 def run_race(sim, name: str, args: argparse.Namespace, config: DriverConfig) -> list[dict]:
     sim.set_map(name)
     # an explicit seed rebuilds the simulator and re-arms both RNGs (wrapper noise and engine)
@@ -68,7 +77,7 @@ def run_race(sim, name: str, args: argparse.Namespace, config: DriverConfig) -> 
 
     drivers = [ScriptedDriver(config) for _ in range(args.cars)]
     cars = [
-        {"wall": 0, "vehicle": 0, "decisions": 0, "distance": 0.0, "end_step": None}
+        {"wall": 0, "vehicle": 0, "decisions": 0, "distance": 0.0, "progress": 0.0, "end": None}
         for _ in range(args.cars)
     ]
     trajectory = hashlib.sha256()
@@ -76,9 +85,7 @@ def run_race(sim, name: str, args: argparse.Namespace, config: DriverConfig) -> 
     info = sim.get_step_info()
     for _ in range(round(args.max_time / DECISION_DT)):
         running = [
-            i
-            for i, car in enumerate(cars)
-            if car["end_step"] is None and info["agent_status"][i] == 1
+            i for i, car in enumerate(cars) if car["end"] is None and info["agent_status"][i] == 1
         ]
         if not running:
             break
@@ -99,34 +106,39 @@ def run_race(sim, name: str, args: argparse.Namespace, config: DriverConfig) -> 
             car["decisions"] += 1
             car["wall"] += info["collisions"]["wall"][i]
             car["vehicle"] += info["collisions"]["vehicle"][i]
+            # signed and wrap-corrected: lap_count + progress would credit almost a lap
+            # to a car reversing across the line
+            car["progress"] += info["progress_delta"][i]
             if sim.get_obs(i)["lap_count"] >= args.laps or info["agent_status"][i] != 1:
-                car["end_step"] = info["step_count"]
+                car["end"] = end_state(sim, i, info)
 
     records = []
     for i, car in enumerate(cars):
-        obs = sim.get_obs(i)
-        laps_done = min(obs["lap_count"], args.laps)
+        # the simulator only freezes a car after 3 laps: with --laps 1 or 2, reading it after
+        # the race would mix its arrival with the steps it spent braking on the track
+        end = car["end"] or end_state(sim, i, info)
+        laps_done = min(end["lap_count"], args.laps)
         if laps_done >= args.laps:
             status = "FINISHED"
-        elif info["agent_status"][i] == 0:
+        elif end["agent_status"] == 0:
             status = "DNF"
         else:
             status = "TIMEOUT"
-        lap_times = info["lap_times"][i][: args.laps]
+        lap_times = end["lap_times"][: args.laps]
         records.append(
             {
                 "map": name,
                 "car": i,
                 "status": status,
                 "laps_completed": laps_done,
-                "progress_laps": round(obs["lap_count"] + obs["progress"], 4),
+                "progress_laps": round(car["progress"], 4),
                 "lap_times_s": lap_times,
                 "total_time_s": round(sum(lap_times), 2) if status == "FINISHED" else None,
                 "decisions": car["decisions"],
                 "wall_collision_steps": car["wall"],
                 "vehicle_collision_steps": car["vehicle"],
                 "distance_m": round(car["distance"], 2),
-                "dnf_step": car["end_step"] if status == "DNF" else None,
+                "dnf_step": end["step"] if status == "DNF" else None,
                 "friction_seen": sorted(frictions),
                 "race_trajectory_sha256": trajectory.hexdigest(),
             }
