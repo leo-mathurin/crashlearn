@@ -131,7 +131,7 @@ Deux protocoles, qui **ne sont pas comparables** :
 - **P3** : 3 tours, sur les 5 cartes par défaut. C'est le format standard des évaluations internes.
 - **P1** : 1 tour, sur les 10 autres cartes d'entraînement. Il ne vérifie que la capacité à boucler un tour.
 
-Dans les tableaux, « Prog. » est la progression cumulée (tours + phase) ; les temps sont en secondes simulées.
+Les temps sont en secondes simulées. Dans le JSON, `progress_laps` additionne les `progress_delta` signés du moteur : une voiture qui recule à travers la ligne perd de la progression au lieu de gagner presque un tour. Toutes les métriques d'une voiture sont relevées à son arrivée. Le simulateur ne fige une voiture qu'après 3 tours : avec `--laps 1` ou `2`, une relecture en fin de course compterait aussi son freinage sur la piste.
 
 ### P3, 1 voiture, seeds 0, 1 et 2
 
@@ -187,7 +187,7 @@ Commande : `--map Budapest --laps 1 --cars 2`.
 
 ### Lecture
 
-- **Le pilote boucle les 15 cartes d'entraînement**, à 1 comme à 3 tours, seul ou à 4 voitures, sans jamais toucher un mur aux valeurs par défaut.
+- **Le pilote boucle les 15 cartes d'entraînement**, sans jamais toucher un mur aux valeurs par défaut. Périmètre mesuré : 3 tours seul sur les 5 cartes par défaut (seeds 0 à 2), 3 tours à 4 voitures sur Austin et Budapest, 1 tour seul sur les 10 autres cartes.
 - **Les DNF mesurés sur l'archive 2026-09-08 ont disparu.** Ils venaient du faux DNF après le passage de ligne, corrigé en amont : à configuration de pilote inchangée, IMS, BrandsHatch et MexicoCity terminent désormais leurs 3 tours. C'est la confirmation du diagnostic, et l'intérêt d'un témoin déterministe.
 - **Les temps au tour sont stables** : moins de 1 s d'écart entre les tours d'une même course, et moins de 0,6 s entre seeds.
 
