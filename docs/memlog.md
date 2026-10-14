@@ -82,3 +82,9 @@ Sur Zandvoort, la voiture traverse un mur de 2,66 m en 249 pas : +78 m crédité
 ## 2026-10-06 · [Organisation] Remise sans Git LFS
 
 Accès au dépôt Epitech vérifié (E-7, `docs/remise.md`) : la remise sera un fast-forward de notre `main`. Les modèles ONNX sont versionnés directement, sans Git LFS. Pourquoi : quelques Mo par modèle, loin des limites de GitHub, alors qu'une récupération du rendu qui ne suit pas LFS ne trouverait que des pointeurs à la place des modèles.
+
+## 2026-10-09 · [Infrastructure] Validation de la station et périmètre de la documentation
+
+E-5 / PR #12 : les reprises PPO depuis le checkpoint final et le dernier checkpoint périodique sont validées sur CUDA. La lecture T3 s’exécute sous l’utilisateur non privilégié et les travaux survivant dans une session `closing` restent détectés. Le seuil de charge 0,5 est conservé après une observation courte de 0,16 à 0,34 sans entraînement ni build ; ses limites et la procédure de recalibrage sont décrites dans `docs/station-gpu.md`. L’extinction réelle après une heure n’a pas été testée pendant cette validation.
+
+La documentation versionnée conserve le matériel, les commandes reproductibles et l’exploitation utile au projet. Les notes de migration et de configuration personnelles sont retirées du dépôt de livraison.
