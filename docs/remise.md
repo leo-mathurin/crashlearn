@@ -32,13 +32,13 @@ Les modèles livrés (`submission/driver1..4/model.onnx`) sont versionnés direc
 2. Depuis un clone propre de `main`, vérifier la livraison avec le vérificateur officiel :
 
    ```bash
-   python vendor/simulation/verify_submission.py --submission submission/ --grandprix
+   uv run python vendor/simulation/verify_submission.py --submission submission/ --grandprix
    ```
 
 3. Vérifier que le push est un fast-forward, puis pousser `main` et le tag, sans `--force` ni `--mirror` :
 
    ```bash
-   git fetch origin epitech
+   git fetch --multiple origin epitech
    git merge-base --is-ancestor epitech/main origin/main && echo fast-forward
    git push epitech origin/main:refs/heads/main
    git push epitech <tag>
