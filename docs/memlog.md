@@ -77,6 +77,16 @@ E-5 / PR #12 : les reprises PPO depuis le checkpoint final et le dernier checkpo
 
 La documentation versionnée conserve le matériel, les commandes reproductibles et l’exploitation utile au projet. Les notes de migration et de configuration personnelles sont retirées du dépôt de livraison.
 
+## 2026-10-14 · [Reward] Reward v1 : progression en mètres, contacts journalisés sans poids
+
+Remplace la v0 du 16/09 (E-15, `docs/mdp.md`, `src/crashlearn/reward.py`). +1 par mètre de progression signée, +20 par tour, +50 à l'arrivée, -200 en cas d'abandon. Légères pénalités pour la lenteur (-0,1 par pas sous 1 m/s), la marche arrière au-delà de 1 s (-0,1 par pas) et les à-coups d'action (-0,02 × ‖Δa‖²). Contacts mur et voiture à 0 mais journalisés. Pourquoi :
+
+- **Mètres plutôt que `1000 × progress_delta`** : les circuits d'entraînement vont de 293 à 487 m. La v0 payait le même mètre 1,7 fois plus sur IMS que sur Sepang, et le même raccourci valait plus sur un petit circuit.
+- **Primes de tour et d'arrivée réduites** (+100 et +300 en v0) : la progression paie déjà le tour. Les primes ne font que marquer l'événement.
+- **DNF porté à -200** (-100 en v0) : un raccourci mortel comme celui de Sochi (+126 m puis DNF) doit rester perdant.
+
+Mesuré avec `scripts/reward_scale.py` sur les 15 circuits d'entraînement : un pilote propre à 6 m/s gagne environ +1 330 par course, dont 92 % en progression. Rester à l'arrêt, reculer ou conduire au hasard coûte entre -220 et -255. Coefficients de départ, à ajuster sur les entraînements (E-18, E-19, E-24).
+
 ## 2026-10-14 · [MDP] Features uniques : 126 entrées, adversaires masqués aussi en solo
 
 E-16 (`docs/features.md`, `src/crashlearn/features.py`). Une seule source NumPy pour les features, utilisée par l'environnement d'entraînement et recopiée dans les `agent.py`. Aux 105 entrées existantes (LiDAR, vitesse, braquage, phase, tours) s'ajoutent 3 emplacements adversaires de 7 valeurs : masque, position relative, lacet, vitesse et écart de course. Seuls les adversaires en course sont lus, triés du plus proche au plus loin. Une donnée manquante prend une valeur neutre. Pourquoi :

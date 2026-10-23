@@ -9,6 +9,8 @@ Episode ends, decided here since the simulator has no `done`:
   tolerated track corridor). A wall or vehicle contact alone never ends the episode.
 - truncated: `max_episode_steps` decisions (20 Hz) reached first.
 
+Reward: `RaceReward` (E-15, docs/mdp.md); its separate terms are in `info["reward_terms"]`.
+
 Observation: `features.build_features` (E-16, docs/features.md), 126 floats in [-1, 1], the
 same in solo and with opponents.
 Action: two floats in [-1, 1], mapped affinely to target speed [-2, 10] m/s and steering
@@ -27,6 +29,7 @@ import numpy as np
 from gymnasium import spaces
 
 from crashlearn import add_simulator_to_path, features
+from crashlearn.reward import STATUS_ACTIVE, STATUS_DNF, STATUS_FINISHED, RaceReward, RewardConfig
 from crashlearn.tracks import train_tracks
 
 add_simulator_to_path()
@@ -38,21 +41,14 @@ STEER_MAX = features.STEER_MAX
 LIDAR_RAYS = features.LIDAR_RAYS
 OBS_SIZE = features.FEATURE_SIZE
 
-STATUS_DNF, STATUS_ACTIVE, STATUS_FINISHED = 0, 1, 2
+__all__ = ["STATUS_ACTIVE", "STATUS_DNF", "STATUS_FINISHED", "CrashLearnEnv"]
 
-# (raw simulator obs, raw step info, ego_id) -> reward. Default: progress only, E-15 calibrates.
-RewardFn = Callable[[dict, dict, int], float]
 # raw simulator obs of one opponent car -> (target_speed m/s, steering rad)
 OpponentPolicy = Callable[[dict], tuple[float, float]]
 # fixed value, or (low, high) sampled uniformly at each reset
 Setting = float | tuple[float, float] | None
 
 _open_env: "CrashLearnEnv | None" = None
-
-
-def progress_reward(obs: dict, info: dict, ego_id: int) -> float:
-    """1000 x signed lap fraction gained this step (see the MDP document)."""
-    return 1000.0 * info["progress_delta"][ego_id]
 
 
 def action_to_controls(action: np.ndarray) -> tuple[float, float]:
@@ -84,7 +80,7 @@ class CrashLearnEnv(gym.Env):
         maps: str | Sequence[str] | None = None,
         ego_id: int = 0,
         max_episode_steps: int = 8000,
-        reward_fn: RewardFn = progress_reward,
+        reward_config: RewardConfig | None = None,
         opponent_policy: OpponentPolicy | None = None,
         friction: Setting = None,
         lidar_noise: Setting = None,
@@ -104,7 +100,7 @@ class CrashLearnEnv(gym.Env):
             raise ValueError(f"unknown maps: {sorted(unknown)}")
         self.ego_id = ego_id
         self.max_episode_steps = max_episode_steps
-        self.reward_fn = reward_fn
+        self.reward = RaceReward(reward_config)
         self.opponent_policy = opponent_policy
         self.friction = friction
         self.lidar_noise = lidar_noise
@@ -143,6 +139,9 @@ class CrashLearnEnv(gym.Env):
         # fresh process.
         sim._get_sim()._last_scan_noise = self._draw_noise()
 
+        self.reward.reset(track_length_m=sim._get_sim()._total_arc)
+        self._reward_terms: dict[str, float] = {}
+
         raw = sim.get_obs(self.ego_id)
         return features.build_features(raw), self._info(raw, sim.get_step_info())
 
@@ -159,7 +158,8 @@ class CrashLearnEnv(gym.Env):
 
         raw = sim.get_obs(self.ego_id)
         step_info = sim.get_step_info()
-        reward = float(self.reward_fn(raw, step_info, self.ego_id))
+        clipped = np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0)
+        reward, self._reward_terms = self.reward(raw, step_info, self.ego_id, clipped)
         terminated = step_info["agent_status"][self.ego_id] != STATUS_ACTIVE
         truncated = not terminated and step_info["step_count"] >= self.max_episode_steps
         return (
@@ -196,6 +196,8 @@ class CrashLearnEnv(gym.Env):
             "rank": step_info["ranks"][i],
             "friction": self._episode_friction,
             "lidar_noise": self._episode_noise,
+            "track_length_m": self.reward.track_length_m,
+            "reward_terms": self._reward_terms,
             "raw_obs": raw,
             "step_info": step_info,
         }
