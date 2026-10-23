@@ -15,8 +15,8 @@ from crashlearn.env import (
     CrashLearnEnv,
     action_to_controls,
     controls_to_action,
-    encode_observation,
 )
+from crashlearn.features import EGO_SIZE, build_features
 
 IDLE = controls_to_action(0.0, 0.0)
 FULL_THROTTLE = controls_to_action(10.0, 0.0)
@@ -93,10 +93,11 @@ def test_encoded_observation_layout_and_units():
         "progress": 0.25,
         "lap_count": 3,
     }
-    vec = encode_observation(raw)
+    vec = build_features(raw)
     assert vec.shape == (OBS_SIZE,) and vec.dtype == np.float32
     np.testing.assert_allclose(vec[:100], 0.5)
-    np.testing.assert_allclose(vec[100:], [0.5, -1.0, 1.0, 0.0, 1.0], atol=1e-6)
+    np.testing.assert_allclose(vec[100:EGO_SIZE], [0.5, -1.0, 1.0, 0.0, 1.0], atol=1e-6)
+    assert not vec[EGO_SIZE:].any()  # no opponent key: every slot empty
 
 
 def test_commanded_speed_is_reached_in_metres_per_second(make_env):
@@ -164,6 +165,8 @@ def test_opponents_follow_the_opponent_policy(make_env):
     steps = drive(env, pursuit(3.0), 250)
     assert steps[-1][4]["status"] == STATUS_ACTIVE
     assert steps[-1][4]["step_info"]["agent_status"][1] == STATUS_DNF  # idle opponent
+    assert steps[0][0][EGO_SIZE] == 1.0  # seen while active
+    assert steps[-1][0][EGO_SIZE] == 0.0  # masked once out
 
 
 # --- Overrides ------------------------------------------------------------

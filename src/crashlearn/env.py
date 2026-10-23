@@ -11,8 +11,8 @@ Episode ends, decided here since the simulator has no `done`:
 
 Reward: `RaceReward` (E-15, docs/mdp.md); its separate terms are in `info["reward_terms"]`.
 
-Observation (E-15 and E-16 will refine it): 105 floats in [-1, 1] = 100 LiDAR rays / 15 m,
-velocity / 10 m/s, steering / 0.4189 rad, sin and cos of the lap phase, laps / 3.
+Observation: `features.build_features` (E-16, docs/features.md), 126 floats in [-1, 1], the
+same in solo and with opponents.
 Action: two floats in [-1, 1], mapped affinely to target speed [-2, 10] m/s and steering
 [-0.4189, 0.4189] rad.
 
@@ -21,7 +21,6 @@ upstream). `friction` and `lidar_noise` override them from our side, `vendor/` u
 `None` keeps the official behaviour, i.e. the tournament conditions.
 """
 
-import math
 from collections.abc import Callable, Sequence
 from typing import Any
 
@@ -29,19 +28,18 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from crashlearn import add_simulator_to_path
+from crashlearn import add_simulator_to_path, features
 from crashlearn.reward import STATUS_ACTIVE, STATUS_DNF, STATUS_FINISHED, RaceReward, RewardConfig
 from crashlearn.tracks import train_tracks
 
 add_simulator_to_path()
 import env_simulation as sim  # noqa: E402
 
-SPEED_MIN, SPEED_MAX = -2.0, 10.0
-STEER_MAX = sim._PARAMS["s_max"]
-LIDAR_MAX = sim._LIDAR_MAX
-LIDAR_RAYS = sim._LIDAR_RAYS
-REQUIRED_LAPS = sim._REQUIRED_LAPS
-OBS_SIZE = LIDAR_RAYS + 5
+SPEED_MIN = -2.0
+SPEED_MAX = features.SPEED_MAX
+STEER_MAX = features.STEER_MAX
+LIDAR_RAYS = features.LIDAR_RAYS
+OBS_SIZE = features.FEATURE_SIZE
 
 __all__ = ["STATUS_ACTIVE", "STATUS_DNF", "STATUS_FINISHED", "CrashLearnEnv"]
 
@@ -64,20 +62,6 @@ def controls_to_action(speed: float, steering: float) -> np.ndarray:
     """Inverse of action_to_controls, for scripted drivers run through the env."""
     a0 = 2.0 * (speed - SPEED_MIN) / (SPEED_MAX - SPEED_MIN) - 1.0
     return np.clip([a0, steering / STEER_MAX], -1.0, 1.0).astype(np.float32)
-
-
-def encode_observation(obs: dict) -> np.ndarray:
-    """Raw simulator obs of one car -> float32 vector of OBS_SIZE values in [-1, 1]."""
-    phase = 2.0 * math.pi * obs["progress"]
-    tail = [
-        obs["velocity"] / SPEED_MAX,
-        obs["steering"] / STEER_MAX,
-        math.sin(phase),
-        math.cos(phase),
-        obs["lap_count"] / REQUIRED_LAPS,
-    ]
-    vec = np.concatenate([np.asarray(obs["lidar"], dtype=np.float64) / LIDAR_MAX, tail])
-    return np.clip(vec, -1.0, 1.0).astype(np.float32)
 
 
 def _sample(setting: Setting, rng: np.random.Generator) -> float | None:
@@ -159,7 +143,7 @@ class CrashLearnEnv(gym.Env):
         self._reward_terms: dict[str, float] = {}
 
         raw = sim.get_obs(self.ego_id)
-        return encode_observation(raw), self._info(raw, sim.get_step_info())
+        return features.build_features(raw), self._info(raw, sim.get_step_info())
 
     def step(self, action):
         speed, steering = action_to_controls(action)
@@ -178,7 +162,13 @@ class CrashLearnEnv(gym.Env):
         reward, self._reward_terms = self.reward(raw, step_info, self.ego_id, clipped)
         terminated = step_info["agent_status"][self.ego_id] != STATUS_ACTIVE
         truncated = not terminated and step_info["step_count"] >= self.max_episode_steps
-        return encode_observation(raw), reward, terminated, truncated, self._info(raw, step_info)
+        return (
+            features.build_features(raw),
+            reward,
+            terminated,
+            truncated,
+            self._info(raw, step_info),
+        )
 
     def close(self):
         global _open_env

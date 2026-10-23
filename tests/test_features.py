@@ -1,154 +1,171 @@
-"""Canonical feature source contract (E-14). Skipped until crashlearn.features exists.
+"""Canonical features (E-16): one schema, fixed size, masked opponents, tolerant reading."""
 
-Naming assumptions (NOT fixed by the subject, rename here if E-14 decides otherwise):
-- module `crashlearn.features`;
-- `adapt_observation(obs)` maps both opponent schemas (simulator
-  `x_rel/y_rel/yaw_rel/speed/progress/lap_count/status` and official loader
-  `rel_x/rel_y/rel_dist/rel_yaw/velocity/active`) to one canonical form;
-- `build_features(obs, info) -> np.ndarray`, normalized into [-FEATURE_BOUND, FEATURE_BOUND];
-- submission agent.py files expose the same `build_features` at module level.
-"""
-
+import ast
 import importlib.util
 import math
 
+import env_simulation as es
 import numpy as np
 import pytest
 from agent_loader import create_dummy_obs
-from conftest import SUBMISSION_DIRS, import_if_present
-from gymnasium.utils.env_checker import data_equivalence
+from conftest import SUBMISSION_DIRS
 
-features = import_if_present("crashlearn.features")
-adapt_observation = getattr(features, "adapt_observation", None)
-build_features = getattr(features, "build_features", None)
+from crashlearn import features
+from crashlearn.features import (
+    EGO_SIZE,
+    FEATURE_SIZE,
+    MAX_OPPONENTS,
+    OPPONENT_SIZE,
+    adapt_observation,
+    build_features,
+)
 
-FEATURE_BOUND = 1.0
 TRAIN_AGENT_ATOL = 1e-6
-
-needs_adapter = pytest.mark.skipif(
-    adapt_observation is None, reason="crashlearn.features.adapt_observation not defined"
-)
-needs_builder = pytest.mark.skipif(
-    build_features is None, reason="crashlearn.features.build_features not defined"
-)
-
-NEUTRAL_REAL = {
-    "x_rel": 0.0,
-    "y_rel": 0.0,
-    "yaw_rel": 0.0,
-    "speed": 0.0,
-    "progress": 0.0,
-    "lap_count": 0,
-    "status": 0,
-}
+EMPTY = {"x_rel": 0.0, "y_rel": 0.0, "yaw_rel": 0.0, "speed": 0.0, "progress": 0.0}
 
 
-def real_slot(x, y, yaw, speed, status):
-    # progress/lap_count stay neutral: the loader schema has no equivalent field
+def slot(x=0.0, y=0.0, yaw=0.0, speed=0.0, progress=0.0, laps=0, status=1):
     return {
-        **NEUTRAL_REAL,
         "x_rel": x,
         "y_rel": y,
         "yaw_rel": yaw,
         "speed": speed,
+        "progress": progress,
+        "lap_count": laps,
         "status": status,
     }
 
 
-def loader_slot(x, y, yaw, speed, status):
-    return {
-        "rel_x": x,
-        "rel_y": y,
-        "rel_dist": math.hypot(x, y),
-        "rel_yaw": yaw,
-        "velocity": speed,
-        "active": int(status == 1),
+def observation(*slots, progress=0.5, laps=1):
+    obs = create_dummy_obs()
+    obs.update(progress=progress, lap_count=laps)
+    obs["opponents"] = dict(enumerate(slots))
+    return obs
+
+
+def opponent_rows(vec):
+    return vec[EGO_SIZE:].reshape(MAX_OPPONENTS, OPPONENT_SIZE)
+
+
+EGO = slot(status=0)
+AHEAD = slot(x=3.0, y=-1.5, yaw=0.5, speed=6.0, progress=0.6, laps=1)
+
+
+def test_constants_match_the_simulator():
+    assert features.LIDAR_RAYS == es._LIDAR_RAYS
+    assert features.LIDAR_MAX == es._LIDAR_MAX
+    assert features.STEER_MAX == pytest.approx(es._PARAMS["s_max"])
+    assert features.REQUIRED_LAPS == es._REQUIRED_LAPS
+    assert features.MAX_OPPONENTS == es._MAX_SLOTS - 1
+
+
+def test_the_simulator_schema_is_the_one_we_read(sim):
+    """Loader, get_space_info and get_obs share one opponent schema since the 18/09 archive."""
+    keys = set(slot())
+    assert set(create_dummy_obs()["opponents"][0]) == keys
+    assert all(set(o) == keys for o in sim.get_obs(0)["opponents"].values())
+
+
+def test_features_module_needs_only_numpy():
+    """It is copied into agent.py, where only NumPy and ONNX Runtime are allowed."""
+    tree = ast.parse(open(features.__file__).read())
+    imported = {
+        alias.name.split(".")[0]
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import | ast.ImportFrom)
+        for alias in (node.names if isinstance(node, ast.Import) else [ast.alias(node.module)])
     }
+    assert imported <= {"math", "numpy"}
 
 
-def observation(make_slot, slots, lidar=5.0):
-    base = create_dummy_obs()
-    base["lidar"] = np.full(100, lidar, dtype=np.float32)
-    base["opponents"] = {i: make_slot(*values) for i, values in enumerate(slots)}
-    return base
+def test_shape_dtype_bounds_and_determinism_on_real_observations(sim):
+    for car in (0, 1):
+        obs = sim.get_obs(car)
+        vec = build_features(obs)
+        assert vec.shape == (FEATURE_SIZE,) and vec.dtype == np.float32
+        assert np.all(np.isfinite(vec)) and np.all(np.abs(vec) <= 1)
+        np.testing.assert_array_equal(vec, build_features(obs))
+        assert opponent_rows(vec)[0, 0] == 1.0  # the other car of the 2-car fixture
+        assert not opponent_rows(vec)[1:].any()
 
 
-SITUATION = [(0, 0, 0, 0, 0), (2.0, -0.5, 0.3, 4.0, 1), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0)]
+def test_nominal_opponent_encoding():
+    vec = build_features(observation(EGO, AHEAD))
+    row = opponent_rows(vec)[0]
+    np.testing.assert_allclose(
+        row,
+        [1.0, 3 / 15, -1.5 / 15, math.sin(0.5), math.cos(0.5), 0.6, 0.1],
+        atol=1e-6,
+    )
+    assert not opponent_rows(vec)[1:].any()
 
 
-@pytest.fixture
-def observations(sim):
-    real = sim.get_obs(0)
-    return {
-        "sim_car0": real,
-        "sim_car1": sim.get_obs(1),
-        "lidar_min": {**real, "lidar": np.full(100, 0.1, dtype=np.float32)},
-        "lidar_max": {**real, "lidar": np.full(100, 15.0, dtype=np.float32)},
-        "no_opponent": {**real, "opponents": {i: dict(NEUTRAL_REAL) for i in range(4)}},
-        "loader_schema": create_dummy_obs(),
-    }
+def test_solo_and_empty_slots_are_all_zero():
+    for obs in (create_dummy_obs(), observation(EGO, slot(status=0), slot(status=2))):
+        assert not build_features(obs)[EGO_SIZE:].any()
 
 
-@needs_adapter
-def test_adapter_gives_same_result_for_both_schemas():
-    assert data_equivalence(
-        adapt_observation(observation(real_slot, SITUATION)),
-        adapt_observation(observation(loader_slot, SITUATION)),
+@pytest.mark.parametrize("status", [0, 2], ids=["dnf_or_absent", "finished"])
+def test_values_of_inactive_slots_are_ignored(status):
+    garbage = slot(x=9.0, y=9.0, yaw=1.0, speed=7.0, progress=0.9, laps=2, status=status)
+    np.testing.assert_array_equal(
+        build_features(observation(EGO, AHEAD)),
+        build_features(observation(EGO, AHEAD, garbage)),
     )
 
 
-@needs_adapter
-@pytest.mark.parametrize("make_slot", [real_slot, loader_slot])
-@pytest.mark.parametrize("slot", [0, 2], ids=["ego", "absent"])
-def test_adapter_ignores_values_of_inactive_slots(make_slot, slot):
-    noisy = list(SITUATION)
-    noisy[slot] = (9.0, 9.0, 1.0, 7.0, 0)  # garbage values, still inactive
-    assert data_equivalence(
-        adapt_observation(observation(make_slot, SITUATION)),
-        adapt_observation(observation(make_slot, noisy)),
-    )
+def test_opponents_are_sorted_nearest_first_whatever_their_slot():
+    far, near = slot(x=10.0, speed=1.0), slot(x=2.0, speed=2.0)
+    a = build_features(observation(EGO, far, near))
+    b = build_features(observation(near, EGO, far))
+    np.testing.assert_array_equal(a, b)
+    assert opponent_rows(a)[0, 1] == pytest.approx(2 / 15)
 
 
-@needs_adapter
-@pytest.mark.parametrize("make_slot", [real_slot, loader_slot])
-def test_adapter_mask_reflects_activity(make_slot):
-    inactive = list(SITUATION)
-    inactive[1] = (*SITUATION[1][:4], 0)
-    assert not data_equivalence(
-        adapt_observation(observation(make_slot, SITUATION)),
-        adapt_observation(observation(make_slot, inactive)),
-    )
+def test_race_gap_tells_ahead_from_behind_and_saturates():
+    behind = slot(x=-2.0, progress=0.4, laps=1)
+    lapped = slot(x=5.0, progress=0.5, laps=0)
+    rows = opponent_rows(build_features(observation(EGO, behind, lapped)))
+    assert rows[0, 6] == pytest.approx(-0.1)  # nearest: 0.1 lap behind
+    assert rows[1, 6] == -1.0  # a full lap behind
 
 
-@needs_builder
-def test_features_shape_dtype_bounds_and_determinism(sim, observations):
-    info = sim.get_step_info()
-    shapes = set()
-    for name, obs in observations.items():
-        first = build_features(obs, info)
-        assert isinstance(first, np.ndarray) and first.ndim == 1, name
-        assert first.dtype == np.float32, name
-        assert np.all(np.isfinite(first)), name
-        assert np.all(np.abs(first) <= FEATURE_BOUND), name
-        np.testing.assert_array_equal(first, build_features(obs, info), err_msg=name)
-        shapes.add(first.shape)
-    assert len(shapes) == 1, f"feature size depends on the input: {shapes}"
+@pytest.mark.parametrize(
+    "broken",
+    [
+        {},
+        {"opponents": None},
+        {"opponents": {0: None, 1: "x", 2: {"status": 1}}},
+        {"lidar": None, "velocity": None, "steering": "fast"},
+        {"lidar": np.full(30, 4.0), "progress": float("nan"), "lap_count": float("inf")},
+        {"lidar": np.full(100, np.nan)},
+        {"opponents": {1: {**EMPTY, "x_rel": float("nan"), "status": 1}}},
+    ],
+)
+def test_incomplete_or_invalid_data_gives_neutral_finite_features(broken):
+    obs = {**create_dummy_obs(), **broken}
+    vec = build_features(obs)
+    assert vec.shape == (FEATURE_SIZE,) and np.all(np.isfinite(vec))
+    assert np.all(np.abs(vec) <= 1)
 
 
-@needs_builder
+def test_missing_values_read_as_neutral():
+    c = adapt_observation({"opponents": {1: {"status": 1}}, "lidar": [2.0] * 10})
+    assert c["mask"].tolist() == [True, False, False]
+    assert not c["opponents"].any()  # an active car with no data: present, at the ego
+    np.testing.assert_array_equal(c["lidar"][:10], 2.0)
+    np.testing.assert_array_equal(c["lidar"][10:], features.LIDAR_MAX)  # missing rays: free
+    assert (c["velocity"], c["steering"], c["progress"]) == (0.0, 0.0, 0.0)
+
+
 @pytest.mark.parametrize("submission_dir", SUBMISSION_DIRS, ids=lambda p: p.name)
-def test_training_and_agent_features_match(submission_dir, sim, observations):
+def test_training_and_agent_features_match(submission_dir, sim):
     spec = importlib.util.spec_from_file_location(
         f"features_parity_{submission_dir.name}", submission_dir / "agent.py"
     )
     agent_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(agent_module)
-    info = sim.get_step_info()
-    for name, obs in observations.items():
+    for obs in (sim.get_obs(0), sim.get_obs(1), create_dummy_obs(), observation(EGO, AHEAD)):
         np.testing.assert_allclose(
-            agent_module.build_features(obs, info),
-            build_features(obs, info),
-            atol=TRAIN_AGENT_ATOL,
-            rtol=0,
-            err_msg=name,
+            agent_module.build_features(obs), build_features(obs), atol=TRAIN_AGENT_ATOL, rtol=0
         )
