@@ -12,13 +12,13 @@ git push --dry-run epitech origin/main:refs/heads/main       # écriture, rien n
 
 L'organisation impose le SSO SAML d'Epitech. Un token GitHub (API, MCP) doit être autorisé pour l'organisation avant de pouvoir lire le dépôt. L'accès SSH a fonctionné directement.
 
-État vérifié le 06/10/2026 :
+État vérifié le 06/10/2026 pour Lucas, confirmé le 23/10/2026 pour Léo et Thibaud :
 
 | Membre | Lecture | Écriture |
 | --- | --- | --- |
 | Lucas | OK | OK (dry-run) |
-| Léo | à vérifier | à vérifier |
-| Thibaud | à vérifier | à vérifier |
+| Léo | OK | OK |
+| Thibaud | OK | OK |
 
 `epitech/main` contient les deux commits initiaux de Léo du 16/09 (`bb52993`, `3e184fe`). Ce sont les ancêtres de notre `main` : la remise est un simple fast-forward qui conserve l'historique et les auteurs.
 
