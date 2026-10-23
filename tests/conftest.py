@@ -28,13 +28,9 @@ def import_if_present(name: str):
 
 
 def require_model(submission_dir: Path) -> None:
-    """Skip if model.onnx is missing or an un-fetched Git LFS pointer (CI uses lfs: false)."""
-    model = submission_dir / "model.onnx"
-    if not model.is_file():
+    """Skip if model.onnx is not there yet (models are committed without Git LFS)."""
+    if not (submission_dir / "model.onnx").is_file():
         pytest.skip(f"no model.onnx in {submission_dir.name}")
-    with model.open("rb") as f:
-        if f.read(24).startswith(b"version https://git-lfs"):
-            pytest.skip(f"{submission_dir.name}/model.onnx is a Git LFS pointer")
 
 
 @pytest.fixture(scope="session")
