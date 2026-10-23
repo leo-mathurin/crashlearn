@@ -88,3 +88,14 @@ Accès au dépôt Epitech vérifié (E-7, `docs/remise.md`) : la remise sera un 
 E-5 / PR #12 : les reprises PPO depuis le checkpoint final et le dernier checkpoint périodique sont validées sur CUDA. La lecture T3 s’exécute sous l’utilisateur non privilégié et les travaux survivant dans une session `closing` restent détectés. Le seuil de charge 0,5 est conservé après une observation courte de 0,16 à 0,34 sans entraînement ni build ; ses limites et la procédure de recalibrage sont décrites dans `docs/station-gpu.md`. L’extinction réelle après une heure n’a pas été testée pendant cette validation.
 
 La documentation versionnée conserve le matériel, les commandes reproductibles et l’exploitation utile au projet. Les notes de migration et de configuration personnelles sont retirées du dépôt de livraison.
+
+## 2026-10-23 · [MDP] Mémoire temporelle par voiture, remise à zéro au moindre écart de pas
+
+E-13 (`docs/history.md`, `src/crashlearn/history.py`). Les pilotes avec historique empilent leurs quatre dernières observations dans une mémoire indexée par `agent_id`, jamais sur l'instance d'`Agent`. Au début d'un épisode, la première observation est recopiée quatre fois. Pourquoi :
+
+- **Par voiture** : rien n'oblige le tournoi à créer une instance par voiture, et `sim_recorder` prévoit d'en recopier une sur toutes les voitures. Avec le loader du 18/09, ce chemin n'est pas atteint, mais le harness du tournoi est inconnu.
+- **Nouvel épisode dès que le pas n'est pas le suivant** : ça couvre le recul du compteur, deux épisodes courts qui se suivent au même pas et une mémoire périmée après un trou.
+- **Dry-run reconnu** : l'observation factice du loader arrive au pas 0, juste avant le pas 1 de la course. Sans la reconnaître, elle entrerait dans l'historique de la voiture 0.
+- **Copie de la première observation plutôt que des zéros** : c'est aussi ce qu'il faudra faire à l'entraînement (pas de `VecFrameStack`), pour que le réseau voie les mêmes débuts d'épisode qu'au tournoi.
+
+Le pilote réactif reste sans état et sert de repli.
