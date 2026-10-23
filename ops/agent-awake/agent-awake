@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Compagnon Linux des hooks agent-awake. Il pose des leases temporaires que
+# le service systemd lit avant de decider l'extinction de la tour Ubuntu.
+
+set -uo pipefail
+umask 077
+
+uid_courant=$(id -u)
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$uid_courant}
+LEASE_DIR=${AGENT_AWAKE_LEASE_DIR:-$runtime_dir/agent-awake/leases}
+
+cmd=${1:-status}
+shift 2>/dev/null || true
+
+resolve_id() {
+  local id=${1:-}
+  [ -n "$id" ] && { printf '%s\n' "$id"; return; }
+  [ -n "${CLAUDE_SESSION_ID:-}" ] && { echo "cc-$CLAUDE_SESSION_ID"; return; }
+  if [ ! -t 0 ]; then
+    local payload sid
+    payload=$(cat 2>/dev/null)
+    sid=$(printf '%s' "$payload" \
+      | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' \
+      | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+    [ -n "$sid" ] && { echo "cc-$sid"; return; }
+  fi
+  echo "anon-$PPID"
+}
+
+valid_id() {
+  [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]]
+}
+
+find_agent_pid() {
+  local pid=$$ depth=0 comm
+  while [ "$pid" -gt 1 ] && [ "$depth" -lt 12 ]; do
+    comm=$(ps -o comm= -p "$pid" 2>/dev/null | xargs basename 2>/dev/null)
+    case "$comm" in
+      claude|codex|node|bun|claude-code|MainThread)
+        echo "$pid"
+        return
+        ;;
+    esac
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+    [ -n "$pid" ] || break
+    depth=$((depth + 1))
+  done
+  echo 0
+}
+
+case "$cmd" in
+  acquire)
+    id=$(resolve_id "${1:-}")
+    valid_id "$id" || { echo 'identifiant de lease invalide' >&2; exit 2; }
+    label=${2:-agent}
+    mkdir -p "$LEASE_DIR" 2>/dev/null
+    printf '%s %s\n' "$(find_agent_pid)" "$label" > "$LEASE_DIR/$id" 2>/dev/null
+    ;;
+  heartbeat|touch)
+    id=$(resolve_id "${1:-}")
+    valid_id "$id" || { echo 'identifiant de lease invalide' >&2; exit 2; }
+    [ -f "$LEASE_DIR/$id" ] && touch "$LEASE_DIR/$id" 2>/dev/null
+    ;;
+  release)
+    id=$(resolve_id "${1:-}")
+    valid_id "$id" || { echo 'identifiant de lease invalide' >&2; exit 2; }
+    rm -f "$LEASE_DIR/$id" 2>/dev/null
+    ;;
+  status)
+    echo '=== agent-awake Ubuntu ==='
+    if compgen -G "$LEASE_DIR/*" >/dev/null; then
+      now=$(date +%s)
+      for f in "$LEASE_DIR"/*; do
+        read -r pid label < "$f" || continue
+        mtime=$(stat -c %Y "$f" 2>/dev/null || echo "$now")
+        age=$((now - mtime))
+        if [ "${pid:-0}" = 0 ]; then
+          alive=ttl
+        else
+          alive=$(kill -0 "$pid" 2>/dev/null && echo vivant || echo mort)
+        fi
+        printf '%s label=%s pid=%s %s age=%ss\n' "$(basename "$f")" "${label:-agent}" "${pid:-0}" "$alive" "$age"
+      done
+    else
+      echo '(aucun lease)'
+    fi
+    ;;
+  *)
+    echo 'usage: agent-awake acquire|heartbeat|release|status' >&2
+    exit 2
+    ;;
+esac

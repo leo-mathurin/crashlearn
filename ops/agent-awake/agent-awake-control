@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+
+[ "$#" -eq 1 ] || exit 2
+case "$1" in
+  on) /usr/bin/systemctl enable --now agent-awake.service ;;
+  off) /usr/bin/systemctl disable --now agent-awake.service ;;
+  *) exit 2 ;;
+esac
