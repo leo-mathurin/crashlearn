@@ -88,3 +88,9 @@ Accès au dépôt Epitech vérifié (E-7, `docs/remise.md`) : la remise sera un 
 E-5 / PR #12 : les reprises PPO depuis le checkpoint final et le dernier checkpoint périodique sont validées sur CUDA. La lecture T3 s’exécute sous l’utilisateur non privilégié et les travaux survivant dans une session `closing` restent détectés. Le seuil de charge 0,5 est conservé après une observation courte de 0,16 à 0,34 sans entraînement ni build ; ses limites et la procédure de recalibrage sont décrites dans `docs/station-gpu.md`. L’extinction réelle après une heure n’a pas été testée pendant cette validation.
 
 La documentation versionnée conserve le matériel, les commandes reproductibles et l’exploitation utile au projet. Les notes de migration et de configuration personnelles sont retirées du dépôt de livraison.
+
+## 2026-10-30 · [Évaluation] Témoin déterministe : les 15 cartes d'entraînement sont bouclées
+
+Pilote scripté sans apprentissage, qui vise la direction la plus dégagée du LiDAR (E-11, PR #5, `docs/scripted_driver.md`). Pourquoi : quand une métrique semble aberrante, rejouer la même course avec lui dit si le problème vient du simulateur, de la mesure ou de la politique RL. Sur l'archive du 18/09, aucun DNF ni contact mur : 3 tours seul sur 5 cartes (seeds 0 à 2), 3 tours à 4 voitures sur Austin et Budapest, 1 tour seul sur les 10 autres cartes.
+
+Il a confirmé les défauts de la première archive : les DNF d'IMS, BrandsHatch et MexicoCity venaient du faux DNF après la ligne, et ils ont disparu à configuration de pilote inchangée. Temps de référence sur 3 tours, seed 0 : IMS 132,35 s, BrandsHatch 163,50 s, MexicoCity 176,80 s, Budapest 189,45 s, Austin 224,30 s. Tout agent RL doit au moins faire mieux que ces temps.
