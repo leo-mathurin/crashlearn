@@ -18,6 +18,7 @@ Le [projet Linear Crash & Learn](https://linear.app/e-hamilton/project/crash-and
 - [Infrastructure, stockage et reproductibilité](https://linear.app/e-hamilton/document/infrastructure-stockage-et-reproductibilite-9553c0c81bbc)
 - [Station Ubuntu et image Docker GPU](docs/station-gpu.md)
 - [MDP et reward](docs/mdp.md)
+- [Expérience E-18 : apport de la mémoire pour driver2](docs/experience_e18.md)
 - [Dashboard de course et vocabulaire](https://linear.app/e-hamilton/document/dashboard-de-course-et-vocabulaire-0987cb2ff84a)
 
 ## Développement

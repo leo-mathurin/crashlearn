@@ -126,6 +126,17 @@ Pilote scripté sans apprentissage, qui vise la direction la plus dégagée du L
 
 Il a confirmé les défauts de la première archive : les DNF d'IMS, BrandsHatch et MexicoCity venaient du faux DNF après la ligne, et ils ont disparu à configuration de pilote inchangée. Temps de référence sur 3 tours, seed 0 : IMS 132,35 s, BrandsHatch 163,50 s, MexicoCity 176,80 s, Budapest 189,45 s, Austin 224,30 s. Tout agent RL doit au moins faire mieux que ces temps.
 
+## 2026-10-30 · [Évaluation] Protocole E-18 : mesurer la mémoire contre un PPO réactif identique
+
+Chaîne commune créée pour driver2 (E-18, `docs/experience_e18.md`) : `HistoryWrapper`, `train_ppo.py`, `evaluate_drivers.py`, `compare_drivers.py`. Le PPO à 4 observations est comparé à un PPO à 1 observation, même code, mêmes hyperparamètres, mêmes 5 seeds et même budget. Le pilote scripté reste un témoin. Pourquoi :
+
+- **PPO réactif en baseline** : comparer un PPO à un script mesurerait l'apprentissage, pas la mémoire.
+- **Critère écrit avant les résultats** : un intervalle bootstrap à 95 % par seed d'entraînement doit exclure 0, sinon la conclusion est « non concluant ».
+- **Chronos sur les courses finies par les deux pilotes** : sinon, échouer sur les circuits durs améliorerait le chrono.
+- **Échecs versionnés** dans `docs/results/e-18/`, puisque `runs/` est ignoré par git.
+
+Conditions de robustesse : friction 0,5 et bruit LiDAR 0,1, bornes « forte pluie » du simulateur, sur les 4 circuits de validation. Budget à fixer après un banc de débit sur la station. `log_std_init = -1` pour les deux profondeurs : avec le défaut, l'écart-type de 1 sature l'action de bruit et la reward d'entraînement baisse sur 200 000 pas. Choix sur une seule seed, sans course finie : une validation sur la station passe avant la campagne.
+
 ## 2026-11-01 · [Reward] Reward v1 inchangée après revue : contacts, marche arrière et raccourci de Sochi
 
 Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalider la campagne E-18 qui attend une reward stable. Trois corrections de l'entrée du 14/10 :
