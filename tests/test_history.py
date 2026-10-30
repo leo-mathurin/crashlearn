@@ -157,7 +157,11 @@ def test_a_real_frame_at_step_zero_is_not_a_probe():
     try:
         assert not is_probe(es.get_obs(0), es.get_step_info())
     finally:
+        # leave the state the session `sim` fixture expects: example map, 2 cars, stepped once
         es.close()
+        es.set_map("example")
+        es.reset(num_cars=2)
+        es.simulation_step()
 
 
 def test_returned_stack_is_a_copy():
