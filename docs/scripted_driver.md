@@ -99,6 +99,7 @@ Options du script :
 - `--map` : répétable. Uniquement des cartes **d'entraînement** canoniques ; validation, test scellé et alias sont refusés avec le code 2.
 - `--seed` : bruit LiDAR.
 - `--laps` : 1 à 3, **3 par défaut**. C'est le format des évaluations internes, et le simulateur fige la voiture en FINISHED au 3e tour. On n'hérite pas du `--laps 2` de `sim_recorder.py`.
+  - **Limite** : avec `--laps 1` ou `2` et plusieurs voitures, une voiture arrivée reçoit `(0, 0)` et s'arrête sur la piste, juste après la ligne, où elle peut gêner les suivantes et fausser leurs `vehicle_collision_steps`. Aucune mesure ci-dessous n'est touchée : la seule course concernée, la référence Budapest à 2 voitures, compte 0 contact entre voitures.
 - `--cars` : 1 à 4 voitures, chacune avec son pilote.
 - `--max-time` : secondes simulées avant `TIMEOUT` (600 par défaut). La valeur doit être finie et d'au moins 0,05 s (une décision), sinon le script sort avec le code 2.
 - `--output` : chemin de sortie (`runs/control_race.json` par défaut, ignoré par git).
@@ -121,8 +122,7 @@ Le script sort avec le code 0 même en cas de DNF : un échec est une mesure.
 ## Résultats
 
 Provenance commune :
-- commit `9c290bc`, arbre propre (`dirty = false`) ;
-- `sim_sha256` `3f4aac8e…92cb` (archive 2026-09-18), `f110_gym` 0.2.1, pilote v1 ;
+- `sim_sha256` `3f4aac8e…92cb` (archive 2026-09-18), `f110_gym` 0.2.1, `DriverConfig` v1 : ces valeurs suffisent à reproduire les mesures ;
 - `max_time` 600 s, friction observée `[1.0]`.
 
 Les données complètes sont dans les JSON produits (`--output`).
