@@ -1,4 +1,4 @@
-"""Gymnasium wrapper contract (E-13). Skipped until crashlearn.env exists.
+"""Gymnasium wrapper contract (E-14). Skipped until crashlearn.env exists.
 
 Module path: `crashlearn.env` = existing package + file name env.py imposed by the subject.
 Assumptions: the module defines exactly one gymnasium.Env subclass, whose constructor

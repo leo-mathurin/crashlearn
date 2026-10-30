@@ -1,0 +1,28 @@
+ARG BASE_IMAGE=crashlearn-sim:20260918
+FROM ${BASE_IMAGE}
+
+# The tournament image is CPU-only. Keep its ONNX toolchain unchanged while
+# replacing torch with the CUDA build of the same version.
+RUN python -m pip install --no-cache-dir \
+        --index-url https://download.pytorch.org/whl/cu130 \
+        'torch==2.13.0+cu130' \
+    && python -m pip install --no-cache-dir \
+        'gymnasium==1.3.0' \
+        'stable-baselines3==2.9.0' \
+        'wandb==0.30.0' \
+    && python -m pip check \
+    && python - <<'PY'
+import onnx
+import onnxruntime
+import stable_baselines3
+import torch
+import wandb
+
+assert torch.__version__ == '2.13.0+cu130', torch.__version__
+assert onnx.__version__ == '1.22.0', onnx.__version__
+assert onnxruntime.__version__ == '1.29.0', onnxruntime.__version__
+assert stable_baselines3.__version__ == '2.9.0', stable_baselines3.__version__
+assert wandb.__version__ == '0.30.0', wandb.__version__
+PY
+
+COPY scripts/station_smoke.py /usr/local/bin/station_smoke.py
