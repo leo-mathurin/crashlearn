@@ -1,6 +1,6 @@
 # Features d'observation (E-16)
 
-`src/crashlearn/features.py` est la source unique qui transforme une observation brute de `get_obs` en vecteur d'entrée du réseau. `CrashLearnEnv` l'utilise à l'entraînement. L'export (E-25) la recopiera dans chaque `agent.py`. Le module n'importe que `math` et NumPy, et un test le vérifie : dans la soumission, seuls NumPy et ONNX Runtime sont autorisés.
+`src/crashlearn/features.py` est la source unique qui transforme une observation brute de `get_obs` en vecteur d'entrée du réseau. `CrashLearnEnv` l'utilise à l'entraînement. L'export (E-25) la recopiera dans chaque `agent.py`. Le module n'importe que NumPy, et un test le vérifie avec la liste du vérificateur officiel (`vendor/simulation/verify_submission.py`) : dans la soumission, seuls `numpy`, `onnxruntime` et `os` sont acceptés, pas même `math`.
 
 ## Un seul schéma d'adversaires
 
@@ -29,12 +29,14 @@ Chaque emplacement adversaire contient :
 
 ## Choix d'encodage
 
-- **Même entrée en solo et pour le champion.** Les emplacements adversaires sont toujours présents, à zéro et masqués en solo. Une politique solo se transfère au champion sans changer d'architecture ni d'espace d'observation (ADR 0001). Les 21 entrées nulles ne coûtent presque rien à un MLP.
+- **Même entrée en solo et pour le champion.** Les emplacements adversaires sont toujours présents, à zéro et masqués en solo. Une politique solo se transfère au champion sans changer d'architecture ni d'espace d'observation (ADR 0001). Pendant le solo, les 21 entrées nulles ne coûtent presque rien à un MLP. Au transfert, c'est moins sûr : ces entrées valant 0, les poids de la première couche qui les lisent ne reçoivent aucun gradient et gardent leur valeur d'initialisation. Quand un adversaire apparaît, ces poids aléatoires entrent d'un coup dans la sortie. Non mesuré pour l'instant : à vérifier au transfert (E-26), par exemple en remettant ces colonnes à zéro au chargement du checkpoint.
 - **Seuls les adversaires en course sont lus.** Un emplacement n'est retenu que si `status == 1`. On écarte l'emplacement de la voiture elle-même, les voitures absentes, en DNF ou arrivées, quelles que soient leurs valeurs.
 - **Tri du plus proche au plus loin.** Le réseau voit d'abord l'adversaire le plus menaçant. Le résultat ne dépend pas de l'ordre des emplacements dans le dictionnaire, ce qui évite que la politique apprenne un numéro de voiture. Les emplacements vides sont à la fin.
 - **Lacet en sinus et cosinus**, comme la phase du tour, pour qu'il n'y ait pas de saut à ±π.
 - **Position relative saturée à 15 m**, la portée du LiDAR. Au-delà, l'adversaire est vu « loin » dans sa direction.
 - **Écart de course.** Chaque voiture compte sa progression depuis sa propre position de départ. Sur une grille échelonnée, l'écart est donc faussé de la distance entre les places, moins d'un mètre (mesuré à 0 au départ sur Budapest, IMS et Austin). Pour savoir qui est devant de près, il faut regarder `x_rel`. L'écart sert à savoir qu'une voiture a un tour d'avance ou de retard.
+
+  Limite connue : l'écart saute d'un tour entier quand une voiture recule derrière sa ligne de départ. Sa phase reboucle vers 0,99, alors que `lap_count` ne redescend jamais. Mesuré par Thibaud sur Budapest : ego en marche arrière depuis la grille, l'adversaire voisin passe à -1,0 dès le premier pas alors que l'écart réel est nul. Même chose en solo pour `tours + phase` après un tour validé. En conduite normale, cela n'arrive pas (0 lecture fausse sur 28 188, 4 voitures en poursuite sur Budapest, IMS, Austin et Monza). La progression cumulée du simulateur n'est pas dans l'observation, donc il n'y a pas de correction simple sans état : on garde l'encodage tel quel, et l'historique (E-13) permet au réseau de voir le saut.
 
 ## Lecture tolérante
 
