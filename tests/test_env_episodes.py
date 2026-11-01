@@ -135,13 +135,19 @@ def test_episode_is_truncated_at_the_step_limit(make_env):
     assert steps[-1][3] and not steps[-1][2]
 
 
-def test_one_lap_is_counted_once_and_rewarded_about_1000(make_env):
+def test_one_lap_is_counted_once_and_paid_its_length(make_env):
     env = make_env()
     steps = drive(env, pursuit(3.0), 1200)
     laps = [i for i, s in enumerate(steps) if s[4]["lap_complete"]]
     assert len(laps) == 1 and 900 < laps[0] < 1200
     assert steps[laps[0]][4]["lap_count"] == 1
-    assert sum(r for _, r, _, _, _ in steps[: laps[0] + 1]) == pytest.approx(1000, abs=5)
+    lap = [s[4]["reward_terms"] for s in steps[: laps[0] + 1]]
+    length = steps[0][4]["track_length_m"]
+    assert sum(t["progress"] for t in lap) == pytest.approx(length, rel=0.01)
+    assert sum(t["lap"] for t in lap) == 20
+    assert sum(r for _, r, _, _, _ in steps[: laps[0] + 1]) == pytest.approx(
+        sum(sum(t.values()) for t in lap)
+    )
 
 
 def test_reset_starts_a_fresh_episode(make_env):
