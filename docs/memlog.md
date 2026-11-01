@@ -120,6 +120,12 @@ E-13 (`docs/history.md`, `src/crashlearn/history.py`). Les pilotes avec historiq
 
 Le pilote réactif reste sans état et sert de repli.
 
+## 2026-10-30 · [Évaluation] Témoin déterministe : les 15 cartes d'entraînement sont bouclées
+
+Pilote scripté sans apprentissage, qui vise la direction la plus dégagée du LiDAR (E-11, PR #5, `docs/scripted_driver.md`). Pourquoi : quand une métrique semble aberrante, rejouer la même course avec lui dit si le problème vient du simulateur, de la mesure ou de la politique RL. Sur l'archive du 18/09, aucun DNF ni contact mur : 3 tours seul sur 5 cartes (seeds 0 à 2), 3 tours à 4 voitures sur Austin et Budapest, 1 tour seul sur les 10 autres cartes.
+
+Il a confirmé les défauts de la première archive : les DNF d'IMS, BrandsHatch et MexicoCity venaient du faux DNF après la ligne, et ils ont disparu à configuration de pilote inchangée. Temps de référence sur 3 tours, seed 0 : IMS 132,35 s, BrandsHatch 163,50 s, MexicoCity 176,80 s, Budapest 189,45 s, Austin 224,30 s. Tout agent RL doit au moins faire mieux que ces temps.
+
 ## 2026-11-01 · [Reward] Reward v1 inchangée après revue : contacts, marche arrière et raccourci de Sochi
 
 Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalider la campagne E-18 qui attend une reward stable. Trois corrections de l'entrée du 14/10 :
@@ -127,3 +133,7 @@ Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalid
 - **Contacts** : avec un poids nul, `wall_contact` et `vehicle_contact` valent toujours 0 dans `reward_terms`, donc ils n'étaient pas journalisés. Les contacts se comptent dans `info["wall_contact"]` et `info["vehicle_contact"]`, ce que fait maintenant `scripts/reward_scale.py`. La poursuite à 6 m/s frotte le mur 21 pas sur 15 circuits (Monza et MexicoCity).
 - **Marche arrière** : la seconde de grâce échappe au terme `reverse`, pas à `slow`. Gardé tel quel : reculer d'un mur coûte un peu, ce qui ne gêne pas le dégagement.
 - **Sochi** : le -74 ne tenait pas compte de l'actualisation. Le DNF tombe 200 pas après le raccourci, donc à γ = 0,99 il ne pèse plus qu'environ -27. Mesuré par Thibaud, le raccourci reste perdant face à la conduite propre, mais de très peu (+13,5 contre +15,3). À revoir si γ ou le DNF changent.
+
+## 2026-11-01 · [Évaluation] Témoin : une voiture arrivée continue de rouler sur les courses courtes
+
+Avec `--laps 1` ou `2`, le simulateur laisse une voiture arrivée `ACTIVE` sur la piste. `control_race.py` lui envoyait `(0, 0)` : elle s'arrêtait après la ligne et ralentissait les suivantes, même sans contact. Elle continue maintenant d'être conduite, et ses mesures restent figées à son arrivée. Pourquoi : un témoin ne doit pas fausser les temps des autres voitures. Référence Budapest à 1 tour et 2 voitures : voiture 0 64,65 → 64,50 s, voiture 1 inchangée (63,45 s). Les courses de 3 tours ne changent pas : le simulateur y fige la voiture arrivée.
