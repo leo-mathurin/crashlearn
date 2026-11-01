@@ -71,11 +71,43 @@ Sur Zandvoort, la voiture traverse un mur de 2,66 m en 249 pas : +78 m crédité
 
 À l'entrevue, la pédagogie attend qu'on sache expliquer le projet, en particulier les reward functions, leur historique et les raisons de chaque changement (E-48).
 
+## 2026-10-06 · [Pédagogie] Marge de sortie de piste : se fier au code
+
+`env_simulation.py` fixe `_OFFTRACK_MARGIN_M = 1.00` m, alors que `INSTRUCTIONS.md` annonce une tolérance de 0,50 m. Réponse de la pédagogie : le problème est remonté, la doc n'a sans doute pas été mise à jour, et le simulateur peut encore être corrigé d'ici le tournoi. Décisions :
+
+- On se fie au code, mais la marge n'est jamais recopiée en dur : on la lit dans le simulateur.
+- `test_offtrack_margin_differs_from_the_instructions` sert d'alarme : il cassera si une nouvelle archive change la marge.
+- Les exploits qui reposent sur le recouvrement des couloirs (8 circuits, `docs/audit_simulateur.md`) restent des bonus fragiles, à revérifier à chaque archive. Ils ne doivent pas guider la reward principale.
+
+## 2026-10-06 · [Organisation] Remise sans Git LFS
+
+Accès au dépôt Epitech vérifié (E-7, `docs/remise.md`) : la remise sera un fast-forward de notre `main`. Les modèles ONNX sont versionnés directement, sans Git LFS. Pourquoi : quelques Mo par modèle, loin des limites de GitHub, alors qu'une récupération du rendu qui ne suit pas LFS ne trouverait que des pointeurs à la place des modèles.
+
 ## 2026-10-09 · [Infrastructure] Validation de la station et périmètre de la documentation
 
 E-5 / PR #12 : les reprises PPO depuis le checkpoint final et le dernier checkpoint périodique sont validées sur CUDA. La lecture T3 s’exécute sous l’utilisateur non privilégié et les travaux survivant dans une session `closing` restent détectés. Le seuil de charge 0,5 est conservé après une observation courte de 0,16 à 0,34 sans entraînement ni build ; ses limites et la procédure de recalibrage sont décrites dans `docs/station-gpu.md`. L’extinction réelle après une heure n’a pas été testée pendant cette validation.
 
 La documentation versionnée conserve le matériel, les commandes reproductibles et l’exploitation utile au projet. Les notes de migration et de configuration personnelles sont retirées du dépôt de livraison.
+
+## 2026-10-14 · [Reward] Reward v1 : progression en mètres, contacts journalisés sans poids
+
+Remplace la v0 du 16/09 (E-15, `docs/mdp.md`, `src/crashlearn/reward.py`). +1 par mètre de progression signée, +20 par tour, +50 à l'arrivée, -200 en cas d'abandon. Légères pénalités pour la lenteur (-0,1 par pas sous 1 m/s), la marche arrière au-delà de 1 s (-0,1 par pas) et les à-coups d'action (-0,02 × ‖Δa‖²). Contacts mur et voiture à 0 mais journalisés. Pourquoi :
+
+- **Mètres plutôt que `1000 × progress_delta`** : les circuits d'entraînement vont de 293 à 487 m. La v0 payait le même mètre 1,7 fois plus sur IMS que sur Sepang, et le même raccourci valait plus sur un petit circuit.
+- **Primes de tour et d'arrivée réduites** (+100 et +300 en v0) : la progression paie déjà le tour. Les primes ne font que marquer l'événement.
+- **DNF porté à -200** (-100 en v0) : un raccourci mortel comme celui de Sochi (+126 m puis DNF) doit rester perdant.
+
+Mesuré avec `scripts/reward_scale.py` sur les 15 circuits d'entraînement : un pilote propre à 6 m/s gagne environ +1 330 par course, dont 92 % en progression. Rester à l'arrêt, reculer ou conduire au hasard coûte entre -220 et -255. Coefficients de départ, à ajuster sur les entraînements (E-18, E-19, E-24).
+
+## 2026-10-14 · [MDP] Features uniques : 126 entrées, adversaires masqués aussi en solo
+
+E-16 (`docs/features.md`, `src/crashlearn/features.py`). Une seule source NumPy pour les features, utilisée par l'environnement d'entraînement et recopiée dans les `agent.py`. Aux 105 entrées existantes (LiDAR, vitesse, braquage, phase, tours) s'ajoutent 3 emplacements adversaires de 7 valeurs : masque, position relative, lacet, vitesse et écart de course. Seuls les adversaires en course sont lus, triés du plus proche au plus loin. Une donnée manquante prend une valeur neutre. Pourquoi :
+
+- **Même entrée en solo et pour le champion** : la politique solo se transfère sans changer d'architecture (ADR 0001).
+- **Tri par distance** : la politique ne doit pas dépendre du numéro de voiture.
+- **Lecture tolérante** : une exception dans l'agent vaut un DNF au tournoi.
+
+L'ancien schéma d'adversaires du loader est abandonné, puisque l'archive du 18/09 n'en a plus qu'un.
 
 ## 2026-10-23 · [MDP] Mémoire temporelle par voiture, remise à zéro au moindre écart de pas
 
@@ -87,3 +119,11 @@ E-13 (`docs/history.md`, `src/crashlearn/history.py`). Les pilotes avec historiq
 - **Copie de la première observation plutôt que des zéros** : c'est aussi ce qu'il faudra faire à l'entraînement (pas de `VecFrameStack`), pour que le réseau voie les mêmes débuts d'épisode qu'au tournoi.
 
 Le pilote réactif reste sans état et sert de repli.
+
+## 2026-11-01 · [Reward] Reward v1 inchangée après revue : contacts, marche arrière et raccourci de Sochi
+
+Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalider la campagne E-18 qui attend une reward stable. Trois corrections de l'entrée du 14/10 :
+
+- **Contacts** : avec un poids nul, `wall_contact` et `vehicle_contact` valent toujours 0 dans `reward_terms`, donc ils n'étaient pas journalisés. Les contacts se comptent dans `info["wall_contact"]` et `info["vehicle_contact"]`, ce que fait maintenant `scripts/reward_scale.py`. La poursuite à 6 m/s frotte le mur 21 pas sur 15 circuits (Monza et MexicoCity).
+- **Marche arrière** : la seconde de grâce échappe au terme `reverse`, pas à `slow`. Gardé tel quel : reculer d'un mur coûte un peu, ce qui ne gêne pas le dégagement.
+- **Sochi** : le -74 ne tenait pas compte de l'actualisation. Le DNF tombe 200 pas après le raccourci, donc à γ = 0,99 il ne pèse plus qu'environ -27. Mesuré par Thibaud, le raccourci reste perdant face à la conduite propre, mais de très peu (+13,5 contre +15,3). À revoir si γ ou le DNF changent.

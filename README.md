@@ -17,13 +17,14 @@ Le [projet Linear Crash & Learn](https://linear.app/e-hamilton/project/crash-and
 - [Qualité du code et livraison](https://linear.app/e-hamilton/document/qualite-du-code-et-livraison-1da5f06a62ac)
 - [Infrastructure, stockage et reproductibilité](https://linear.app/e-hamilton/document/infrastructure-stockage-et-reproductibilite-9553c0c81bbc)
 - [Station Ubuntu et image Docker GPU](docs/station-gpu.md)
+- [MDP et reward](docs/mdp.md)
 - [Dashboard de course et vocabulaire](https://linear.app/e-hamilton/document/dashboard-de-course-et-vocabulaire-0987cb2ff84a)
 
 ## Développement
 
 Dépôt principal privé : [leo-mathurin/crashlearn](https://github.com/leo-mathurin/crashlearn) (`origin`). GitHub Actions est activé sur ce dépôt personnel.
 
-Le remote `epitech` pointe vers [le dépôt de remise Epitech](https://github.com/EpitechMscProPromo2027/T-AIA-901-LYN-9-1-crashlearn-8). Les pushes courants vont vers `origin` ; le dépôt Epitech est réservé à la remise finale.
+Le remote `epitech` pointe vers [le dépôt de remise Epitech](https://github.com/EpitechMscProPromo2027/T-AIA-901-LYN-9-1-crashlearn-8). Les pushes courants vont vers `origin` ; le dépôt Epitech est réservé à la remise finale ([procédure](docs/remise.md)).
 
 Branches persistantes prévues : `develop` pour l'intégration, `main` pour les jalons validés. Branches courtes, PR vers `develop`, revue croisée puis promotion vers `main` avec tag et métriques. Backlog partagé, tâches prises librement et aucun domaine réservé. Conventional Commits.
 
@@ -120,7 +121,7 @@ GitHub Actions lance deux jobs, **Ruff** et **Pytest**, sur chaque PR et chaque 
 - Réglage recommandé : fusion en squash uniquement, avec le titre de la PR (`PR_TITLE`) comme titre de commit. Ce réglage n'est pas encore appliqué. Une fois en place, seul le titre de la PR ferait foi, et la vérification des commits pourrait se limiter au refus des fixup.
 - Le job Commitlint n'utilise pas `uv` : il installe Node 22.12 et commitlint avec `npm`, aux versions épinglées dans le workflow.
 - L'environnement des jobs Ruff et Pytest est installé avec `uv sync --locked` : la CI échoue si `uv.lock` n'est plus aligné sur `pyproject.toml`. Après toute modification des dépendances, lancer `uv lock` et committer le lock.
-- La CI n'installe ni torch, ni CUDA, ni les binaires Git LFS.
+- La CI n'installe ni torch ni CUDA.
 
 Protection prévue sur `develop` et `main` :
 - PR obligatoire, avec l'approbation d'un autre membre ;
