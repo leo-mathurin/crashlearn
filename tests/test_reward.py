@@ -70,14 +70,15 @@ def test_standing_still_never_pays(reward):
         assert terms["reverse"] == 0  # an idle car is not reversing
 
 
-def test_a_short_reverse_is_free_a_long_one_is_not(reward):
+def test_a_short_reverse_escapes_the_reverse_term_not_the_slow_one(reward):
     grace = RewardConfig().reverse_grace_steps
-    terms = [reward(*step(0.0, velocity=-1.0), 0, STILL)[1] for _ in range(grace + 1)]
+    terms = [reward(*step(-0.05 / TRACK_M, velocity=-1.0), 0, STILL)[1] for _ in range(grace + 1)]
     assert all(t["reverse"] == 0 for t in terms[:grace])
+    assert all(t["slow"] < 0 and t["progress"] < 0 for t in terms[:grace])
     assert terms[grace]["reverse"] < 0
 
 
-def test_contacts_are_logged_but_not_weighted(reward):
+def test_contacts_carry_a_zero_weight(reward):
     _, terms = reward(*step(0.3 / TRACK_M, wall=True, vehicle=True), 0, STILL)
     assert terms["wall_contact"] == terms["vehicle_contact"] == 0
 
@@ -101,7 +102,8 @@ def test_action_changes_cost_quadratically_and_reset_clears_the_history(reward):
 
 
 def test_a_lethal_shortcut_does_not_pay():
-    """Sochi (E-10): +126 m through a wall, then DNF. A shortcut that kills must lose."""
+    """Sochi (E-10): +126 m through a wall, then DNF. Undiscounted, a shortcut that kills
+    must lose. Discounting shrinks the DNF that comes 200 steps later: see docs/mdp.md."""
     r = RaceReward()
     r.reset(track_length_m=TRACK_M)
     _, shortcut = r(*step(126 / TRACK_M), 0, STILL)

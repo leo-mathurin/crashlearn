@@ -4,8 +4,9 @@ Every term is computed and returned separately so that training can log it. The 
 their plain sum: no term is hidden in another one.
 
 What the simulator credits is what we reward (ADR 0004): signed progress along the
-centerline, booked laps, the finish. Contacts are logged with a zero weight until E-47 shows
-that they cost more than they pay.
+centerline, booked laps, the finish. Contacts carry a zero weight until E-47 shows that they
+cost more than they pay, so their terms stay at 0: the contacts themselves are counted from
+`info["wall_contact"]` and `info["vehicle_contact"]`.
 """
 
 import dataclasses
@@ -27,14 +28,16 @@ class RewardConfig:
     lap_bonus: float = 20.0
     finish_bonus: float = 50.0
     dnf_penalty: float = -200.0
-    # logged, not weighted (ADR 0004, E-47)
+    # not weighted (ADR 0004, E-47): with a zero weight these terms are 0 even on contact
     wall_contact: float = 0.0
     vehicle_contact: float = 0.0
     # light per-step shaping, small next to the ~0.3 m gained per step at 6 m/s
     slow_below_mps: float = 1.0
     slow_penalty: float = -0.1
     reverse_below_mps: float = -0.1  # an idle car hovers around -1e-3 m/s
-    reverse_grace_steps: int = 20  # 1 s of reversing out of a wall is free
+    # 1 s of reversing out of a wall escapes `reverse`, not `slow`: the negative progress
+    # still costs the metres lost and -0.1 per step
+    reverse_grace_steps: int = 20
     reverse_penalty: float = -0.1
     action_change_penalty: float = -0.02  # x squared change of the normalized action
 

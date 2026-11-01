@@ -86,3 +86,11 @@ Remplace la v0 du 16/09 (E-15, `docs/mdp.md`, `src/crashlearn/reward.py`). +1 pa
 - **DNF porté à -200** (-100 en v0) : un raccourci mortel comme celui de Sochi (+126 m puis DNF) doit rester perdant.
 
 Mesuré avec `scripts/reward_scale.py` sur les 15 circuits d'entraînement : un pilote propre à 6 m/s gagne environ +1 330 par course, dont 92 % en progression. Rester à l'arrêt, reculer ou conduire au hasard coûte entre -220 et -255. Coefficients de départ, à ajuster sur les entraînements (E-18, E-19, E-24).
+
+## 2026-11-01 · [Reward] Reward v1 inchangée après revue : contacts, marche arrière et raccourci de Sochi
+
+Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalider la campagne E-18 qui attend une reward stable. Trois corrections de l'entrée du 14/10 :
+
+- **Contacts** : avec un poids nul, `wall_contact` et `vehicle_contact` valent toujours 0 dans `reward_terms`, donc ils n'étaient pas journalisés. Les contacts se comptent dans `info["wall_contact"]` et `info["vehicle_contact"]`, ce que fait maintenant `scripts/reward_scale.py`. La poursuite à 6 m/s frotte le mur 21 pas sur 15 circuits (Monza et MexicoCity).
+- **Marche arrière** : la seconde de grâce échappe au terme `reverse`, pas à `slow`. Gardé tel quel : reculer d'un mur coûte un peu, ce qui ne gêne pas le dégagement.
+- **Sochi** : le -74 ne tenait pas compte de l'actualisation. Le DNF tombe 200 pas après le raccourci, donc à γ = 0,99 il ne pèse plus qu'environ -27. Mesuré par Thibaud, le raccourci reste perdant face à la conduite propre, mais de très peu (+13,5 contre +15,3). À revoir si γ ou le DNF changent.
