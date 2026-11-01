@@ -99,6 +99,16 @@ Remplace la v0 du 16/09 (E-15, `docs/mdp.md`, `src/crashlearn/reward.py`). +1 pa
 
 Mesuré avec `scripts/reward_scale.py` sur les 15 circuits d'entraînement : un pilote propre à 6 m/s gagne environ +1 330 par course, dont 92 % en progression. Rester à l'arrêt, reculer ou conduire au hasard coûte entre -220 et -255. Coefficients de départ, à ajuster sur les entraînements (E-18, E-19, E-24).
 
+## 2026-10-14 · [MDP] Features uniques : 126 entrées, adversaires masqués aussi en solo
+
+E-16 (`docs/features.md`, `src/crashlearn/features.py`). Une seule source NumPy pour les features, utilisée par l'environnement d'entraînement et recopiée dans les `agent.py`. Aux 105 entrées existantes (LiDAR, vitesse, braquage, phase, tours) s'ajoutent 3 emplacements adversaires de 7 valeurs : masque, position relative, lacet, vitesse et écart de course. Seuls les adversaires en course sont lus, triés du plus proche au plus loin. Une donnée manquante prend une valeur neutre. Pourquoi :
+
+- **Même entrée en solo et pour le champion** : la politique solo se transfère sans changer d'architecture (ADR 0001).
+- **Tri par distance** : la politique ne doit pas dépendre du numéro de voiture.
+- **Lecture tolérante** : une exception dans l'agent vaut un DNF au tournoi.
+
+L'ancien schéma d'adversaires du loader est abandonné, puisque l'archive du 18/09 n'en a plus qu'un.
+
 ## 2026-11-01 · [Reward] Reward v1 inchangée après revue : contacts, marche arrière et raccourci de Sochi
 
 Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalider la campagne E-18 qui attend une reward stable. Trois corrections de l'entrée du 14/10 :

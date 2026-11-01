@@ -4,7 +4,7 @@ Ce document décrit le problème tel que l'agent le voit dans `CrashLearnEnv` (`
 
 ## Observations
 
-105 flottants dans [-1, 1], pour la voiture apprenante seulement :
+126 flottants dans [-1, 1], calculés par `crashlearn.features.build_features` (E-16, détail dans `docs/features.md`) :
 
 | Indices | Contenu | Normalisation |
 |---|---|---|
@@ -13,8 +13,9 @@ Ce document décrit le problème tel que l'agent le voit dans `CrashLearnEnv` (`
 | 101 | braquage | / 0,4189 rad |
 | 102-103 | sinus et cosinus de la phase du tour | sans |
 | 104 | tours bouclés | / 3 |
+| 105-125 | 3 emplacements adversaires × 7 valeurs, masqués quand ils sont vides | voir `docs/features.md` |
 
-La phase passe par un sinus et un cosinus pour que le passage de 0,999 à 0 ne soit pas un saut. Les adversaires et l'historique des observations relèvent d'E-16 et d'E-13.
+La phase passe par un sinus et un cosinus pour que le passage de 0,999 à 0 ne soit pas un saut. L'historique des observations relève d'E-13.
 
 ## Actions
 
