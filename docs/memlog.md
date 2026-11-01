@@ -71,6 +71,18 @@ Sur Zandvoort, la voiture traverse un mur de 2,66 m en 249 pas : +78 m crédité
 
 À l'entrevue, la pédagogie attend qu'on sache expliquer le projet, en particulier les reward functions, leur historique et les raisons de chaque changement (E-48).
 
+## 2026-10-06 · [Pédagogie] Marge de sortie de piste : se fier au code
+
+`env_simulation.py` fixe `_OFFTRACK_MARGIN_M = 1.00` m, alors que `INSTRUCTIONS.md` annonce une tolérance de 0,50 m. Réponse de la pédagogie : le problème est remonté, la doc n'a sans doute pas été mise à jour, et le simulateur peut encore être corrigé d'ici le tournoi. Décisions :
+
+- On se fie au code, mais la marge n'est jamais recopiée en dur : on la lit dans le simulateur.
+- `test_offtrack_margin_differs_from_the_instructions` sert d'alarme : il cassera si une nouvelle archive change la marge.
+- Les exploits qui reposent sur le recouvrement des couloirs (8 circuits, `docs/audit_simulateur.md`) restent des bonus fragiles, à revérifier à chaque archive. Ils ne doivent pas guider la reward principale.
+
+## 2026-10-06 · [Organisation] Remise sans Git LFS
+
+Accès au dépôt Epitech vérifié (E-7, `docs/remise.md`) : la remise sera un fast-forward de notre `main`. Les modèles ONNX sont versionnés directement, sans Git LFS. Pourquoi : quelques Mo par modèle, loin des limites de GitHub, alors qu'une récupération du rendu qui ne suit pas LFS ne trouverait que des pointeurs à la place des modèles.
+
 ## 2026-10-09 · [Infrastructure] Validation de la station et périmètre de la documentation
 
 E-5 / PR #12 : les reprises PPO depuis le checkpoint final et le dernier checkpoint périodique sont validées sur CUDA. La lecture T3 s’exécute sous l’utilisateur non privilégié et les travaux survivant dans une session `closing` restent détectés. Le seuil de charge 0,5 est conservé après une observation courte de 0,16 à 0,34 sans entraînement ni build ; ses limites et la procédure de recalibrage sont décrites dans `docs/station-gpu.md`. L’extinction réelle après une heure n’a pas été testée pendant cette validation.
