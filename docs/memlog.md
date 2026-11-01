@@ -148,3 +148,12 @@ Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalid
 ## 2026-11-01 · [Évaluation] Témoin : une voiture arrivée continue de rouler sur les courses courtes
 
 Avec `--laps 1` ou `2`, le simulateur laisse une voiture arrivée `ACTIVE` sur la piste. `control_race.py` lui envoyait `(0, 0)` : elle s'arrêtait après la ligne et ralentissait les suivantes, même sans contact. Elle continue maintenant d'être conduite, et ses mesures restent figées à son arrivée. Pourquoi : un témoin ne doit pas fausser les temps des autres voitures. Référence Budapest à 1 tour et 2 voitures : voiture 0 64,65 → 64,50 s, voiture 1 inchangée (63,45 s). Les courses de 3 tours ne changent pas : le simulateur y fige la voiture arrivée.
+
+## 2026-11-01 · [Évaluation] Protocole E-18 aligné sur le document d'expériences
+
+Ajouts au protocole du 30/10 (E-18, `docs/experience_e18.md`), avant tout résultat. Pourquoi : le document Linear « Expériences, robustesse et évaluation » les demande, et le protocole devait être figé avant la campagne.
+
+- **Condition `strict_margin`** : 4 circuits de validation avec la marge de sortie de piste de 0,50 m annoncée par `INSTRUCTIONS.md`, au lieu du 1,00 m du code. La pédagogie peut encore corriger le simulateur, et un pilote ne doit pas dépendre de cette tolérance. 105 courses par modèle au lieu de 93.
+- **Métriques** : taux d'arrivée moyenné par carte, contacts par 100 m, immobilité, marche arrière, variation des commandes, sauts de progression et écart entre progression créditée et distance roulée (raccourcis).
+- **Bruit LiDAR gardé à 0,1** (±10 %), au-delà des ±5 % de la plage « Champion » du document : c'est la pire condition annoncée pour le tournoi, alors que la plage du document sert au curriculum (E-23).
+
