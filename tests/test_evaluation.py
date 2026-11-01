@@ -1,6 +1,8 @@
 """E-18 evaluation: identical races, kept failures, and the comparison rule fixed in advance."""
 
+import importlib.util
 import json
+from pathlib import Path
 
 import env_simulation as es
 import numpy as np
@@ -11,6 +13,7 @@ from crashlearn.env import CrashLearnEnv, controls_to_action
 from crashlearn.evaluation import (
     CONDITIONS,
     EVAL_SEEDS,
+    STRICT_OFFTRACK_MARGIN_M,
     Race,
     ScriptedPilot,
     bootstrap_interval,
@@ -68,6 +71,13 @@ def record(
         "status": status,
         "total_time_s": time if status == "FINISHED" else None,
         "wall_collision_steps": 0,
+        "vehicle_collision_steps": 0,
+        "distance_m": 300.0,
+        "idle_steps": 0,
+        "reverse_steps": 0,
+        "action_change_per_step": 0.0,
+        "progress_jump_steps": 0,
+        "credited_minus_driven_m": 0.0,
     }
 
 
@@ -110,6 +120,64 @@ def test_conditions_reach_the_simulator(env, condition):
     result = run_race(env, Fixed(1.0), Race("validation", "Sochi", condition, 0))
     assert result["friction"] == CONDITIONS[condition]["friction"]
     assert result["lidar_noise"] == CONDITIONS[condition]["lidar_noise"]
+
+
+def test_the_strict_margin_reaches_the_simulator_and_is_restored(env):
+    default = es._OFFTRACK_MARGIN_M
+    strict = run_race(env, Fixed(1.0), Race("validation", "Sochi", "strict_margin", 0))
+    assert strict["offtrack_margin_m"] == STRICT_OFFTRACK_MARGIN_M < default
+    assert es._OFFTRACK_MARGIN_M == default
+    assert run_race(env, Fixed(1.0), RACE)["offtrack_margin_m"] == default
+
+
+def test_the_strict_margin_moves_the_offtrack_line_during_the_race(env):
+    """A point 0.75 m past the edge is off track at 0.50 m, still on track at 1.00 m."""
+    seen = []
+
+    class Probe(Fixed):
+        def act(self, obs, info):
+            s = es._get_sim()
+            (x0, y0), (x1, y1) = s._waypoints[0, :2], s._waypoints[1, :2]
+            nx, ny = np.array([y0 - y1, x1 - x0]) / np.hypot(x1 - x0, y1 - y0)
+            for side, width in ((1, s._track_widths[0, 1]), (-1, s._track_widths[0, 0])):
+                d = side * (width + 0.75)
+                seen.append(s._is_off_track(x0 + d * nx, y0 + d * ny))
+            return self.action
+
+    run_race(env, Probe(0.0), Race("validation", "Sochi", "nominal", 0))
+    assert seen and not any(seen)
+    seen.clear()
+    run_race(env, Probe(0.0), Race("validation", "Sochi", "strict_margin", 0))
+    assert seen and all(seen)
+
+
+def test_the_strict_margin_is_restored_when_a_race_raises(env):
+    class Crash(Fixed):
+        def act(self, obs, info):
+            raise RuntimeError("driver crash")
+
+    default = es._OFFTRACK_MARGIN_M
+    with pytest.raises(RuntimeError):
+        run_race(env, Crash(1.0), Race("validation", "Sochi", "strict_margin", 0))
+    assert es._OFFTRACK_MARGIN_M == default
+
+
+def test_behaviour_metrics_of_a_reversing_and_an_idle_car(env):
+    backwards = run_race(env, Fixed(-2.0), RACE)
+    assert backwards["reverse_steps"] > 0 and backwards["action_change_per_step"] == 0
+    idle = run_race(env, Fixed(0.0), RACE)
+    assert idle["idle_steps"] == idle["decisions"] and idle["reverse_steps"] == 0
+    assert idle["progress_jump_steps"] == 0
+
+
+def test_summary_rates_contacts_per_distance_and_averages_maps():
+    a = [record("d", 0, "a", time=10.0, seed=s) for s in range(3)]
+    b = [record("d", 0, "b", "DNF")]
+    a[0]["wall_collision_steps"] = 6
+    summary = driver_summary(a + b)
+    assert summary["finish_rate"] == pytest.approx(3 / 4)
+    assert summary["finish_rate_per_map"] == pytest.approx(1 / 2)
+    assert summary["wall_steps_per_100m"] == pytest.approx(100 * 6 / 1200)
 
 
 def test_the_same_race_is_replayed_exactly(env):
@@ -230,3 +298,20 @@ def test_summary_counts_failures_in_the_rate():
 
 def test_summary_without_any_finish_has_no_time():
     assert driver_summary([record("d", 0, "a", "DNF")])["median_time_s"] is None
+
+
+def test_the_report_lists_every_driver_scope_and_failure():
+    spec = importlib.util.spec_from_file_location(
+        "compare_drivers", Path(__file__).parents[1] / "scripts/compare_drivers.py"
+    )
+    compare = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(compare)
+    records = [
+        {**record(driver, seed, "Sochi", status), "split": "validation", "progress_laps": 1.0}
+        for driver in ("ppo-h1", "ppo-h4")
+        for seed in range(3)
+        for status in ("FINISHED", "DNF")
+    ]
+    text = compare.report(records, [])
+    assert text.count("| ppo-h1 | validation | nominal |") == 2  # results and behaviour
+    assert "## Comportement" in text and "6 courses sur 12 non finies" in text

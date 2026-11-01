@@ -17,7 +17,7 @@ from typing import Protocol
 import numpy as np
 
 from crashlearn import SIM_DIR, tracks
-from crashlearn.env import STATUS_DNF, STATUS_FINISHED, controls_to_action
+from crashlearn.env import STATUS_DNF, STATUS_FINISHED, controls_to_action, sim
 from crashlearn.reward import RewardConfig
 from crashlearn.scripted_driver import ScriptedDriver
 
@@ -25,13 +25,25 @@ ROOT = Path(__file__).resolve().parents[2]
 DECISION_DT = 0.05  # s, 20 Hz
 EVAL_SEEDS = (0, 1, 2)
 # Bounds documented in env_simulation.py: friction 1 = sunny, 0.5 = heavy rain; LiDAR noise
-# half-range 0.001 = dry, 0.1 = heavy rain.
+# half-range 0.001 = dry, 0.1 = heavy rain. `strict_margin` applies the 0.50 m off-track
+# tolerance of INSTRUCTIONS.md instead of the 1.00 m of the code, so that a driver does not
+# depend on a margin the organizers may still fix (memlog, 2026-10-06).
+STRICT_OFFTRACK_MARGIN_M = 0.5
 CONDITIONS = {
     "nominal": {"friction": None, "lidar_noise": None},
     "low_friction": {"friction": 0.5, "lidar_noise": None},
     "lidar_noise": {"friction": None, "lidar_noise": 0.1},
     "heavy_rain": {"friction": 0.5, "lidar_noise": 0.1},
+    "strict_margin": {
+        "friction": None,
+        "lidar_noise": None,
+        "offtrack_margin_m": STRICT_OFFTRACK_MARGIN_M,
+    },
 }
+IDLE_BELOW_MPS = 0.1
+REVERSE_BELOW_MPS = -0.1  # an idle car hovers around -1e-3 m/s
+# credited progress beyond the distance driven in one decision: a cut through a wall
+JUMP_ABOVE_M = 1.0
 BASELINE = "ppo-h1"
 CANDIDATE = "ppo-h4"
 BOOTSTRAP_SAMPLES = 10_000
@@ -115,23 +127,46 @@ def provenance() -> dict:
 
 def run_race(env, pilot: Pilot, race: Race) -> dict:
     """One race to its end. DNF and TIMEOUT are results, reported like a finish."""
-    settings = CONDITIONS[race.condition]
+    settings = dict(CONDITIONS[race.condition])
+    margin = settings.pop("offtrack_margin_m", None)
+    default_margin = sim._OFFTRACK_MARGIN_M
+    if margin is not None:
+        # read at every step by the off-track check: set from our side, vendor/ untouched
+        sim._OFFTRACK_MARGIN_M = margin
+    try:
+        return _race(env, pilot, race, settings)
+    finally:
+        sim._OFFTRACK_MARGIN_M = default_margin
+
+
+def _race(env, pilot: Pilot, race: Race, settings: dict) -> dict:
     pilot.reset()
     obs, info = env.reset(seed=race.seed, options={"map": race.map, **settings})
 
-    wall = vehicle = decisions = 0
-    distance = progress = total_reward = 0.0
+    wall = vehicle = decisions = idle = reverse = jumps = 0
+    distance = progress = total_reward = action_change = credited_m = 0.0
+    previous = None
     trajectory = hashlib.sha256()
     done = False
     while not done:
         action = np.asarray(pilot.act(obs, info), dtype=np.float64)
-        distance += abs(info["raw_obs"]["velocity"]) * DECISION_DT
+        velocity = info["raw_obs"]["velocity"]
+        driven = abs(velocity) * DECISION_DT
+        distance += driven
+        idle += abs(velocity) < IDLE_BELOW_MPS
+        reverse += velocity < REVERSE_BELOW_MPS
+        if previous is not None:
+            action_change += float(np.sum((action - previous) ** 2))
+        previous = action
         obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
         decisions += 1
         wall += info["wall_contact"]
         vehicle += info["vehicle_contact"]
         progress += info["progress_delta"]
+        step_m = info["progress_delta"] * info["track_length_m"]
+        credited_m += step_m
+        jumps += step_m - driven > JUMP_ABOVE_M
         total_reward += reward
         trajectory.update(np.array([*action, info["progress_delta"]]).tobytes())
 
@@ -150,6 +185,13 @@ def run_race(env, pilot: Pilot, race: Race) -> dict:
         "wall_collision_steps": int(wall),
         "vehicle_collision_steps": int(vehicle),
         "distance_m": round(distance, 2),
+        # credited minus driven: a racing line gains a little, a cut through a wall a lot
+        "credited_minus_driven_m": round(credited_m - distance, 2),
+        "progress_jump_steps": int(jumps),
+        "idle_steps": int(idle),
+        "reverse_steps": int(reverse),
+        "action_change_per_step": round(action_change / decisions, 5),
+        "offtrack_margin_m": float(sim._OFFTRACK_MARGIN_M),
         "dnf_step": info["step_count"] if status == "DNF" else None,
         "total_reward": round(total_reward, 2),
         "trajectory_sha256": trajectory.hexdigest(),
@@ -241,14 +283,30 @@ def scopes(records: list[dict]) -> list[tuple[str, str]]:
 
 
 def driver_summary(records: list[dict]) -> dict:
+    """Per-race means, plus the finish rate averaged per map so that no map weighs more."""
     finished = [r for r in records if r["status"] == "FINISHED"]
+    maps = sorted({r["map"] for r in records})
+    per_map = [_mean([r["status"] == "FINISHED" for r in records if r["map"] == m]) for m in maps]
+    distance = sum(r["distance_m"] for r in records)
+
+    def per_100m(key: str) -> float | None:
+        return 100 * sum(r[key] for r in records) / distance if distance else None
+
     return {
         "races": len(records),
         "finish_rate": len(finished) / len(records),
+        "finish_rate_per_map": _mean(per_map),
         "dnf": sum(r["status"] == "DNF" for r in records),
         "timeout": sum(r["status"] == "TIMEOUT" for r in records),
         "median_time_s": float(np.median([r["total_time_s"] for r in finished]))
         if finished
         else None,
         "wall_steps_per_race": _mean([r["wall_collision_steps"] for r in records]),
+        "wall_steps_per_100m": per_100m("wall_collision_steps"),
+        "vehicle_steps_per_100m": per_100m("vehicle_collision_steps"),
+        "idle_steps_per_race": _mean([r["idle_steps"] for r in records]),
+        "reverse_steps_per_race": _mean([r["reverse_steps"] for r in records]),
+        "action_change_per_step": _mean([r["action_change_per_step"] for r in records]),
+        "progress_jumps_per_race": _mean([r["progress_jump_steps"] for r in records]),
+        "credited_minus_driven_m": _mean([r["credited_minus_driven_m"] for r in records]),
     }

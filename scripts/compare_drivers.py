@@ -38,12 +38,27 @@ def interval_text(interval: tuple | None, scale: float = 1.0) -> str:
     return f"[{interval[0] * scale:+.1f} ; {interval[1] * scale:+.1f}]"
 
 
+def rate(value: float | None) -> str:
+    return "-" if value is None else f"{value:.2f}"
+
+
 def report(records: list[dict], unfinished: list[dict]) -> str:
     drivers = sorted({r["driver"] for r in records})
     lines = [
         "## Résultats par pilote\n",
-        "| Pilote | Partition | Condition | Courses | Arrivées | Écart au nominal | DNF | "
-        "TIMEOUT | Chrono médian (s) | Pas en contact mur par course |",
+        "| Pilote | Partition | Condition | Courses | Arrivées | Arrivées, moyenne par carte | "
+        "Écart au nominal | DNF | TIMEOUT | Chrono médian (s) |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    behaviour = [
+        "\n## Comportement\n",
+        "Moyennes par course. Contacts par 100 m parcourus. Un saut de progression est un pas où "
+        "le simulateur crédite plus d'1 m au-delà de la distance roulée, comme une coupe à travers "
+        "un mur. L'écart crédité moins roulé est un peu positif pour une trajectoire qui coupe les "
+        "virages, et très positif pour un raccourci.\n",
+        "| Pilote | Partition | Condition | Mur / 100 m | Voiture / 100 m | Immobile (pas) | "
+        "Marche arrière (pas) | Variation des commandes | Sauts de progression | "
+        "Crédité moins roulé (m) |",
         "|---|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for driver in drivers:
@@ -59,9 +74,16 @@ def report(records: list[dict], unfinished: list[dict]) -> str:
             time = f"{s['median_time_s']:.2f}" if s["median_time_s"] is not None else "-"
             lines.append(
                 f"| {driver} | {split} | {condition} | {s['races']} | "
-                f"{s['finish_rate'] * 100:.1f} % | {gap} | {s['dnf']} | {s['timeout']} | {time} | "
-                f"{s['wall_steps_per_race']:.1f} |"
+                f"{s['finish_rate'] * 100:.1f} % | {s['finish_rate_per_map'] * 100:.1f} % | "
+                f"{gap} | {s['dnf']} | {s['timeout']} | {time} |"
             )
+            behaviour.append(
+                f"| {driver} | {split} | {condition} | {rate(s['wall_steps_per_100m'])} | "
+                f"{rate(s['vehicle_steps_per_100m'])} | {s['idle_steps_per_race']:.1f} | "
+                f"{s['reverse_steps_per_race']:.1f} | {s['action_change_per_step']:.4f} | "
+                f"{s['progress_jumps_per_race']:.2f} | {s['credited_minus_driven_m']:+.1f} |"
+            )
+    lines += behaviour
 
     lines += [
         f"\n## Apport de la mémoire : {CANDIDATE} moins {BASELINE}\n",
