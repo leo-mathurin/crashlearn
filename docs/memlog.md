@@ -89,13 +89,51 @@ E-5 / PR #12 : les reprises PPO depuis le checkpoint final et le dernier checkpo
 
 La documentation versionnée conserve le matériel, les commandes reproductibles et l’exploitation utile au projet. Les notes de migration et de configuration personnelles sont retirées du dépôt de livraison.
 
+## 2026-10-14 · [Reward] Reward v1 : progression en mètres, contacts journalisés sans poids
+
+Remplace la v0 du 16/09 (E-15, `docs/mdp.md`, `src/crashlearn/reward.py`). +1 par mètre de progression signée, +20 par tour, +50 à l'arrivée, -200 en cas d'abandon. Légères pénalités pour la lenteur (-0,1 par pas sous 1 m/s), la marche arrière au-delà de 1 s (-0,1 par pas) et les à-coups d'action (-0,02 × ‖Δa‖²). Contacts mur et voiture à 0 mais journalisés. Pourquoi :
+
+- **Mètres plutôt que `1000 × progress_delta`** : les circuits d'entraînement vont de 293 à 487 m. La v0 payait le même mètre 1,7 fois plus sur IMS que sur Sepang, et le même raccourci valait plus sur un petit circuit.
+- **Primes de tour et d'arrivée réduites** (+100 et +300 en v0) : la progression paie déjà le tour. Les primes ne font que marquer l'événement.
+- **DNF porté à -200** (-100 en v0) : un raccourci mortel comme celui de Sochi (+126 m puis DNF) doit rester perdant.
+
+Mesuré avec `scripts/reward_scale.py` sur les 15 circuits d'entraînement : un pilote propre à 6 m/s gagne environ +1 330 par course, dont 92 % en progression. Rester à l'arrêt, reculer ou conduire au hasard coûte entre -220 et -255. Coefficients de départ, à ajuster sur les entraînements (E-18, E-19, E-24).
+
+## 2026-10-14 · [MDP] Features uniques : 126 entrées, adversaires masqués aussi en solo
+
+E-16 (`docs/features.md`, `src/crashlearn/features.py`). Une seule source NumPy pour les features, utilisée par l'environnement d'entraînement et recopiée dans les `agent.py`. Aux 105 entrées existantes (LiDAR, vitesse, braquage, phase, tours) s'ajoutent 3 emplacements adversaires de 7 valeurs : masque, position relative, lacet, vitesse et écart de course. Seuls les adversaires en course sont lus, triés du plus proche au plus loin. Une donnée manquante prend une valeur neutre. Pourquoi :
+
+- **Même entrée en solo et pour le champion** : la politique solo se transfère sans changer d'architecture (ADR 0001).
+- **Tri par distance** : la politique ne doit pas dépendre du numéro de voiture.
+- **Lecture tolérante** : une exception dans l'agent vaut un DNF au tournoi.
+
+L'ancien schéma d'adversaires du loader est abandonné, puisque l'archive du 18/09 n'en a plus qu'un.
+
+## 2026-10-23 · [MDP] Mémoire temporelle par voiture, remise à zéro au moindre écart de pas
+
+E-13 (`docs/history.md`, `src/crashlearn/history.py`). Les pilotes avec historique empilent leurs quatre dernières observations dans une mémoire indexée par `agent_id`, jamais sur l'instance d'`Agent`. Au début d'un épisode, la première observation est recopiée quatre fois. Pourquoi :
+
+- **Par voiture** : rien n'oblige le tournoi à créer une instance par voiture, et `sim_recorder` prévoit d'en recopier une sur toutes les voitures. Avec le loader du 18/09, ce chemin n'est pas atteint, mais le harness du tournoi est inconnu.
+- **Nouvel épisode dès que le pas n'est pas le suivant** : ça couvre le recul du compteur, deux épisodes courts qui se suivent au même pas et une mémoire périmée après un trou.
+- **Dry-run reconnu** : l'observation factice du loader arrive au pas 0, juste avant le pas 1 de la course. Sans la reconnaître, elle entrerait dans l'historique de la voiture 0.
+- **Copie de la première observation plutôt que des zéros** : c'est aussi ce qu'il faudra faire à l'entraînement (pas de `VecFrameStack`), pour que le réseau voie les mêmes débuts d'épisode qu'au tournoi.
+
+Le pilote réactif reste sans état et sert de repli.
+
 ## 2026-10-30 · [Évaluation] Témoin déterministe : les 15 cartes d'entraînement sont bouclées
 
 Pilote scripté sans apprentissage, qui vise la direction la plus dégagée du LiDAR (E-11, PR #5, `docs/scripted_driver.md`). Pourquoi : quand une métrique semble aberrante, rejouer la même course avec lui dit si le problème vient du simulateur, de la mesure ou de la politique RL. Sur l'archive du 18/09, aucun DNF ni contact mur : 3 tours seul sur 5 cartes (seeds 0 à 2), 3 tours à 4 voitures sur Austin et Budapest, 1 tour seul sur les 10 autres cartes.
 
 Il a confirmé les défauts de la première archive : les DNF d'IMS, BrandsHatch et MexicoCity venaient du faux DNF après la ligne, et ils ont disparu à configuration de pilote inchangée. Temps de référence sur 3 tours, seed 0 : IMS 132,35 s, BrandsHatch 163,50 s, MexicoCity 176,80 s, Budapest 189,45 s, Austin 224,30 s. Tout agent RL doit au moins faire mieux que ces temps.
 
+## 2026-11-01 · [Reward] Reward v1 inchangée après revue : contacts, marche arrière et raccourci de Sochi
+
+Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalider la campagne E-18 qui attend une reward stable. Trois corrections de l'entrée du 14/10 :
+
+- **Contacts** : avec un poids nul, `wall_contact` et `vehicle_contact` valent toujours 0 dans `reward_terms`, donc ils n'étaient pas journalisés. Les contacts se comptent dans `info["wall_contact"]` et `info["vehicle_contact"]`, ce que fait maintenant `scripts/reward_scale.py`. La poursuite à 6 m/s frotte le mur 21 pas sur 15 circuits (Monza et MexicoCity).
+- **Marche arrière** : la seconde de grâce échappe au terme `reverse`, pas à `slow`. Gardé tel quel : reculer d'un mur coûte un peu, ce qui ne gêne pas le dégagement.
+- **Sochi** : le -74 ne tenait pas compte de l'actualisation. Le DNF tombe 200 pas après le raccourci, donc à γ = 0,99 il ne pèse plus qu'environ -27. Mesuré par Thibaud, le raccourci reste perdant face à la conduite propre, mais de très peu (+13,5 contre +15,3). À revoir si γ ou le DNF changent.
+
 ## 2026-11-01 · [Évaluation] Témoin : une voiture arrivée continue de rouler sur les courses courtes
 
 Avec `--laps 1` ou `2`, le simulateur laisse une voiture arrivée `ACTIVE` sur la piste. `control_race.py` lui envoyait `(0, 0)` : elle s'arrêtait après la ligne et ralentissait les suivantes, même sans contact. Elle continue maintenant d'être conduite, et ses mesures restent figées à son arrivée. Pourquoi : un témoin ne doit pas fausser les temps des autres voitures. Référence Budapest à 1 tour et 2 voitures : voiture 0 64,65 → 64,50 s, voiture 1 inchangée (63,45 s). Les courses de 3 tours ne changent pas : le simulateur y fige la voiture arrivée.
-

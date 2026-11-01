@@ -2,7 +2,8 @@
 
 Fixed by the subject: `Agent()` loads its model relative to its own file,
 `Agent.predict(obs, info) -> (float, float)` with bounded values, and agent.py
-imports only numpy, onnxruntime and the standard library.
+imports only what vendor/simulation/verify_submission.py allows: numpy,
+onnxruntime and os, not the rest of the standard library.
 
 Naming assumption (not fixed by the subject): an agent detects a new episode
 when `info["step_count"] == 0`.
@@ -10,14 +11,13 @@ when `info["step_count"] == 0`.
 
 import ast
 import math
-import sys
 
 import numpy as np
 import pytest
 from agent_loader import create_dummy_info, create_dummy_obs, validate_and_load_agent
 from conftest import SUBMISSION_DIRS, require_model
+from verify_submission import ALLOWED_MODULES
 
-ALLOWED_MODULES = {"numpy", "onnxruntime"} | set(sys.stdlib_module_names)
 SPEED_BOUNDS = (-2.0, 10.0)
 STEER_LIMIT = 0.4189 + 1e-4  # engine s_max is 0.4189 rad, rounded
 ACTION_ATOL = 1e-6
@@ -31,7 +31,7 @@ submissions = pytest.mark.parametrize(
 
 
 def forbidden_imports(source: str) -> list[str]:
-    """Imports outside numpy, onnxruntime and the stdlib. Static only: __import__ is not seen."""
+    """Imports the official checker refuses. Static only: __import__ is not seen."""
     bad = []
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.Import):
@@ -69,8 +69,10 @@ def load_agent(submission_dir, unique_id):
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
-        ("import numpy as np\nimport onnxruntime as ort\nimport os, math", []),
-        ("from pathlib import Path\nfrom numpy.typing import NDArray", []),
+        ("import numpy as np\nimport onnxruntime as ort\nimport os", []),
+        ("from numpy.typing import NDArray\nimport os.path", []),
+        ("import os, math", ["math"]),
+        ("from pathlib import Path", ["pathlib"]),
         ("import torch", ["torch"]),
         ("from stable_baselines3 import PPO", ["stable_baselines3"]),
         ("def f():\n    import gymnasium", ["gymnasium"]),
