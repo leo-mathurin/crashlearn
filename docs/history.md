@@ -1,6 +1,6 @@
 # Mémoire temporelle par voiture (E-13)
 
-Les pilotes B et C décident à partir des quatre dernières observations. Le module [`src/crashlearn/history.py`](../src/crashlearn/history.py) garde cet historique **séparément pour chaque voiture**. Comme `features.py`, il n'importe que NumPy et la bibliothèque standard : l'export (E-25) le recopie dans chaque `agent.py` qui conduit avec un historique.
+Les pilotes B et C décident à partir des quatre dernières observations. Le module [`src/crashlearn/history.py`](../src/crashlearn/history.py) garde cet historique **séparément pour chaque voiture**. Comme `features.py`, il n'importe que NumPy, car le vérificateur officiel n'accepte dans `agent.py` que `numpy`, `onnxruntime` et `os` : l'export (E-25) le recopie dans chaque `agent.py` qui conduit avec un historique. L'exemple ci-dessous utilise `crashlearn.features`, apporté par E-16 (PR #15).
 
 ```python
 from crashlearn.features import build_features
@@ -29,7 +29,8 @@ Avec le loader de l'archive du 18/09, ce chemin self-play n'est jamais atteint :
   - sans horloge, une baisse de `obs["lap_count"]`.
 - **Dry-run du loader** : avant la course, `agent_loader` appelle `predict` sur une observation factice (`agent_id = 0`, 100 rayons à exactement 5 m, vitesse nulle, `step_count = 0`). Le premier appel de course arrive au pas 1, donc le compteur seul ne verrait pas de changement d'épisode. Cette observation est reconnue et ne laisse aucune trace. Un vrai scan ne donne jamais 100 rayons égaux à 5 m.
 - **`agent_id` absent ou invalide** : clé `MISSING_ID = -1`, séparée de la vraie voiture 0.
-- **Lecture tolérante** : une clé manquante, `None`, une chaîne ou une valeur non finie ne lève jamais d'exception. Au tournoi, une exception vaut un DNF.
+- **Lecture tolérante** : une clé manquante, `None`, une chaîne, un tableau, une valeur non finie ou trop grande pour un flottant ne lève jamais d'exception. Au tournoi, une exception vaut un DNF.
+- **`reset()`** vide la mémoire de toutes les voitures. L'environnement d'entraînement l'appelle à chaque épisode ; `agent.py` n'en a pas besoin, la détection par voiture suffit.
 - La pile renvoyée est une copie : la modifier ne touche pas la mémoire.
 
 ## Limites de la détection de reset
@@ -39,6 +40,7 @@ Avec le loader de l'archive du 18/09, ce chemin self-play n'est jamais atteint :
 - **Changement de circuit** : il n'est vu qu'à travers le compteur. Un harness qui changerait de carte sans remettre le compteur à zéro ne serait pas détecté.
 - **Dry-run** : la reconnaissance suit la forme exacte de `create_dummy_obs`. Si une archive change cette observation factice, `test_constants_match_the_simulator` casse.
 - Ces règles supposent un appel par voiture et par pas, comme dans `sim_recorder.py` et `demo.py`. Une voiture arrivée n'est plus appelée, ce qui n'a pas d'effet puisque sa course est finie.
+- **Appels espacés** : un harness qui n'appellerait une voiture qu'un pas sur deux ferait repartir sa mémoire à chaque appel. Avec des appels aux pas 2, 4, 6…, la pile vaut toujours quatre fois l'observation courante : le réseau courrait sans mémoire, sans erreur ni log, et rien ne bascule automatiquement sur le pilote A. Gardé ainsi, parce qu'aucun harness connu ne le fait et que tolérer un trou mélangerait des images qui ne sont pas espacées comme à l'entraînement.
 
 ## Pilote de repli
 

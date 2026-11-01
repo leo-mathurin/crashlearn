@@ -1,7 +1,8 @@
 """Per-car temporal memory (E-13). Reset rules and their limits: docs/history.md.
 
-Pure NumPy and the standard library on purpose, like `features.py`: the export (E-25) copies
-this module into every submission `agent.py` that drives with a history. The tournament may
+Pure NumPy on purpose, like `features.py`: the export (E-25) copies this module into every
+submission `agent.py` that drives with a history, where the official checker only allows
+`numpy`, `onnxruntime` and `os`. The tournament may
 call one `Agent` instance for several cars (`sim_recorder` replicates a flat submission
 across every car), so the memory is keyed by `obs["agent_id"]`, never kept on the instance.
 
@@ -9,11 +10,9 @@ A new episode starts the car's history over: its first frame is repeated `DEPTH`
 the stack has a fixed size from the first decision. The reactive driver (A) keeps no state
 and stays the fallback when a reset cannot be detected.
 
-Tolerant reading: missing or invalid keys never raise, because an exception in the
-tournament means a DNF.
+Tolerant reading: missing or invalid keys (absent, None, text, arrays, non-finite or huge
+numbers) never raise, because an exception in the tournament means a DNF.
 """
-
-import math
 
 import numpy as np
 
@@ -32,14 +31,22 @@ def _get(mapping, key: str):
         return None
 
 
-def _integer(value) -> int | None:
+def _scalar(value) -> float | None:
+    """A finite float, or None for anything else: bools, arrays, text, overflow, NaN."""
     if isinstance(value, bool):
         return None
     try:
-        number = float(value)
-    except (TypeError, ValueError):
+        number = np.asarray(value, dtype=np.float64)
+    except (TypeError, ValueError, OverflowError):
         return None
-    return int(number) if math.isfinite(number) and number == int(number) else None
+    if number.ndim != 0 or not np.isfinite(number):
+        return None
+    return float(number)
+
+
+def _integer(value) -> int | None:
+    number = _scalar(value)
+    return int(number) if number is not None and number == int(number) else None
 
 
 def car_id(obs: dict) -> int:
@@ -53,16 +60,15 @@ def decision_step(info: dict) -> int | None:
     step = _integer(_get(info, "step_count"))
     if step is not None:
         return step
-    try:
-        elapsed = float(_get(info, "time_elapsed"))
-    except (TypeError, ValueError):
+    elapsed = _scalar(_get(info, "time_elapsed"))
+    if elapsed is None or not np.isfinite(elapsed * DECISION_FREQ_HZ):
         return None
-    return round(elapsed * DECISION_FREQ_HZ) if math.isfinite(elapsed) else None
+    return round(elapsed * DECISION_FREQ_HZ)
 
 
 def is_probe(obs: dict, info: dict) -> bool:
     """True for the loader's dry-run call, whose dummy frame must not enter any history."""
-    if decision_step(info) not in (0, None) or _get(obs, "velocity") != 0.0:
+    if decision_step(info) not in (0, None) or _scalar(_get(obs, "velocity")) != 0.0:
         return False
     try:
         rays = np.asarray(_get(obs, "lidar"), dtype=np.float64)
@@ -115,7 +121,8 @@ class CarHistory:
     def _new_episode(self, car: int, step: int | None, laps: int | None) -> bool:
         last = self._last_step.get(car)
         # Each car decides once per step: anything but the next step is another episode,
-        # or a gap after which the memory no longer describes the present.
+        # or a gap after which the memory no longer describes the present. A harness that
+        # calls a car every other step restarts it each time (docs/history.md, limits).
         if step is not None and last is not None and step != last + 1:
             return True
         last_laps = self._last_laps.get(car)

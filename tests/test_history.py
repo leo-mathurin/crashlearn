@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 from agent_loader import create_dummy_info, create_dummy_obs
 from conftest import ROOT
+from verify_submission import ALLOWED_MODULES as OFFICIAL_ALLOWED_MODULES
 
 from crashlearn import history
 from crashlearn.history import DEPTH, MISSING_ID, CarHistory, car_id, decision_step, is_probe
@@ -34,8 +35,8 @@ def frames_of(stack):
     return stack.reshape(DEPTH, -1)[:, 0].tolist()
 
 
-def test_history_module_needs_only_numpy():
-    """It is copied into agent.py, where only NumPy and ONNX Runtime are allowed."""
+def test_history_module_passes_the_official_import_check():
+    """It is copied into agent.py: the vendor checker allows numpy, onnxruntime and os only."""
     tree = ast.parse(open(history.__file__).read())
     imported = {
         alias.name.split(".")[0]
@@ -43,7 +44,7 @@ def test_history_module_needs_only_numpy():
         if isinstance(node, ast.Import | ast.ImportFrom)
         for alias in (node.names if isinstance(node, ast.Import) else [ast.alias(node.module)])
     }
-    assert imported <= {"math", "numpy"}
+    assert imported <= OFFICIAL_ALLOWED_MODULES
 
 
 def test_constants_match_the_simulator():
@@ -134,14 +135,22 @@ def test_missing_agent_id_is_kept_apart_from_car_zero():
     assert frames_of(h.push(obs_of(0), info_at(2), frame(2))) == [1, 1, 1, 2]
 
 
-@pytest.mark.parametrize("value", [None, "a", 1.5, -2, True, float("nan")])
+@pytest.mark.parametrize("value", [None, "a", 1.5, -2, True, float("nan"), 10**400, np.zeros(2)])
 def test_invalid_agent_ids_fall_back(value):
     assert car_id({"agent_id": value}) == MISSING_ID
 
 
 @pytest.mark.parametrize(
     "obs, info",
-    [(None, None), ({}, {}), ("obs", "info"), ({"lidar": "x"}, {"step_count": "x"})],
+    [
+        (None, None),
+        ({}, {}),
+        ("obs", "info"),
+        ({"lidar": "x"}, {"step_count": "x"}),
+        ({"velocity": np.zeros(2), "lidar": [5.0] * 100}, {}),
+        ({"agent_id": 10**400, "lap_count": 10**400}, {"step_count": 10**400}),
+        ({"lap_count": 1e308}, {"time_elapsed": 1e308}),
+    ],
 )
 def test_malformed_inputs_never_raise(obs, info):
     h = CarHistory()
@@ -162,6 +171,15 @@ def test_a_real_frame_at_step_zero_is_not_a_probe():
         es.set_map("example")
         es.reset(num_cars=2)
         es.simulation_step()
+
+
+def test_reset_forgets_every_car():
+    h = CarHistory()
+    for car in (0, 1):
+        h.push(obs_of(car), info_at(1), frame(car + 1))
+    h.reset()
+    assert frames_of(h.push(obs_of(0), info_at(2), frame(9))) == [9] * 4
+    assert frames_of(h.push(obs_of(1), info_at(2), frame(8))) == [8] * 4
 
 
 def test_returned_stack_is_a_copy():
@@ -228,7 +246,6 @@ runpy.run_path({recorder!r}, run_name="__main__")
 """
 
 
-@pytest.mark.slow
 def test_no_memory_mixing_in_the_recorder_sharing_one_instance(tmp_path):
     submission = tmp_path / "submission"
     submission.mkdir()
