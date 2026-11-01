@@ -444,3 +444,14 @@ def test_metrics_are_taken_at_each_car_arrival(budapest):
     assert [r["status"] for r in records] == ["FINISHED"] * 4
     assert all(1 <= r["progress_laps"] < 1.002 for r in records)
     assert records[1]["decisions"] == 1269
+
+
+@pytest.mark.slow
+def test_a_finished_car_keeps_driving_in_a_short_race(budapest):
+    """With --laps 1 the simulator does not freeze a finished car: stopped, it blocks the line."""
+    args = argparse.Namespace(seed=0, cars=4, laps=1, max_time=150.0)
+    records = control_race().run_race(budapest, "Budapest", args, DriverConfig())
+    first = min(range(4), key=lambda i: records[i]["decisions"])
+    assert records[first]["decisions"] < max(r["decisions"] for r in records)
+    assert budapest.get_obs(first)["velocity"] > 1.0  # still racing when the last car arrives
+    assert budapest.get_obs(first)["lap_count"] >= 1

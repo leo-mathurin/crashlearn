@@ -94,3 +94,8 @@ La documentation versionnée conserve le matériel, les commandes reproductibles
 Pilote scripté sans apprentissage, qui vise la direction la plus dégagée du LiDAR (E-11, PR #5, `docs/scripted_driver.md`). Pourquoi : quand une métrique semble aberrante, rejouer la même course avec lui dit si le problème vient du simulateur, de la mesure ou de la politique RL. Sur l'archive du 18/09, aucun DNF ni contact mur : 3 tours seul sur 5 cartes (seeds 0 à 2), 3 tours à 4 voitures sur Austin et Budapest, 1 tour seul sur les 10 autres cartes.
 
 Il a confirmé les défauts de la première archive : les DNF d'IMS, BrandsHatch et MexicoCity venaient du faux DNF après la ligne, et ils ont disparu à configuration de pilote inchangée. Temps de référence sur 3 tours, seed 0 : IMS 132,35 s, BrandsHatch 163,50 s, MexicoCity 176,80 s, Budapest 189,45 s, Austin 224,30 s. Tout agent RL doit au moins faire mieux que ces temps.
+
+## 2026-11-01 · [Évaluation] Témoin : une voiture arrivée continue de rouler sur les courses courtes
+
+Avec `--laps 1` ou `2`, le simulateur laisse une voiture arrivée `ACTIVE` sur la piste. `control_race.py` lui envoyait `(0, 0)` : elle s'arrêtait après la ligne et ralentissait les suivantes, même sans contact. Elle continue maintenant d'être conduite, et ses mesures restent figées à son arrivée. Pourquoi : un témoin ne doit pas fausser les temps des autres voitures. Référence Budapest à 1 tour et 2 voitures : voiture 0 64,65 → 64,50 s, voiture 1 inchangée (63,45 s). Les courses de 3 tours ne changent pas : le simulateur y fige la voiture arrivée.
+

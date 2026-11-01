@@ -99,7 +99,7 @@ Options du script :
 - `--map` : répétable. Uniquement des cartes **d'entraînement** canoniques ; validation, test scellé et alias sont refusés avec le code 2.
 - `--seed` : bruit LiDAR.
 - `--laps` : 1 à 3, **3 par défaut**. C'est le format des évaluations internes, et le simulateur fige la voiture en FINISHED au 3e tour. On n'hérite pas du `--laps 2` de `sim_recorder.py`.
-  - **Limite** : avec `--laps 1` ou `2` et plusieurs voitures, une voiture arrivée reçoit `(0, 0)` et s'arrête sur la piste, juste après la ligne, où elle peut gêner les suivantes et fausser leurs `vehicle_collision_steps`. Aucune mesure ci-dessous n'est touchée : la seule course concernée, la référence Budapest à 2 voitures, compte 0 contact entre voitures.
+  - Avec `--laps 1` ou `2`, le simulateur ne fige pas une voiture arrivée : elle reste `ACTIVE`. Elle continue donc d'être conduite par son pilote jusqu'à la fin de la course, pour ne pas s'arrêter juste après la ligne devant les suivantes, mais ses mesures restent celles de son arrivée. Avant ce correctif, elle recevait `(0, 0)` : sur la référence Budapest à 2 voitures, la voiture 0 perdait 0,15 s derrière la voiture 1 arrêtée, sans aucun contact, et à 4 voitures les deux dernières perdaient 1,2 et 1,4 s.
 - `--cars` : 1 à 4 voitures, chacune avec son pilote.
 - `--max-time` : secondes simulées avant `TIMEOUT` (600 par défaut). La valeur doit être finie et d'au moins 0,05 s (une décision), sinon le script sort avec le code 2.
 - `--output` : chemin de sortie (`runs/control_race.json` par défaut, ignoré par git).
@@ -131,7 +131,7 @@ Deux protocoles, qui **ne sont pas comparables** :
 - **P3** : 3 tours, sur les 5 cartes par défaut. C'est le format standard des évaluations internes.
 - **P1** : 1 tour, sur les 10 autres cartes d'entraînement. Il ne vérifie que la capacité à boucler un tour.
 
-Les temps sont en secondes simulées. Dans le JSON, `progress_laps` additionne les `progress_delta` signés du moteur : une voiture qui recule à travers la ligne perd de la progression au lieu de gagner presque un tour. Toutes les métriques d'une voiture sont relevées à son arrivée. Le simulateur ne fige une voiture qu'après 3 tours : avec `--laps 1` ou `2`, une relecture en fin de course compterait aussi son freinage sur la piste.
+Les temps sont en secondes simulées. Dans le JSON, `progress_laps` additionne les `progress_delta` signés du moteur : une voiture qui recule à travers la ligne perd de la progression au lieu de gagner presque un tour. Toutes les métriques d'une voiture sont relevées à son arrivée. Le simulateur ne fige une voiture qu'après 3 tours : avec `--laps 1` ou `2`, une relecture en fin de course compterait aussi les pas qu'elle roule après la ligne.
 
 ### P3, 1 voiture, seeds 0, 1 et 2
 
@@ -182,7 +182,7 @@ Commande : `--map Budapest --laps 1 --cars 2`.
 
 | Voiture | Statut | Temps (s) |
 |---|---|---|
-| 0 | FINISHED | 64,65 |
+| 0 | FINISHED | 64,50 |
 | 1 | FINISHED | 63,45 |
 
 ### Lecture

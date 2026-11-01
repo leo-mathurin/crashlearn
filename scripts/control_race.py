@@ -84,17 +84,20 @@ def run_race(sim, name: str, args: argparse.Namespace, config: DriverConfig) -> 
     frictions = set()
     info = sim.get_step_info()
     for _ in range(round(args.max_time / DECISION_DT)):
-        running = [
-            i for i, car in enumerate(cars) if car["end"] is None and info["agent_status"][i] == 1
-        ]
+        # the simulator only freezes a car after 3 laps: with --laps 1 or 2, a car that is
+        # done keeps driving, so that it does not stop past the line in front of the others,
+        # but its metrics stay those of its arrival
+        on_track = [i for i in range(args.cars) if info["agent_status"][i] == 1]
+        running = [i for i in on_track if cars[i]["end"] is None]
         if not running:
             break
         for i in range(args.cars):
-            if i not in running:
+            if i not in on_track:
                 sim.apply_action(i, 0.0, 0.0)
                 continue
             obs = sim.get_obs(i)
-            cars[i]["distance"] += abs(obs["velocity"]) * DECISION_DT
+            if i in running:
+                cars[i]["distance"] += abs(obs["velocity"]) * DECISION_DT
             speed, steer = drivers[i].predict(obs, info)
             trajectory.update(np.array([i, speed, steer, obs["progress"]]).tobytes())
             sim.apply_action(i, speed, steer)
@@ -114,8 +117,7 @@ def run_race(sim, name: str, args: argparse.Namespace, config: DriverConfig) -> 
 
     records = []
     for i, car in enumerate(cars):
-        # the simulator only freezes a car after 3 laps: with --laps 1 or 2, reading it after
-        # the race would mix its arrival with the steps it spent braking on the track
+        # read at the arrival: with --laps 1 or 2 the car went on driving after it
         end = car["end"] or end_state(sim, i, info)
         laps_done = min(end["lap_count"], args.laps)
         if laps_done >= args.laps:
