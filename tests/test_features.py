@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 from agent_loader import create_dummy_obs
 from conftest import SUBMISSION_DIRS
+from verify_submission import ALLOWED_MODULES as OFFICIAL_ALLOWED_MODULES
 
 from crashlearn import features
 from crashlearn.features import (
@@ -52,6 +53,7 @@ AHEAD = slot(x=3.0, y=-1.5, yaw=0.5, speed=6.0, progress=0.6, laps=1)
 
 
 def test_constants_match_the_simulator():
+    assert features.SPEED_MAX == es._TARGET_SPEED_MAX
     assert features.LIDAR_RAYS == es._LIDAR_RAYS
     assert features.LIDAR_MAX == es._LIDAR_MAX
     assert features.STEER_MAX == pytest.approx(es._PARAMS["s_max"])
@@ -66,8 +68,8 @@ def test_the_simulator_schema_is_the_one_we_read(sim):
     assert all(set(o) == keys for o in sim.get_obs(0)["opponents"].values())
 
 
-def test_features_module_needs_only_numpy():
-    """It is copied into agent.py, where only NumPy and ONNX Runtime are allowed."""
+def test_features_module_passes_the_official_import_check():
+    """It is copied into agent.py: the vendor checker allows numpy, onnxruntime and os only."""
     tree = ast.parse(open(features.__file__).read())
     imported = {
         alias.name.split(".")[0]
@@ -75,7 +77,7 @@ def test_features_module_needs_only_numpy():
         if isinstance(node, ast.Import | ast.ImportFrom)
         for alias in (node.names if isinstance(node, ast.Import) else [ast.alias(node.module)])
     }
-    assert imported <= {"math", "numpy"}
+    assert imported <= OFFICIAL_ALLOWED_MODULES
 
 
 def test_shape_dtype_bounds_and_determinism_on_real_observations(sim):

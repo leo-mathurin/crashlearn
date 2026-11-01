@@ -1,8 +1,9 @@
 """Canonical observation features (E-16). Layout and rationale: docs/features.md.
 
-Pure NumPy and the standard library on purpose: the export (E-25) copies this module into
-every submission `agent.py`, where only NumPy and ONNX Runtime are allowed. It must not
-import the simulator; tests check that the constants below still match it.
+Pure NumPy on purpose: the export (E-25) copies this module into every submission
+`agent.py`, where the official checker only allows `numpy`, `onnxruntime` and `os` (not even
+`math`). It must not import the simulator; tests check that the constants below still match
+it.
 
 One fixed-size input for every driver, solo or champion: the opponent slots are always there,
 masked when empty, so a solo policy transfers to the champion without changing its
@@ -11,8 +12,6 @@ architecture (ADR 0001).
 Tolerant reading: a missing key or a non-finite value becomes the neutral value instead of
 raising, because an exception in the tournament means a DNF.
 """
-
-import math
 
 import numpy as np
 
@@ -33,9 +32,9 @@ FEATURE_SIZE = EGO_SIZE + MAX_OPPONENTS * OPPONENT_SIZE
 def _number(mapping, key: str, default: float = 0.0) -> float:
     try:
         value = float(mapping.get(key, default))
-    except (AttributeError, TypeError, ValueError):
+    except (AttributeError, TypeError, ValueError, OverflowError):
         return default
-    return value if math.isfinite(value) else default
+    return value if np.isfinite(value) else default
 
 
 def _lidar(obs: dict) -> np.ndarray:
@@ -65,7 +64,7 @@ def adapt_observation(obs: dict) -> dict:
         keys = ("x_rel", "y_rel", "yaw_rel", "speed", "progress", "lap_count")
         active.append([_number(slot, k) for k in keys])
     # nearest first, ties broken on the values themselves: the slot order never matters
-    active.sort(key=lambda row: (math.hypot(row[0], row[1]), row))
+    active.sort(key=lambda row: (float(np.hypot(row[0], row[1])), row))
     active = active[:MAX_OPPONENTS]
 
     opponents = np.zeros((MAX_OPPONENTS, 6))
@@ -87,13 +86,13 @@ def adapt_observation(obs: dict) -> dict:
 def build_features(obs: dict) -> np.ndarray:
     """Raw `get_obs` dict of one car -> float32 vector of FEATURE_SIZE values in [-1, 1]."""
     c = adapt_observation(obs)
-    phase = 2.0 * math.pi * c["progress"]
+    phase = 2.0 * np.pi * c["progress"]
     ego_laps = c["lap_count"] + c["progress"]
     ego = [
         c["velocity"] / SPEED_MAX,
         c["steering"] / STEER_MAX,
-        math.sin(phase),
-        math.cos(phase),
+        np.sin(phase),
+        np.cos(phase),
         c["lap_count"] / REQUIRED_LAPS,
     ]
     rows = np.zeros((MAX_OPPONENTS, OPPONENT_SIZE))
@@ -103,11 +102,13 @@ def build_features(obs: dict) -> np.ndarray:
             1.0,
             x / LIDAR_MAX,
             y / LIDAR_MAX,
-            math.sin(yaw),
-            math.cos(yaw),
+            np.sin(yaw),
+            np.cos(yaw),
             speed / SPEED_MAX,
             # laps ahead (+) or behind (-), from each car's own start: a few metres off on
-            # a staggered grid, enough to tell ahead from lapped
+            # a staggered grid, enough to tell ahead from lapped. Jumps by a whole lap when
+            # a car reverses behind its line (progress wraps, lap_count never drops): see
+            # docs/features.md
             laps + progress - ego_laps,
         ]
     vec = np.concatenate([c["lidar"] / LIDAR_MAX, ego, rows.ravel()])
