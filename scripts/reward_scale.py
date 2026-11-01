@@ -1,7 +1,9 @@
 """Measure the reward terms of a few reference policies (E-15).
 
 Runs whole episodes through CrashLearnEnv and sums every reward term separately, to check
-their orders of magnitude before fixing the coefficients. Training tracks only.
+their orders of magnitude before fixing the coefficients. Contacts have a zero weight, so
+their terms stay at 0: the steps in contact are counted from the step info instead.
+Training tracks only.
 
     uv run python scripts/reward_scale.py                  # 15 training tracks, all policies
     uv run python scripts/reward_scale.py --map IMS --policy pursuit
@@ -47,12 +49,15 @@ def episode(env, policy, name: str, seed: int) -> dict:
     _, info = env.reset(seed=seed, options={"map": name})
     env.action_space.seed(seed)
     sums = defaultdict(float)
+    contacts = {"wall": 0, "vehicle": 0}
     steps, terminated, truncated = 0, False, False
     while not (terminated or truncated):
         _, reward, terminated, truncated, info = env.step(policy(env))
         steps += 1
         for k, v in info["reward_terms"].items():
             sums[k] += v
+        contacts["wall"] += bool(info["wall_contact"])
+        contacts["vehicle"] += bool(info["vehicle_contact"])
     outcome = {0: "DNF", 1: "TRUNCATED", 2: "FINISHED"}[info["status"]]
     return {
         "map": name,
@@ -62,6 +67,7 @@ def episode(env, policy, name: str, seed: int) -> dict:
         "laps": info["lap_count"],
         "return": round(math.fsum(sums.values()), 2),
         "terms": {k: round(sums[k], 2) for k in TERMS},
+        "contact_steps": contacts,
     }
 
 
@@ -99,6 +105,7 @@ def main() -> int:
     print(
         f"{'policy':<13}{'outcomes':<22}{'steps':>6}{'return':>9}"
         + "".join(f"{c:>9}" for c in cols)
+        + f"{'wall_n':>8}{'veh_n':>7}"
     )
     for policy in dict.fromkeys(r["policy"] for r in records):
         rows = [r for r in records if r["policy"] == policy]
@@ -109,9 +116,17 @@ def main() -> int:
         steps = sum(r["steps"] for r in rows) / len(rows)
         ret = sum(r["return"] for r in rows) / len(rows)
         terms = [sum(r["terms"][t] for r in rows) / len(rows) for t in TERMS]
+        wall = sum(r["contact_steps"]["wall"] for r in rows)
+        veh = sum(r["contact_steps"]["vehicle"] for r in rows)
         print(
-            f"{policy:<13}{out:<22}{steps:>6.0f}{ret:>9.1f}" + "".join(f"{v:>9.1f}" for v in terms)
+            f"{policy:<13}{out:<22}{steps:>6.0f}{ret:>9.1f}"
+            + "".join(f"{v:>9.1f}" for v in terms)
+            + f"{wall:>8}{veh:>7}"
         )
+    print("\nwall_n, veh_n: steps in contact, summed over all maps")
+    for r in records:
+        if any(r["contact_steps"].values()):
+            print(f"  {r['policy']:<13}{r['map']:<14}{r['contact_steps']}")
     return 0
 
 

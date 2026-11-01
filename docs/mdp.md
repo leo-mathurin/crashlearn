@@ -36,9 +36,9 @@ Deux flottants dans [-1, 1], remappés de façon affine vers une vitesse cible d
 | `lap` | +20 | tour enregistré par le simulateur |
 | `finish` | +50 | arrivée (3 tours) |
 | `dnf` | -200 | abandon |
-| `wall_contact`, `vehicle_contact` | 0 | contact (journalisé seulement) |
+| `wall_contact`, `vehicle_contact` | 0 | contact. Avec un poids nul, ces termes valent toujours 0 : les contacts eux-mêmes sont dans `info["wall_contact"]` et `info["vehicle_contact"]` |
 | `slow` | -0,1 par pas | voiture en course qui progresse de moins de 1 m/s |
-| `reverse` | -0,1 par pas | marche arrière (vitesse < -0,1 m/s) au-delà de 1 s d'affilée |
+| `reverse` | -0,1 par pas | marche arrière (vitesse < -0,1 m/s) au-delà de 1 s d'affilée. La première seconde échappe à ce terme, pas à `slow` ni à la progression négative : elle coûte -2 plus les mètres perdus |
 | `action_change` | -0,02 × ‖Δa‖² | variation de l'action normalisée depuis le pas précédent |
 
 ### Pourquoi ces choix
@@ -48,23 +48,31 @@ Deux flottants dans [-1, 1], remappés de façon affine vers une vitesse cible d
 - **Événements uniques.** `lap` et `finish` reposent sur les compteurs du simulateur, qui sont verrouillés : un tour n'est jamais compté deux fois, même si la voiture recule à travers la ligne puis la refranchit. `finish` et `dnf` terminent l'épisode, donc ils ne tombent qu'une fois. Les primes restent petites devant la progression (20 et 50, contre environ 400 par tour), parce qu'elles ne font que marquer l'événement.
 - **Pas de survie passive.** Aucun terme n'est positif sans progression. Une voiture à l'arrêt prend `slow` à chaque pas, puis le DNF au bout de 10 s.
 - **Pas de vitesse brute.** On paie les mètres crédités par le simulateur, pas la vitesse. Une voiture qui tourne en rond ou qui roule en travers ne gagne rien. C'est l'actualisation (γ < 1) qui pousse à aller vite : les mêmes mètres, gagnés plus tôt, valent plus.
-- **Contacts non pénalisés (ADR 0004).** Un contact peut rapporter (mur fin traversé, poussée). Il est journalisé avec un poids nul jusqu'à ce qu'E-47 mesure qu'il coûte plus qu'il ne rapporte.
-- **Raccourcis.** Un raccourci qui laisse la voiture en course est payé, parce que le simulateur crédite les mètres gagnés : +78 m pour le mur traversé à Zandvoort. Un raccourci mortel coûte : à Sochi, on gagne +126 m mais on prend -200 pour le DNF, d'où -74. Le DNF est fixé à -200, soit environ un demi-tour, précisément pour que ce cas reste perdant.
+- **Contacts non pénalisés (ADR 0004).** Un contact peut rapporter (mur fin traversé, poussée). Son poids reste nul jusqu'à ce qu'E-47 mesure qu'il coûte plus qu'il ne rapporte. Pour cette mesure, on compte les contacts dans `info`, pas dans `reward_terms`.
+- **Raccourcis.** Un raccourci qui laisse la voiture en course est payé, parce que le simulateur crédite les mètres gagnés : +78 m pour le mur traversé à Zandvoort. Un raccourci mortel coûte, mais moins qu'il n'y paraît. À Sochi, on gagne +126 m d'un coup, puis le DNF tombe environ 200 pas plus tard (stagnation). Sans actualisation, cela donne -74. Avec γ = 0,99, le -200 ne pèse plus qu'environ -27 au moment du raccourci. Rejoué par Thibaud sur Sochi depuis le même état (conduite propre à 3 m/s jusqu'au point 972, 1500 pas au plus), le retour actualisé vaut :
+
+  | γ | raccourci | conduite propre |
+  |---|---|---|
+  | 0,99 | +13,5 | +15,3 |
+  | 0,995 | +15,3 | +32,0 |
+  | 0,999 | -45,3 | +129,8 |
+
+  Le raccourci reste perdant, mais de très peu à γ = 0,99, la valeur retenue par E-18. À revérifier si γ ou le DNF changent. `test_a_lethal_shortcut_does_not_pay` ne vérifie que le cas sans actualisation.
 - **Rang.** Le rang n'entre pas dans la reward solo : en course solo il ne bouge pas, et un terme de rang se gagnerait et se perdrait à chaque échange de place. Les termes du champion (dépassement confirmé, perte durable d'une place) sont prévus pour E-26.
 
 ### Ordres de grandeur mesurés
 
 `uv run python scripts/reward_scale.py` joue un épisode complet par circuit d'entraînement (15 circuits, seed 0, troncature à 8000 pas) avec cinq politiques de référence. Moyennes par épisode :
 
-| Politique | Issues | Pas | Retour | progress | lap | finish | dnf | slow | reverse | action_change |
-|---|---|---|---|---|---|---|---|---|---|---|
-| poursuite 6 m/s | 15 arrivées | 4081 | 1327,6 | 1218,6 | 60,0 | 50,0 | 0 | -0,6 | 0 | -0,4 |
-| poursuite 3 m/s | 7 arrivées, 8 tronqués | 7572 | 1218,4 | 1146,2 | 49,3 | 23,3 | 0 | -0,2 | 0 | -0,3 |
-| à l'arrêt | 15 DNF | 201 | -220,0 | 0 | 0 | 0 | -200 | -20,0 | 0 | 0 |
-| marche arrière | 15 DNF | 201 | -254,7 | -18,1 | 0 | 0 | -200 | -20,0 | -16,6 | 0 |
-| aléatoire | 15 DNF | 235 | -222,8 | 4,2 | 0 | 0 | -200 | -20,7 | 0 | -6,2 |
+| Politique | Issues | Pas | Retour | progress | lap | finish | dnf | slow | reverse | action_change | pas en contact mur (total) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| poursuite 6 m/s | 15 arrivées | 4081 | 1327,6 | 1218,6 | 60,0 | 50,0 | 0 | -0,6 | 0 | -0,4 | 21 |
+| poursuite 3 m/s | 7 arrivées, 8 tronqués | 7572 | 1218,4 | 1146,2 | 49,3 | 23,3 | 0 | -0,2 | 0 | -0,3 | 0 |
+| à l'arrêt | 15 DNF | 201 | -220,0 | 0 | 0 | 0 | -200 | -20,0 | 0 | 0 | 0 |
+| marche arrière | 15 DNF | 201 | -254,7 | -18,1 | 0 | 0 | -200 | -20,0 | -16,6 | 0 | 187 |
+| aléatoire | 15 DNF | 235 | -222,8 | 4,2 | 0 | 0 | -200 | -20,7 | 0 | -6,2 | 1842 |
 
-La poursuite suit la ligne centrale sans rien exploiter, et ne touche jamais de mur. Les termes de contact restent donc à 0 dans cette mesure.
+Les termes de contact valent 0 par construction. La dernière colonne compte les pas où `info["wall_contact"]` est vrai, sommés sur les 15 circuits. Aucune politique n'a touché de voiture : elles roulent seules. La poursuite à 6 m/s frotte le mur 19 pas à Monza et 2 à MexicoCity, sans que cela ne l'empêche de finir.
 
 Ce qu'on en retient :
 
