@@ -109,6 +109,17 @@ E-16 (`docs/features.md`, `src/crashlearn/features.py`). Une seule source NumPy 
 
 L'ancien schéma d'adversaires du loader est abandonné, puisque l'archive du 18/09 n'en a plus qu'un.
 
+## 2026-10-23 · [MDP] Mémoire temporelle par voiture, remise à zéro au moindre écart de pas
+
+E-13 (`docs/history.md`, `src/crashlearn/history.py`). Les pilotes avec historique empilent leurs quatre dernières observations dans une mémoire indexée par `agent_id`, jamais sur l'instance d'`Agent`. Au début d'un épisode, la première observation est recopiée quatre fois. Pourquoi :
+
+- **Par voiture** : rien n'oblige le tournoi à créer une instance par voiture, et `sim_recorder` prévoit d'en recopier une sur toutes les voitures. Avec le loader du 18/09, ce chemin n'est pas atteint, mais le harness du tournoi est inconnu.
+- **Nouvel épisode dès que le pas n'est pas le suivant** : ça couvre le recul du compteur, deux épisodes courts qui se suivent au même pas et une mémoire périmée après un trou.
+- **Dry-run reconnu** : l'observation factice du loader arrive au pas 0, juste avant le pas 1 de la course. Sans la reconnaître, elle entrerait dans l'historique de la voiture 0.
+- **Copie de la première observation plutôt que des zéros** : c'est aussi ce qu'il faudra faire à l'entraînement (pas de `VecFrameStack`), pour que le réseau voie les mêmes débuts d'épisode qu'au tournoi.
+
+Le pilote réactif reste sans état et sert de repli.
+
 ## 2026-11-01 · [Reward] Reward v1 inchangée après revue : contacts, marche arrière et raccourci de Sochi
 
 Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalider la campagne E-18 qui attend une reward stable. Trois corrections de l'entrée du 14/10 :
