@@ -1,7 +1,4 @@
-"""ONNX export contract (E-17). Skipped until torch and crashlearn.export are available.
-
-torch is not installed in CI (train group): when E-17 lands, add a CPU-only job
-that runs `uv sync --locked --group train` and this file.
+"""ONNX export contract (E-25), run by the Training and ONNX CPU job.
 
 Naming assumption (NOT fixed by the subject): `crashlearn.export.export_onnx(policy, path,
 sample_input)` exports a `torch.nn.Module` mapping a float32 feature batch to actions,

@@ -63,3 +63,22 @@ jobs:
             tail -n 40 pytest.log 2>/dev/null || echo 'pytest did not run'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  training:
+    name: Training and ONNX
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the tournament CPU image
+        run: docker build -t crashlearn-sim:ci -f vendor/simulation/Dockerfile vendor/simulation
+      - name: Train, resume and verify an exported agent on CPU
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            -e PYTHONPATH=/workspace/src \
+            crashlearn-sim:ci sh -c '
+              python -m pip install gymnasium==1.3.0 stable-baselines3==2.9.0 wandb==0.30.0 &&
+              python -m pytest -m "slow or not slow" tests/test_train_ppo.py tests/test_export.py
+            '
