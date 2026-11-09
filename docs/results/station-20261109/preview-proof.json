@@ -1,0 +1,54 @@
+{
+  "commit": "9e22571a909feb9ad6e91203e1015ffa13bb4b80",
+  "tournament_cpu_image_id": "sha256:29b9cb8434f940611345f6b61a7a32ddf1a9d7f703b27953b6a22f51e5a8b78c",
+  "official_checker": "passed",
+  "cwd": "/tmp",
+  "races": [
+    {
+      "map": "BrandsHatch",
+      "seed": 0,
+      "status": 2,
+      "steps": 5111,
+      "lap_times_s": [
+        85.6,
+        85.15,
+        84.8
+      ],
+      "torch_imported": false,
+      "sb3_imported": false
+    },
+    {
+      "map": "Budapest",
+      "seed": 0,
+      "status": 2,
+      "steps": 5826,
+      "lap_times_s": [
+        97.6,
+        96.95,
+        96.75
+      ],
+      "torch_imported": false,
+      "sb3_imported": false
+    },
+    {
+      "map": "IMS",
+      "seed": 0,
+      "status": 2,
+      "steps": 4120,
+      "lap_times_s": [
+        68.95,
+        68.55,
+        68.5
+      ],
+      "torch_imported": false,
+      "sb3_imported": false
+    }
+  ],
+  "local_full_tests": {
+    "passed": 516,
+    "skipped": 7
+  },
+  "tournament_cpu_tests": {
+    "passed": 10
+  }
+}

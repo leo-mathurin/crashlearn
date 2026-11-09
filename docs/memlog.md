@@ -193,3 +193,14 @@ dix runs principaux, repartis de zéro : cinq seeds, h1/h4, 5 000 000 interactio
 chacun, soit 5 007 360 après arrondi SB3. Ce budget est fixé avant le premier run principal.
 Les bancs ne participent pas à la comparaison de la mémoire. Les résultats bruts et les
 limites de mesure sont dans `docs/results/station-20261109/` et `docs/experience_e18.md`.
+
+
+## 2026-11-09 · [Évaluation] Premier agent ONNX autonome validé en course
+
+Le modèle du banc CUDA est exporté en opset 17 avec ses poids externes. L'écart maximal
+PyTorch/ONNX sur 256 entrées est de 5,36 × 10⁻⁷ en action normalisée, sous la tolérance 10⁻⁵.
+Dans l'image CPU officielle, le vérificateur passe et cet agent finit trois tours sur
+BrandsHatch, Budapest et IMS depuis `/tmp`. Ni PyTorch ni Stable-Baselines3 ne sont importés
+pendant ces courses. Ce modèle reste un pilote de banc, exclu de la comparaison multi-seeds.
+Les preuves sont dans `docs/results/station-20261109/preview-*.json` ; la soumission retenue
+sera exportée depuis les modèles de fin de budget de la campagne.
