@@ -204,3 +204,16 @@ BrandsHatch, Budapest et IMS depuis `/tmp`. Ni PyTorch ni Stable-Baselines3 ne s
 pendant ces courses. Ce modèle reste un pilote de banc, exclu de la comparaison multi-seeds.
 Les preuves sont dans `docs/results/station-20261109/preview-*.json` ; la soumission retenue
 sera exportée depuis les modèles de fin de budget de la campagne.
+
+## 2026-11-09 · [Outillage] Isoler les tests et refuser les comparaisons ambiguës
+
+La CI sans dépendances d'entraînement révèle quatre échecs de contrat : un test ferme le
+simulateur global que réutilisait la fixture de session. La fixture prépare désormais deux
+voitures pour chaque test ; les mêmes quatre échecs sont reproduits avant, puis passent après.
+
+La revue Greptile de la PR #19 relève aussi trois cas : évaluation avec un prétraitement
+modifié, mélange de tentatives dans le rapport, et perte du manifest si le nettoyage échoue.
+L'évaluation contrôle les hashes features/historique ; le rapport refuse les doublons et
+plusieurs modèles par pilote/seed ; une fermeture en erreur ne peut plus empêcher l'écriture
+du statut final. Les tests couvrent chaque cas. La campagne lancée sur la copie figée n'a
+pas changé de prétraitement et n'utilise qu'une tentative par modèle.

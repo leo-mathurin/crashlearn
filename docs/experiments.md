@@ -75,3 +75,9 @@ MLP. Les fichiers des modèles livrés se versionnent sans Git LFS (`docs/remise
 
 La CI `Training and ONNX` exécute un entraînement court, une reprise, l'export, la comparaison
 sur observations réelles et le vérificateur officiel dans l'image CPU du tournoi.
+
+L’évaluation refuse un modèle si les empreintes de features ou d’historique diffèrent de
+celles de son entraînement, même si la taille des entrées reste identique. Le rapport refuse
+les courses en double et le mélange de deux modèles pour un même pilote et une même seed :
+conserver les tentatives, puis sélectionner explicitement leurs fichiers avant comparaison.
+Une erreur de fermeture du logger ou des workers est enregistrée avant la sortie du run.

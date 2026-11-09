@@ -43,6 +43,17 @@ def rate(value: float | None) -> str:
 
 
 def report(records: list[dict], unfinished: list[dict]) -> str:
+    seen = set()
+    models = {}
+    for r in records:
+        run = (r["driver"], r["train_seed"])
+        model = r.get("model_sha256")
+        if models.setdefault(run, model) != model:
+            raise ValueError(f"{run}: multiple model hashes; select one training attempt")
+        race = (*run, r["map"], r["condition"], r["seed"])
+        if race in seen:
+            raise ValueError(f"{race}: duplicate race; select one result file")
+        seen.add(race)
     drivers = sorted({r["driver"] for r in records})
     lines = [
         "## Résultats par pilote\n",

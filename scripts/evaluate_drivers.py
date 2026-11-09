@@ -40,6 +40,10 @@ def load_run(run_dir: Path) -> tuple[PPOPilot, dict]:
     manifest = json.loads((run_dir / "manifest.json").read_text())
     if manifest["status"] != "completed":
         raise ValueError(f"{run_dir}: run status is {manifest['status']!r}")
+    current = provenance()
+    for key in ("features_sha256", "history_sha256"):
+        if manifest[key] != current[key]:
+            raise ValueError(f"{run_dir}: training has a different {key}; use its original sources")
     model = run_dir / "model.zip"
     if sha256(model) != manifest["model_sha256"]:
         raise ValueError(f"{model} does not match its manifest")

@@ -194,3 +194,64 @@ def test_wandb_failure_does_not_stop_local_logging(tmp_path, monkeypatch):
     logger.close()
     assert (tmp_path / "progress.csv").read_text().splitlines() == ["reward", "1.0", "2.0"]
     assert manifest["attempts"][0]["wandb_error"] == "offline"
+
+
+@pytest.mark.parametrize("key", ["features_sha256", "history_sha256"])
+def test_evaluation_refuses_changed_preprocessing(trained, tmp_path, key):
+    import shutil
+
+    copy = tmp_path / "old-run"
+    copy.mkdir()
+    manifest = json.loads((trained / "manifest.json").read_text())
+    manifest[key] = "old-input-layout"
+    (copy / "manifest.json").write_text(json.dumps(manifest))
+    shutil.copy2(trained / "model.zip", copy / "model.zip")
+    result = run("evaluate_drivers.py", "--run-dir", copy, "--output", tmp_path / "r.json")
+    assert result.returncode != 0
+    assert key in result.stderr
+    assert not (tmp_path / "r.json").exists()
+
+
+@pytest.mark.parametrize("failing_cleanup", ["logger", "env"])
+def test_cleanup_failure_keeps_the_final_manifest(tmp_path, monkeypatch, failing_cleanup):
+    import importlib.util
+
+    from stable_baselines3.common.logger import Logger
+    from stable_baselines3.common.vec_env import VecMonitor
+
+    spec = importlib.util.spec_from_file_location("train_ppo", ROOT / "scripts/train_ppo.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    owner = Logger if failing_cleanup == "logger" else VecMonitor
+    original = owner.close
+
+    def fail_after_close(self):
+        original(self)
+        raise RuntimeError(f"{failing_cleanup} cleanup failure")
+
+    monkeypatch.setattr(owner, "close", fail_after_close)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "train_ppo.py",
+            "--history-depth",
+            "1",
+            "--seed",
+            "0",
+            "--timesteps",
+            "4096",
+            "--n-envs",
+            "2",
+            "--output-dir",
+            str(tmp_path),
+        ],
+    )
+    with pytest.raises(RuntimeError, match="cleanup failure"):
+        module.main()
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert manifest["status"] == "failed"
+    attempt = manifest["attempts"][-1]
+    assert attempt["status"] == "failed"
+    assert attempt["finished_utc"]
+    assert f"{failing_cleanup} cleanup failure" in attempt["cleanup_error"]

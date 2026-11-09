@@ -307,11 +307,31 @@ def test_the_report_lists_every_driver_scope_and_failure():
     compare = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(compare)
     records = [
-        {**record(driver, seed, "Sochi", status), "split": "validation", "progress_laps": 1.0}
+        {
+            **record(driver, seed, "Sochi", status, seed=eval_seed),
+            "split": "validation",
+            "progress_laps": 1.0,
+        }
         for driver in ("ppo-h1", "ppo-h4")
         for seed in range(3)
-        for status in ("FINISHED", "DNF")
+        for eval_seed, status in enumerate(("FINISHED", "DNF"))
     ]
     text = compare.report(records, [])
     assert text.count("| ppo-h1 | validation | nominal |") == 2  # results and behaviour
     assert "## Comportement" in text and "6 courses sur 12 non finies" in text
+
+
+@pytest.mark.parametrize("overlap", [True, False])
+def test_the_report_refuses_duplicate_or_mixed_training_attempts(overlap):
+    spec = importlib.util.spec_from_file_location(
+        "compare_drivers", Path(__file__).parents[1] / "scripts/compare_drivers.py"
+    )
+    compare = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(compare)
+    first = {**record("ppo-h1", 0, "IMS"), "model_sha256": "first"}
+    retry = {
+        **record("ppo-h1", 0, "IMS" if overlap else "Budapest"),
+        "model_sha256": "first" if overlap else "retry",
+    }
+    with pytest.raises(ValueError, match="duplicate race|multiple model hashes"):
+        compare.report([first, retry], [])

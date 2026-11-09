@@ -132,14 +132,23 @@ def train(args: argparse.Namespace, manifest: dict, manifest_path: Path) -> None
             attempt["last_step"] = model.num_timesteps
         raise
     finally:
-        if logger is not None:
-            logger.close()
-        env.close()
-        attempt["finished_utc"] = now()
-        manifest["total_wall_time_s"] = round(
-            sum(a.get("wall_time_s", 0) for a in manifest["attempts"]), 2
-        )
-        write_manifest(manifest_path, manifest)
+        try:
+            try:
+                if logger is not None:
+                    logger.close()
+            finally:
+                env.close()
+        except Exception:
+            attempt["cleanup_error"] = traceback.format_exc()
+            manifest["status"] = attempt["status"] = "failed"
+            manifest.setdefault("error", attempt["cleanup_error"])
+            raise
+        finally:
+            attempt["finished_utc"] = now()
+            manifest["total_wall_time_s"] = round(
+                sum(a.get("wall_time_s", 0) for a in manifest["attempts"]), 2
+            )
+            write_manifest(manifest_path, manifest)
 
 
 def main() -> int:
