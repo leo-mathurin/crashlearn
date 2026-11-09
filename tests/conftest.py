@@ -33,9 +33,9 @@ def require_model(submission_dir: Path) -> None:
         pytest.skip(f"no model.onnx in {submission_dir.name}")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def sim():
-    """Simulator with 2 cars, stepped once. Session-scoped: the first step costs ~10 s of JIT."""
+    """Fresh two-car state per test: other envs can close the process-wide singleton."""
     import env_simulation
 
     env_simulation.reset(num_cars=2)
