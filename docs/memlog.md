@@ -157,3 +157,28 @@ Ajouts au protocole du 30/10 (E-18, `docs/experience_e18.md`), avant tout résul
 - **Métriques** : taux d'arrivée moyenné par carte, contacts par 100 m, immobilité, marche arrière, variation des commandes, sauts de progression et écart entre progression créditée et distance roulée (raccourcis).
 - **Bruit LiDAR gardé à 0,1** (±10 %), au-delà des ±5 % de la plage « Champion » du document : c'est la pire condition annoncée pour le tournoi, alors que la plage du document sert au curriculum (E-23).
 
+
+## 2026-11-09 · [Outillage] Reprise des runs et chaîne ONNX
+
+E-20 / E-25 : chaque tentative conserve ses logs CSV et son état dans le manifest ; la reprise
+refuse un changement de seed, de prétraitement ou de reward. W&B reste facultatif, hors ligne
+par défaut, avec métriques et checkpoints ; aucune authentification W&B n'est configurée sur
+la station. L'export incorpore les features et l'historique canoniques dans un agent autonome,
+avec opset 17, poids externes et contrôle numérique PyTorch/ONNX. Les tests exécutent un
+entraînement, une reprise périodique et le vérificateur officiel sur un modèle court.
+
+## 2026-11-09 · [Entraînement] Éviter de recalculer la géométrie aux resets
+
+Le profilage d'un reset Austin mesure 0,341 s, dont 0,337 s dans les deux chargements LiDAR,
+principalement la transformation de distance. Le cache local de deux cartes par processus
+réutilise seulement leur géométrie ; il ne change ni les seeds ni la physique, et aucun fichier
+`vendor/` n'est modifié. Les observations, rewards et trajectoires restent identiques bit à bit
+sur Austin / BrandsHatch / Austin. Après le premier chargement, un reset Austin prend environ
+0,0003 s sur la station.
+
+Pour le banc CPU/CUDA et la campagne suivante, 15 workers portent chacun un des 15 circuits
+train (`--fixed-map-workers --n-envs 15`), avec les mêmes paramètres pour h1 et h4. Cela
+répartit uniformément les interactions par carte et évite les rechargements à chaque épisode,
+au lieu de choisir une carte aléatoire par épisode. Les rollouts agrègent 30 720 interactions ;
+le budget demandé est arrondi par SB3 à un nombre entier de rollouts. Reward et features
+restent inchangées. Cette décision précède le banc d'un million d'interactions.

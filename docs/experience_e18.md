@@ -153,3 +153,12 @@ uv run pytest -m slow tests/test_train_ppo.py
 ## Résultats
 
 Campagne non lancée.
+
+## Préparation station du 9 novembre
+
+Avant le banc et toute campagne : cache de géométrie LiDAR limité à deux cartes par worker,
+avec équivalence exacte des trajectoires testée. `--fixed-map-workers --n-envs 15` affecte un
+circuit train à chaque worker. Les deux profondeurs reçoivent le même budget et le même
+échantillonnage uniforme en interactions. Le banc CPU/CUDA demande 1 000 000 d'interactions
+par appareil, arrondies à 1 013 760 par les rollouts de 30 720. Les threads PyTorch sont fixés
+à 1 ; les 15 simulations tournent dans des processus séparés. Aucun circuit test n'est ouvert.

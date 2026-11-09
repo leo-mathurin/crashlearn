@@ -16,6 +16,8 @@ from crashlearn.env import CrashLearnEnv
 from crashlearn.evaluation import sha256
 from crashlearn.experiments import attach_wandb, now, prepare_run, write_manifest
 from crashlearn.history_env import HistoryWrapper
+from crashlearn.map_cache import cached_map_loader
+from crashlearn.tracks import train_tracks
 
 PPO_CONFIG = {
     "n_steps": 2048,
@@ -29,9 +31,12 @@ PPO_CONFIG = {
 }
 
 
-def make_env(depth: int):
+def make_env(depth: int, track: str | None = None):
     def build():
-        return HistoryWrapper(CrashLearnEnv(), depth)
+        from f110_gym.envs.laser_models import ScanSimulator2D
+
+        ScanSimulator2D.set_map = cached_map_loader(ScanSimulator2D.set_map)
+        return HistoryWrapper(CrashLearnEnv(maps=track), depth)
 
     return build
 
@@ -48,7 +53,12 @@ def train(args: argparse.Namespace, manifest: dict, manifest_path: Path) -> None
     if not hasattr(gym, "__version__"):
         gym.__version__ = "vendored-namespace"
     torch.set_num_threads(args.torch_threads)
-    env = VecMonitor(SubprocVecEnv([make_env(args.history_depth)] * args.n_envs))
+    maps = train_tracks()
+    builds = [
+        make_env(args.history_depth, maps[i % len(maps)] if args.fixed_map_workers else None)
+        for i in range(args.n_envs)
+    ]
+    env = VecMonitor(SubprocVecEnv(builds))
     model = logger = writer = None
     attempt = manifest["attempts"][-1]
     started = time.perf_counter()
@@ -140,6 +150,11 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--n-envs", type=int, default=8)
     parser.add_argument("--torch-threads", type=int, default=1)
+    parser.add_argument(
+        "--fixed-map-workers",
+        action="store_true",
+        help="one training track per worker; n-envs must be a multiple of 15",
+    )
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--checkpoint-every", type=int, default=100_000)
     parser.add_argument("--resume", type=Path, help="checkpoint in the original run")
@@ -153,11 +168,21 @@ def main() -> int:
         parser.error("budgets, environment count and thread count must be positive")
     if args.resume and not args.resume.is_file():
         parser.error(f"no checkpoint at {args.resume}")
+    if args.fixed_map_workers and args.n_envs % len(train_tracks()):
+        parser.error("--fixed-map-workers needs n-envs to be a multiple of training track count")
     try:
         manifest, manifest_path = prepare_run(args)
     except ValueError as error:
         parser.error(str(error))
-    manifest.setdefault("config", {**PPO_CONFIG, "n_envs": args.n_envs, "device": args.device})
+    manifest.setdefault(
+        "config",
+        {
+            **PPO_CONFIG,
+            "n_envs": args.n_envs,
+            "device": args.device,
+            "fixed_map_workers": args.fixed_map_workers,
+        },
+    )
     write_manifest(manifest_path, manifest)
 
     def interrupt(signum, frame):
