@@ -182,3 +182,14 @@ répartit uniformément les interactions par carte et évite les rechargements �
 au lieu de choisir une carte aléatoire par épisode. Les rollouts agrègent 30 720 interactions ;
 le budget demandé est arrondi par SB3 à un nombre entier de rollouts. Reward et features
 restent inchangées. Cette décision précède le banc d'un million d'interactions.
+
+
+## 2026-11-09 · [Entraînement] Premières courses PPO terminées et budget de campagne
+
+Au bout de 1 013 760 interactions, le PPO réactif du banc CUDA finit les trois tours sur
+BrandsHatch, Budapest et IMS (évaluation seed 0, quinze cartes train). Le CPU finit IMS.
+Les autres courses sont des DNF et restent enregistrées. La RTX 5070 est retenue pour les
+dix runs principaux, repartis de zéro : cinq seeds, h1/h4, 5 000 000 interactions demandées
+chacun, soit 5 007 360 après arrondi SB3. Ce budget est fixé avant le premier run principal.
+Les bancs ne participent pas à la comparaison de la mémoire. Les résultats bruts et les
+limites de mesure sont dans `docs/results/station-20261109/` et `docs/experience_e18.md`.

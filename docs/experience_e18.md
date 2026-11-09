@@ -95,10 +95,10 @@ Ces runs servent à régler la chaîne. Ils ne font pas partie de la campagne et
 
 | Mesure | Valeur |
 |---|---|
-| Débit station | À mesurer |
-| Appareil retenu | À mesurer |
-| Budget par entraînement | À fixer |
-| Temps total | À mesurer |
+| Débit station | CPU : 3 699,3 ; CUDA : 6 088,0 interactions/s, banc du 09/11 |
+| Appareil retenu | RTX 5070, CUDA 13.0 |
+| Budget par entraînement | 5 000 000 demandées, 5 007 360 interactions effectives |
+| Temps total | Estimation avant campagne : 2 h 20 de calcul, hors évaluations |
 
 ## Commandes
 
@@ -162,3 +162,23 @@ circuit train à chaque worker. Les deux profondeurs reçoivent le même budget 
 échantillonnage uniforme en interactions. Le banc CPU/CUDA demande 1 000 000 d'interactions
 par appareil, arrondies à 1 013 760 par les rollouts de 30 720. Les threads PyTorch sont fixés
 à 1 ; les 15 simulations tournent dans des processus séparés. Aucun circuit test n'est ouvert.
+
+
+## Budget figé le 9 novembre avant la campagne multi-seeds
+
+Le banc CUDA finit trois courses nominales (BrandsHatch, Budapest, IMS), seed d'évaluation 0,
+sur les quinze circuits train ; le banc CPU finit IMS. La validation préalable est passée.
+Les autres courses et tous les DNF restent dans `docs/results/station-20261109/`.
+
+La campagne principale repart de zéro, seeds 0 à 4, profondeurs 1 et 4, budget demandé de
+5 000 000 d'interactions par modèle. Les pilotes du banc sont exclus de la comparaison.
+Le même `PPO_CONFIG`, le cache, les 15 workers fixes et le budget s'appliquent aux dix runs.
+Les évaluations gardent les 105 courses prévues, et aucun circuit test n'est utilisé.
+
+La mesure CPU a partagé les deux premières minutes avec la suite de régression locale ;
+ce banc établit un ordre de grandeur sur la station, pas un classement matériel isolé.
+Le débit CUDA a été mesuré après ces tests. Les modèles diffèrent entre CPU et CUDA malgré
+la même seed : le protocole ne suppose pas une identité numérique entre appareils.
+
+Reward et features restent figées. Un résultat insuffisant de la campagne sera conservé,
+avec la cible de 90 % de finitions en validation toujours indiquée comme non atteinte.
