@@ -1,6 +1,6 @@
 # Expérience E-18 : la mémoire aide-t-elle driver2 ?
 
-**État : chaîne prête, campagne pas encore lancée. Aucun résultat ci-dessous ne mesure l'apport de la mémoire.**
+**État au 09/11 : premiers PPO capables de finir des courses ; campagne de dix runs lancée.**
 
 On entraîne un PPO qui décide sur ses 4 dernières observations, et on le compare à un PPO réactif dans les mêmes conditions. La question est de savoir si la mémoire justifie sa complexité, puisque le pilote réactif reste le repli (`docs/history.md`).
 
@@ -111,13 +111,14 @@ run() {
   docker run --rm --runtime=nvidia --gpus all --user "$(id -u):$(id -g)" \
     -v "$PWD:/workspace" -w /workspace \
     -e PYTHONPATH=/workspace/src -e GIT_COMMIT="$(git rev-parse HEAD)" -e HOME=/tmp \
-    crashlearn-train-gpu:20260928 "$@"
+    crashlearn-train-gpu:20261109 "$@"
 }
 
 for seed in 0 1 2 3 4; do
   for depth in 1 4; do
     run python scripts/train_ppo.py --history-depth "$depth" --seed "$seed" \
-      --timesteps "$BUDGET" --device "$DEVICE" --output-dir "runs/e-18/ppo-h$depth-seed$seed"
+      --timesteps "$BUDGET" --device "$DEVICE" --fixed-map-workers --n-envs 15 \
+      --output-dir "runs/e-18/ppo-h$depth-seed$seed"
   done
 done
 
@@ -142,8 +143,10 @@ uv run pytest -m slow tests/test_train_ppo.py
 
 ## Limites
 
-- **Station non testée** : la chaîne a été validée sur un poste de développement, pas dans l'image Docker de la station.
-- **Capacité à finir non prouvée** : aucun pilote n'a encore bouclé une course. `PPO_CONFIG` n'est donc pas validé tant que l'étape de validation n'est pas passée.
+- **Station validée le 09/11** : les deux bancs utilisent l'image Docker GPU reconstruite ;
+  son identifiant et les versions effectives sont dans les manifests.
+- **Premières courses terminées le 09/11** : le banc CUDA finit BrandsHatch, Budapest et IMS.
+  La fiabilité sur la validation reste à mesurer dans la campagne principale.
 - **Document Linear** : « Expériences, robustesse et évaluation » a été relu le 01/11. Le protocole y est aligné : marge de 0,50 m, métriques de comportement et moyenne par carte ont été ajoutées. Le seul écart est le bruit LiDAR, justifié plus haut.
 - **Solo uniquement** : aucune course avec adversaires.
 - **Robustesse hors entraînement** : les perturbations ne sont pas vues à l'entraînement (E-23).
@@ -152,7 +155,8 @@ uv run pytest -m slow tests/test_train_ppo.py
 
 ## Résultats
 
-Campagne non lancée.
+Campagne lancée le 09/11/2026, résultats et manifests dans `docs/results/e-18/`.
+Le rapport sera produit après les dix entraînements et leurs évaluations.
 
 ## Préparation station du 9 novembre
 
