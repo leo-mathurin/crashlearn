@@ -258,3 +258,12 @@ conservés et les hashes restent identiques. Il remplace `submission/driver1`.
 L'agent et les mesures E-18 restent archivés et identifiés comme historiques.
 Le plafond de 5 m/s coûte du chrono ; faible adhérence et forte pluie restent
 à 6/12 et relèvent de E-23. Détails et preuves : `docs/results/e-19/README.md`.
+
+## 2026-11-10 · [Évaluation] Nouvelle cible de 100 % pour le réactif nominal
+
+La cible passe de 90 % à 100 % observés. Les deux DNF de Montreal deviennent
+des cas de diagnostic et les 132 anciennes courses de validation des cas de
+sélection. Un premier diagnostic teste seulement un plafond global plus bas,
+sur l'agent ONNX réel. Le prochain candidat devra ensuite finir 400 courses sur
+des seeds nouvelles, 200 à 299, avec ses fichiers figés avant cette confirmation.
+Protocole : `docs/reliability_100.md`. Les mesures précédentes sont conservées.

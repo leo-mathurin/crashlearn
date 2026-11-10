@@ -52,7 +52,8 @@ def test_a_run_records_what_produced_it(trained):
     assert len(manifest["model_sha256"]) == 64
 
 
-def test_progress_ablation_matches_masked_inputs_and_keeps_the_source(tmp_path):
+@pytest.mark.parametrize("max_speed", [None, 4.75])
+def test_progress_ablation_matches_masked_inputs_and_keeps_the_source(tmp_path, max_speed):
     import numpy as np
     from stable_baselines3 import PPO
 
@@ -61,15 +62,19 @@ def test_progress_ablation_matches_masked_inputs_and_keeps_the_source(tmp_path):
     assert result.returncode == 0, result.stderr
     original = (source / "manifest.json").read_bytes()
     destination = tmp_path / "derived"
-    result = run("ablate_progress.py", "--run-dir", source, "--output-dir", destination)
+    extra = () if max_speed is None else ("--max-speed", max_speed)
+    result = run("ablate_progress.py", "--run-dir", source, "--output-dir", destination, *extra)
     assert result.returncode == 0, result.stderr
     inputs = np.random.default_rng(12).uniform(-1, 1, (32, 126)).astype(np.float32)
     masked = inputs.copy()
     masked[:, 102:105] = 0
     expected = PPO.load(source / "model.zip", device="cpu").predict(masked, deterministic=True)[0]
+    expected_high = 1 / 6 if max_speed is None else (max_speed - 4) / 6
+    expected[:, 0] = np.minimum(expected[:, 0], expected_high)
     derived = PPO.load(destination / "model.zip", device="cpu")
     np.testing.assert_allclose(derived.predict(inputs, deterministic=True)[0], expected, atol=1e-7)
-    assert derived.action_space.high[0] == pytest.approx(1 / 6)
+    assert derived.action_space.high[0] == pytest.approx(expected_high)
+    assert derived.policy.action_space.high[0] == pytest.approx(expected_high)
     assert (source / "manifest.json").read_bytes() == original
     assert (destination / "source-manifest.json").read_bytes() == original
     manifest = json.loads((destination / "manifest.json").read_text())
@@ -81,6 +86,14 @@ def test_progress_ablation_matches_masked_inputs_and_keeps_the_source(tmp_path):
     assert result.returncode == 2
     assert "inference derivations cannot resume" in result.stderr
     assert (destination / "manifest.json").read_bytes() == before
+    if max_speed is not None:
+        rejected = tmp_path / "higher-limit"
+        result = run(
+            "ablate_progress.py", "--run-dir", source, "--output-dir", rejected, "--max-speed", 6
+        )
+        assert result.returncode == 2
+        assert "cannot exceed the source action limit" in result.stderr
+        assert not rejected.exists()
 
 
 def test_an_existing_run_is_not_overwritten(trained):
