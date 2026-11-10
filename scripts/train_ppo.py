@@ -31,12 +31,12 @@ PPO_CONFIG = {
 }
 
 
-def make_env(depth: int, track: str | None = None):
+def make_env(depth: int, track: str | None = None, max_speed: float = 10.0):
     def build():
         from f110_gym.envs.laser_models import ScanSimulator2D
 
         ScanSimulator2D.set_map = cached_map_loader(ScanSimulator2D.set_map)
-        return HistoryWrapper(CrashLearnEnv(maps=track), depth)
+        return HistoryWrapper(CrashLearnEnv(maps=track, max_speed=max_speed), depth)
 
     return build
 
@@ -55,7 +55,11 @@ def train(args: argparse.Namespace, manifest: dict, manifest_path: Path) -> None
     torch.set_num_threads(args.torch_threads)
     maps = train_tracks()
     builds = [
-        make_env(args.history_depth, maps[i % len(maps)] if args.fixed_map_workers else None)
+        make_env(
+            args.history_depth,
+            maps[i % len(maps)] if args.fixed_map_workers else None,
+            args.max_speed,
+        )
         for i in range(args.n_envs)
     ]
     env = VecMonitor(SubprocVecEnv(builds))
@@ -72,6 +76,19 @@ def train(args: argparse.Namespace, manifest: dict, manifest_path: Path) -> None
                 raise ValueError("checkpoint seed differs from the run seed")
         else:
             model = PPO("MlpPolicy", env, seed=args.seed, device=args.device, **PPO_CONFIG)
+            if args.initialize_from:
+                source = PPO.load(args.initialize_from, device=args.device)
+                if source.observation_space.shape != model.observation_space.shape:
+                    raise ValueError("initialization checkpoint has a different observation shape")
+                model.policy.load_state_dict(source.policy.state_dict())
+                manifest["initialization"] = {
+                    "checkpoint": str(args.initialize_from),
+                    "checkpoint_sha256": sha256(args.initialize_from),
+                    "source_timesteps": source.num_timesteps,
+                    "optimizer_restored": False,
+                }
+                model.set_random_seed(args.seed)
+                del source
         args.log_dir = args.output_dir / "logs" / f"attempt-{len(manifest['attempts']):03d}"
         logger = configure(str(args.log_dir), ["stdout", "csv"])
         if args.wandb:
@@ -166,7 +183,14 @@ def main() -> int:
     )
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--checkpoint-every", type=int, default=100_000)
-    parser.add_argument("--resume", type=Path, help="checkpoint in the original run")
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument("--resume", type=Path, help="checkpoint in the original run")
+    source.add_argument(
+        "--initialize-from",
+        type=Path,
+        help="start a new run from compatible policy weights, with a fresh optimizer",
+    )
+    parser.add_argument("--max-speed", type=float, default=10.0)
     parser.add_argument("--wandb", action="store_true")
     parser.add_argument("--wandb-mode", choices=("online", "offline"), default="offline")
     parser.add_argument("--wandb-project", default="crashlearn")
@@ -177,6 +201,10 @@ def main() -> int:
         parser.error("budgets, environment count and thread count must be positive")
     if args.resume and not args.resume.is_file():
         parser.error(f"no checkpoint at {args.resume}")
+    if args.initialize_from and not args.initialize_from.is_file():
+        parser.error(f"no checkpoint at {args.initialize_from}")
+    if not 0 < args.max_speed <= 10:
+        parser.error("--max-speed must be in (0, 10]")
     if args.fixed_map_workers and args.n_envs % len(train_tracks()):
         parser.error("--fixed-map-workers needs n-envs to be a multiple of training track count")
     try:
@@ -190,6 +218,7 @@ def main() -> int:
             "n_envs": args.n_envs,
             "device": args.device,
             "fixed_map_workers": args.fixed_map_workers,
+            "max_speed": args.max_speed,
         },
     )
     write_manifest(manifest_path, manifest)

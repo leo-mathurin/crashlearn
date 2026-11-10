@@ -49,6 +49,8 @@ def main() -> int:
         "source_run_id": manifest["run_id"],
         "source_model_sha256": manifest["model_sha256"],
         "history_depth": depth,
+        "action_low": model.action_space.low.tolist(),
+        "action_high": model.action_space.high.tolist(),
         "max_normalized_action_error": float(np.max(np.abs(outputs - expected))),
         "parity_samples": len(inputs),
         "parity_atol": 1e-5,

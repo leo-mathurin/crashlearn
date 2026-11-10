@@ -59,6 +59,32 @@ def test_an_existing_run_is_not_overwritten(trained):
     assert (trained / "manifest.json").read_text() == before
 
 
+def test_initializing_a_new_run_restarts_the_budget_and_keeps_the_speed_limit(trained, tmp_path):
+    from stable_baselines3 import PPO
+
+    destination = tmp_path / "adapted"
+    result = train(destination, "--initialize-from", trained / "model.zip", "--max-speed", 5)
+    assert result.returncode == 0, result.stderr
+    manifest = json.loads((destination / "manifest.json").read_text())
+    original = json.loads((trained / "manifest.json").read_text())
+    assert manifest["initialization"]["checkpoint_sha256"] == original["model_sha256"]
+    assert manifest["initialization"]["source_timesteps"] == original["timesteps_done"]
+    assert manifest["initialization"]["optimizer_restored"] is False
+    assert manifest["run_id"] != original["run_id"]
+    assert manifest["timesteps_done"] == 4096
+    model = PPO.load(destination / "model.zip", device="cpu")
+    assert model.action_space.high[0] == pytest.approx(1 / 6)
+
+
+def test_resume_refuses_a_different_speed_limit(trained):
+    path = trained / "manifest.json"
+    original = path.read_bytes()
+    result = train(trained, "--resume", trained / "model.zip", "--max-speed", 5)
+    assert result.returncode == 2
+    assert "max_speed" in result.stderr
+    assert path.read_bytes() == original
+
+
 def test_evaluating_a_model_twice_gives_the_same_races(trained, tmp_path):
     first = race(trained, tmp_path / "a.json")
     second = race(trained, tmp_path / "b.json")

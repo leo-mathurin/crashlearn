@@ -44,6 +44,8 @@ def prepare_run(args) -> tuple[dict, Path]:
             raise ValueError("resume would change n_envs; use the original value")
         if manifest["config"].get("fixed_map_workers", False) != args.fixed_map_workers:
             raise ValueError("resume would change fixed_map_workers; use the original value")
+        if manifest["config"].get("max_speed", 10.0) != args.max_speed:
+            raise ValueError("resume would change max_speed; start a new initialized run")
     else:
         if args.output_dir.exists() and any(args.output_dir.iterdir()):
             raise ValueError(

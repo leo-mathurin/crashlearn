@@ -84,6 +84,7 @@ class CrashLearnEnv(gym.Env):
         opponent_policy: OpponentPolicy | None = None,
         friction: Setting = None,
         lidar_noise: Setting = None,
+        max_speed: float = SPEED_MAX,
     ):
         global _open_env
         if _open_env is not None:
@@ -92,6 +93,8 @@ class CrashLearnEnv(gym.Env):
             raise ValueError(f"num_cars must be in [1, {sim._MAX_SLOTS}], got {num_cars}")
         if not 0 <= ego_id < num_cars:
             raise ValueError(f"ego_id must be in [0, {num_cars}), got {ego_id}")
+        if not 0 < max_speed <= SPEED_MAX:
+            raise ValueError(f"max_speed must be in (0, {SPEED_MAX}]")
 
         self.num_cars = num_cars
         self.maps = (maps,) if isinstance(maps, str) else tuple(maps or train_tracks())
@@ -104,9 +107,11 @@ class CrashLearnEnv(gym.Env):
         self.opponent_policy = opponent_policy
         self.friction = friction
         self.lidar_noise = lidar_noise
+        self.max_speed = max_speed
 
         self.observation_space = spaces.Box(-1.0, 1.0, (OBS_SIZE,), dtype=np.float32)
-        self.action_space = spaces.Box(-1.0, 1.0, (2,), dtype=np.float32)
+        upper = controls_to_action(max_speed, STEER_MAX)
+        self.action_space = spaces.Box(-np.ones(2, dtype=np.float32), upper, dtype=np.float32)
 
         self._noise_rng = np.random.default_rng()
         self._episode_noise: float | None = None
@@ -146,7 +151,11 @@ class CrashLearnEnv(gym.Env):
         return features.build_features(raw), self._info(raw, sim.get_step_info())
 
     def step(self, action):
-        speed, steering = action_to_controls(action)
+        clipped = np.clip(
+            np.asarray(action, dtype=np.float64), self.action_space.low, self.action_space.high
+        )
+        speed, steering = action_to_controls(clipped)
+        speed = min(speed, self.max_speed)
         sim.apply_action(self.ego_id, speed, steering)
         if self.opponent_policy is not None:
             for car in range(self.num_cars):
@@ -158,7 +167,6 @@ class CrashLearnEnv(gym.Env):
 
         raw = sim.get_obs(self.ego_id)
         step_info = sim.get_step_info()
-        clipped = np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0)
         reward, self._reward_terms = self.reward(raw, step_info, self.ego_id, clipped)
         terminated = step_info["agent_status"][self.ego_id] != STATUS_ACTIVE
         truncated = not terminated and step_info["step_count"] >= self.max_episode_steps

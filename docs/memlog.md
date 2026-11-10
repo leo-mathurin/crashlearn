@@ -222,3 +222,13 @@ pas changé de prétraitement et n'utilise qu'une tentative par modèle.
 ## 2026-11-10 · [Évaluation] Campagne multi-seeds et livrables ONNX
 
 Dix PPO de fin de budget, cinq seeds et deux profondeurs, ont chacun terminé 5 007 360 interactions et leurs 105 courses d’évaluation. Le témoin ajoute 105 courses. La tentative réactive seed 4 interrompue par le redémarrage est conservée ; une relance propre à budget identique la remplace dans la comparaison. Conclusion nominale appariée : « non concluant ». Les agents de livraison sont choisis sur les finitions nominales de validation ; les égalités sont départagées par la plus petite seed. Les autres modèles restent dans les mesures. Les deux agents passent le vérificateur, une course autonome dans l’image CPU et le chargement partagé, sans PyTorch. W&B reste hors ligne faute de compte partagé configuré. Résultats, limites et provenance : `docs/results/e-18/README.md`.
+
+## 2026-11-10 · [Entraînement] Adaptation du réactif pour la cible de fiabilité
+
+E-19 : le meilleur réactif finit 7/12 courses nominales de validation. Un diagnostic
+à six plafonds de vitesse ne trouve aucun réglage qui finisse les quatre circuits.
+Le premier essai d'adaptation reprend ses poids avec un optimiseur neuf, seed 0,
+2 millions d'interactions supplémentaires sur les quinze cartes train et un plafond
+de 5 m/s. L'export garde les bornes de l'espace d'action appris. Les poids initiaux,
+les échecs et la campagne E-18 restent conservés. Protocole et confirmation sur des
+seeds nouvelles : `docs/reliability_e19.md`.

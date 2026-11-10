@@ -68,3 +68,23 @@ def test_reset_then_step(env_class, num_cars):
 
 def test_seeded_short_episode_is_reproducible(env_class):
     assert data_equivalence(rollout(env_class), rollout(env_class))
+
+
+def test_training_speed_limit_is_applied_to_controls(env_class):
+    env = env_class(maps="IMS", max_speed=5.0)
+    try:
+        env.reset(seed=0)
+        env.step(np.ones(2, dtype=np.float32))
+        steer, speed = env_module.sim._sim_instance._actions[0]
+        assert speed <= 5.0
+        assert speed == pytest.approx(5.0)
+        assert steer == pytest.approx(env_module.STEER_MAX)
+        assert env.action_space.high[0] == pytest.approx(1 / 6)
+    finally:
+        env.close()
+
+
+@pytest.mark.parametrize("speed", [0, -1, 11, float("nan"), float("inf")])
+def test_invalid_training_speed_limit_is_refused(env_class, speed):
+    with pytest.raises(ValueError, match="max_speed"):
+        env_class(max_speed=speed)

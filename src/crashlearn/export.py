@@ -13,9 +13,12 @@ class DeterministicPPO(torch.nn.Module):
     def __init__(self, policy):
         super().__init__()
         self.policy = policy
+        self.register_buffer("action_low", torch.as_tensor(policy.action_space.low.copy()))
+        self.register_buffer("action_high", torch.as_tensor(policy.action_space.high.copy()))
 
     def forward(self, observations):
-        return self.policy._predict(observations, deterministic=True).clamp(-1.0, 1.0)
+        actions = self.policy._predict(observations, deterministic=True)
+        return torch.maximum(torch.minimum(actions, self.action_high), self.action_low)
 
 
 def export_onnx(policy: torch.nn.Module, path: Path, sample_input: torch.Tensor) -> None:
