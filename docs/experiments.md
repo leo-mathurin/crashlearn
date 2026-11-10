@@ -55,6 +55,27 @@ rollout partiel ne sont pas restaurés : la reprise ne reproduit pas un run inin
 à bit. Les checkpoints périodiques sont pris pendant les rollouts ; le modèle final est
 sauvegardé après la dernière mise à jour PPO. Les anciens logs et erreurs restent conservés.
 
+## Adapter un modèle dans un nouveau run
+
+`--initialize-from <model.zip>` copie seulement les poids compatibles : nouvel
+optimiseur, nouvelle seed de run et compteur remis à zéro. `--max-speed` borne
+la commande de vitesse ; `--random-start` diversifie les départs solo sur les
+circuits train. Une reprise doit conserver ces deux réglages.
+
+```bash
+uv run python scripts/train_ppo.py --history-depth 1 --seed 0 --timesteps 2000000 \
+  --device cuda --n-envs 15 --fixed-map-workers --max-speed 5 --random-start \
+  --initialize-from runs/baseline/model.zip --output-dir runs/adaptation
+uv run python scripts/ablate_progress.py \
+  --run-dir runs/adaptation --output-dir runs/adaptation-without-progress
+```
+
+L'ablation produit un modèle d'inférence réactif sans connexions depuis la
+progression et les tours. Son manifest distinct conserve la source et la
+transformation. Une dérivation ne peut pas reprendre son entraînement ; utiliser
+ses poids avec `--initialize-from` pour un nouveau run. Les bornes d'action
+enregistrées dans le modèle sont conservées par l'export ONNX.
+
 ## Export et contrôle
 
 ```bash

@@ -249,3 +249,12 @@ ce modèle et produit une dérivation qui annule seulement ces connexions dans l
 premières couches de l'acteur et du critique. La transformation, son contrôle
 numérique et les hashes source/dérivé sont enregistrés séparément. La confirmation
 sur 120 courses nouvelles doit encore passer avant de déclarer la cible atteinte.
+
+## 2026-11-10 · [Livraison] Fiabilité nominale du réactif confirmée
+
+Le candidat figé finit 118/120 courses ONNX de confirmation (98,3 %), après
+12/12 en sélection, dans l'image CPU officielle. Les deux DNF de Montreal sont
+conservés et les hashes restent identiques. Il remplace `submission/driver1`.
+L'agent et les mesures E-18 restent archivés et identifiés comme historiques.
+Le plafond de 5 m/s coûte du chrono ; faible adhérence et forte pluie restent
+à 6/12 et relèvent de E-23. Détails et preuves : `docs/results/e-19/README.md`.

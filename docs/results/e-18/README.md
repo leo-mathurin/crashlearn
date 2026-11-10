@@ -1,5 +1,12 @@
 # Campagne solo PPO du 9 et 10 novembre 2026
 
+Cette page conserve les mesures E-18 et les agents historiques du commit `779d61b`.
+Depuis le 10 novembre, le `driver1` courant est remplacé par le candidat E-19,
+confirmé à 118/120 en validation nominale : [résultats E-19](../e-19/README.md).
+L'ancien agent à 7/12 reste dans
+`/home/leo/runs/crashlearn/e18-20261109/submission/driver1`.
+Les mesures E-18 ci-dessous ne décrivent pas le nouvel artefact.
+
 Dix modèles de fin de budget : cinq seeds (0 à 4), avec une ou quatre observations. Chaque modèle reçoit 5 000 000 interactions demandées, soit 5 007 360 après arrondi SB3. Les 15 workers couvrent les 15 circuits train. Reward, features, historique, paramètres PPO et image Docker restent identiques pour toute la campagne.
 
 **1 050 courses d’évaluation des PPO et 105 courses du témoin scripté sont enregistrées.** Chaque fichier contient les 105 courses attendues, sans doublon. Les DNF et TIMEOUT restent dans le rapport. Les modèles de la campagne ont été évalués sur les circuits train et validation.

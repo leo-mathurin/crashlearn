@@ -20,6 +20,7 @@ Le [projet Linear Crash & Learn](https://linear.app/e-hamilton/project/crash-and
 - [Suivi des entraînements, reprise et export ONNX](docs/experiments.md)
 - [MDP et reward](docs/mdp.md)
 - [Expérience E-18 : apport de la mémoire pour driver2](docs/experience_e18.md)
+- [E-19 : fiabilité nominale du pilote réactif, 118/120 courses finies](docs/results/e-19/README.md)
 - [Dashboard de course et vocabulaire](https://linear.app/e-hamilton/document/dashboard-de-course-et-vocabulaire-0987cb2ff84a)
 
 ## Développement

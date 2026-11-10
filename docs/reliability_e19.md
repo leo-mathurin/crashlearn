@@ -64,3 +64,15 @@ porte sur les mêmes quatre circuits, en conditions nominales et départ officie
 Elle mesure la répétabilité face au bruit du simulateur sur ces cartes ; elle
 ne constitue pas une évaluation sur des cartes nouvelles. Aucun résultat de
 confirmation ne sert à modifier ce candidat.
+
+## Résultat du candidat figé
+
+L'agent ONNX finit les 12 cas de sélection dans l'image CPU officielle, puis
+118 des 120 courses de confirmation, soit 98,3 %. Montreal : 28/30 ; Sochi,
+Spielberg et YasMarina : 30/30 chacun. Les deux DNF restent comptés. Aucun
+fichier du candidat ne change entre le gel et la fin de ces courses.
+
+La cible nominale est atteinte. Les [résultats détaillés](results/e-19/README.md)
+conservent aussi le coût en chrono, les essais non retenus et les limites sous
+faible adhérence et forte pluie. `submission/driver1` reçoit cet agent ; les
+résultats et l'ancien agent de E-18 restent conservés.
