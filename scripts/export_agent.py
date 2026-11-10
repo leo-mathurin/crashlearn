@@ -9,7 +9,7 @@ import onnxruntime as ort
 import torch
 from stable_baselines3 import PPO
 
-from crashlearn.evaluation import provenance, sha256
+from crashlearn.experiments import load_completed_run, provenance, require_empty, sha256
 from crashlearn.export import DeterministicPPO, agent_source, export_onnx
 from crashlearn.features import FEATURE_SIZE
 
@@ -19,18 +19,14 @@ def main() -> int:
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
-    manifest = json.loads((args.run_dir / "manifest.json").read_text())
-    model_path = args.run_dir / "model.zip"
-    if manifest["status"] != "completed" or sha256(model_path) != manifest["model_sha256"]:
-        parser.error("the source run must be completed and match its model hash")
+    try:
+        manifest = load_completed_run(args.run_dir)
+        require_empty(args.output_dir)
+    except ValueError as error:
+        parser.error(str(error))
     current = provenance()
-    for key in ("features_sha256", "history_sha256"):
-        if manifest[key] != current[key]:
-            parser.error(f"source run has a different {key}; use its original preprocessing")
-    if args.output_dir.exists() and any(args.output_dir.iterdir()):
-        parser.error("output directory is not empty")
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    model = PPO.load(model_path, device="cpu")
+    model = PPO.load(args.run_dir / "model.zip", device="cpu")
     depth = manifest["history_depth"]
     if model.observation_space.shape != (FEATURE_SIZE * depth,):
         parser.error("model observation shape differs from the manifest")

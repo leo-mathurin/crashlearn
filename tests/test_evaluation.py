@@ -1,8 +1,6 @@
-"""E-18 evaluation: identical races, kept failures, and the comparison rule fixed in advance."""
+"""Evaluation: identical races for every driver, failures kept."""
 
-import importlib.util
 import json
-from pathlib import Path
 
 import env_simulation as es
 import numpy as np
@@ -16,14 +14,9 @@ from crashlearn.evaluation import (
     STRICT_OFFTRACK_MARGIN_M,
     Race,
     ScriptedPilot,
-    bootstrap_interval,
     campaign,
-    driver_summary,
     evaluate,
-    paired_differences,
-    provenance,
     run_race,
-    verdict,
 )
 from crashlearn.history_env import HistoryWrapper
 
@@ -57,28 +50,6 @@ def env():
 
 
 RACE = Race("train", "IMS", "nominal", 0)
-
-
-def record(
-    driver, train_seed, map_name, status="FINISHED", time=100.0, seed=0, condition="nominal"
-):
-    return {
-        "driver": driver,
-        "train_seed": train_seed,
-        "map": map_name,
-        "condition": condition,
-        "seed": seed,
-        "status": status,
-        "total_time_s": time if status == "FINISHED" else None,
-        "wall_collision_steps": 0,
-        "vehicle_collision_steps": 0,
-        "distance_m": 300.0,
-        "idle_steps": 0,
-        "reverse_steps": 0,
-        "action_change_per_step": 0.0,
-        "progress_jump_steps": 0,
-        "credited_minus_driven_m": 0.0,
-    }
 
 
 def test_campaign_covers_the_protocol_and_never_the_sealed_test():
@@ -170,16 +141,6 @@ def test_behaviour_metrics_of_a_reversing_and_an_idle_car(env):
     assert idle["progress_jump_steps"] == 0
 
 
-def test_summary_rates_contacts_per_distance_and_averages_maps():
-    a = [record("d", 0, "a", time=10.0, seed=s) for s in range(3)]
-    b = [record("d", 0, "b", "DNF")]
-    a[0]["wall_collision_steps"] = 6
-    summary = driver_summary(a + b)
-    assert summary["finish_rate"] == pytest.approx(3 / 4)
-    assert summary["finish_rate_per_map"] == pytest.approx(1 / 2)
-    assert summary["wall_steps_per_100m"] == pytest.approx(100 * 6 / 1200)
-
-
 def test_the_same_race_is_replayed_exactly(env):
     assert run_race(env, ScriptedPilot(), RACE) == run_race(env, ScriptedPilot(), RACE)
 
@@ -230,108 +191,3 @@ def test_results_are_on_disk_after_each_race(env, tmp_path):
     kept = json.loads(output.read_text())
     assert [r["seed"] for r in kept] == [0]
     assert kept[0]["driver"] == "x"
-
-
-def test_provenance_pins_the_inputs_of_a_run():
-    assert {"commit", "dirty", "sim_sha256", "features_sha256", "reward_sha256"} <= set(
-        provenance()
-    )
-
-
-def test_times_are_only_compared_on_races_both_drivers_finished():
-    records = [
-        record("ppo-h1", 0, "easy", time=100.0),
-        record("ppo-h4", 0, "easy", time=90.0),
-        record("ppo-h1", 0, "hard", "DNF"),
-        record("ppo-h4", 0, "hard", time=500.0),
-    ]
-    paired = paired_differences(records)
-    assert paired["finish_rate"] == {0: 0.5}
-    assert paired["time_gain_s"] == {0: 10.0}
-
-
-def test_seeds_without_a_counterpart_are_left_out():
-    records = [record("ppo-h1", 0, "a"), record("ppo-h4", 0, "a"), record("ppo-h4", 1, "a")]
-    assert list(paired_differences(records)["finish_rate"]) == [0]
-
-
-def test_no_shared_finish_gives_no_time_gain():
-    records = [record("ppo-h1", 0, "a", "DNF"), record("ppo-h4", 0, "a")]
-    assert paired_differences(records)["time_gain_s"] == {}
-
-
-def test_too_few_seeds_give_no_interval():
-    assert bootstrap_interval([1.0, 2.0]) is None
-
-
-def test_interval_contains_the_mean_and_is_reproducible():
-    values = [0.0, 1.0, 2.0, 3.0, 4.0]
-    low, high = bootstrap_interval(values)
-    assert low < 2.0 < high
-    assert bootstrap_interval(values) == (low, high)
-
-
-@pytest.mark.parametrize(
-    ("finish", "gain", "expected"),
-    [
-        ((0.1, 0.3), None, "h4 plus fiable"),
-        ((-0.3, -0.1), (1.0, 2.0), "h4 moins fiable"),
-        ((-0.1, 0.1), (1.0, 2.0), "h4 plus rapide"),
-        ((-0.1, 0.1), (-2.0, -1.0), "h4 plus lent"),
-        ((-0.1, 0.1), (-1.0, 1.0), "non concluant"),
-        ((-0.1, 0.1), None, "non concluant"),
-        (None, (1.0, 2.0), "non concluant"),
-    ],
-)
-def test_verdict_follows_the_rule_fixed_in_advance(finish, gain, expected):
-    assert verdict(finish, gain) == expected
-
-
-def test_summary_counts_failures_in_the_rate():
-    summary = driver_summary(
-        [record("d", 0, "a", time=10.0), record("d", 0, "b", "DNF"), record("d", 0, "c", "TIMEOUT")]
-    )
-    assert summary["finish_rate"] == pytest.approx(1 / 3)
-    assert (summary["dnf"], summary["timeout"]) == (1, 1)
-    assert summary["median_time_s"] == 10.0
-
-
-def test_summary_without_any_finish_has_no_time():
-    assert driver_summary([record("d", 0, "a", "DNF")])["median_time_s"] is None
-
-
-def test_the_report_lists_every_driver_scope_and_failure():
-    spec = importlib.util.spec_from_file_location(
-        "compare_drivers", Path(__file__).parents[1] / "scripts/compare_drivers.py"
-    )
-    compare = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(compare)
-    records = [
-        {
-            **record(driver, seed, "Sochi", status, seed=eval_seed),
-            "split": "validation",
-            "progress_laps": 1.0,
-        }
-        for driver in ("ppo-h1", "ppo-h4")
-        for seed in range(3)
-        for eval_seed, status in enumerate(("FINISHED", "DNF"))
-    ]
-    text = compare.report(records, [])
-    assert text.count("| ppo-h1 | validation | nominal |") == 2  # results and behaviour
-    assert "## Comportement" in text and "6 courses sur 12 non finies" in text
-
-
-@pytest.mark.parametrize("overlap", [True, False])
-def test_the_report_refuses_duplicate_or_mixed_training_attempts(overlap):
-    spec = importlib.util.spec_from_file_location(
-        "compare_drivers", Path(__file__).parents[1] / "scripts/compare_drivers.py"
-    )
-    compare = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(compare)
-    first = {**record("ppo-h1", 0, "IMS"), "model_sha256": "first"}
-    retry = {
-        **record("ppo-h1", 0, "IMS" if overlap else "Budapest"),
-        "model_sha256": "first" if overlap else "retry",
-    }
-    with pytest.raises(ValueError, match="duplicate race|multiple model hashes"):
-        compare.report([first, retry], [])

@@ -20,4 +20,17 @@ def cached_map_loader(original):
         scanner.__dict__.update(geometry(path, extension))
         return True
 
+    set_map.cached = True
     return set_map
+
+
+def install() -> None:
+    """Cache the map geometry of this process. Calling it again changes nothing."""
+    from crashlearn import add_simulator_to_path
+
+    add_simulator_to_path()
+    import env_simulation  # noqa: F401  puts the vendored f110_gym on the import path
+    from f110_gym.envs.laser_models import ScanSimulator2D
+
+    if not getattr(ScanSimulator2D.set_map, "cached", False):
+        ScanSimulator2D.set_map = cached_map_loader(ScanSimulator2D.set_map)

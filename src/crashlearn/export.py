@@ -7,6 +7,11 @@ import onnx
 import torch
 
 from crashlearn import features, history
+from crashlearn.env import SPEED_MAX, SPEED_MIN, STEER_MAX
+
+# action_to_controls, written out for an agent that cannot import this project
+SPEED_MID = (SPEED_MAX + SPEED_MIN) / 2
+SPEED_HALF = (SPEED_MAX - SPEED_MIN) / 2
 
 
 class DeterministicPPO(torch.nn.Module):
@@ -93,6 +98,6 @@ class Agent:
         vector = self.history.push(obs, info, build_features(obs))
         action = self.session.run(None, {{self.input_name: vector[None]}})[0][0]
         action = np.clip(np.nan_to_num(action, nan=0.0, posinf=1.0, neginf=-1.0), -1.0, 1.0)
-        return float(4.0 + 6.0 * action[0]), float(0.4189 * action[1])
+        return float({SPEED_MID!r} + {SPEED_HALF!r} * action[0]), float({STEER_MAX!r} * action[1])
 """
     )

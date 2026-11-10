@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from crashlearn import map_cache
 from crashlearn.env import CrashLearnEnv
 from crashlearn.map_cache import cached_map_loader
 
@@ -29,3 +30,13 @@ def test_cached_maps_keep_the_official_seeded_trajectory(monkeypatch):
     actual = trace()
     for a, b in zip(expected, actual, strict=True):
         np.testing.assert_array_equal(a, b)
+
+
+def test_installing_twice_wraps_the_loader_once(monkeypatch):
+    from f110_gym.envs.laser_models import ScanSimulator2D
+
+    monkeypatch.setattr(ScanSimulator2D, "set_map", ScanSimulator2D.set_map)
+    map_cache.install()
+    installed = ScanSimulator2D.set_map
+    map_cache.install()
+    assert ScanSimulator2D.set_map is installed and installed.cached

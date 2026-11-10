@@ -1,24 +1,17 @@
-"""Race one driver through the E-18 campaign (docs/experience_e18.md).
+"""Race one driver through the evaluation campaign (docs/experiments.md).
 
 Writes one JSON record per race, failures included. DNF and timeouts are results: exit code 0
 whenever the races ran. The sealed test tracks are not part of the campaign.
 """
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
+from crashlearn import MAX_DECISIONS
 from crashlearn.env import OBS_SIZE, CrashLearnEnv
-from crashlearn.evaluation import (
-    CONDITIONS,
-    EVAL_SEEDS,
-    ScriptedPilot,
-    campaign,
-    evaluate,
-    provenance,
-    sha256,
-)
+from crashlearn.evaluation import CONDITIONS, EVAL_SEEDS, ScriptedPilot, campaign, evaluate
+from crashlearn.experiments import load_completed_run, provenance
 from crashlearn.history_env import HistoryWrapper
 
 
@@ -37,16 +30,8 @@ class PPOPilot:
 
 
 def load_run(run_dir: Path) -> tuple[PPOPilot, dict]:
-    manifest = json.loads((run_dir / "manifest.json").read_text())
-    if manifest["status"] != "completed":
-        raise ValueError(f"{run_dir}: run status is {manifest['status']!r}")
-    current = provenance()
-    for key in ("features_sha256", "history_sha256"):
-        if manifest[key] != current[key]:
-            raise ValueError(f"{run_dir}: training has a different {key}; use its original sources")
+    manifest = load_completed_run(run_dir)
     model = run_dir / "model.zip"
-    if sha256(model) != manifest["model_sha256"]:
-        raise ValueError(f"{model} does not match its manifest")
     pilot = PPOPilot(model)
     if pilot.depth != manifest["history_depth"]:
         raise ValueError(f"{model}: depth {pilot.depth}, manifest {manifest['history_depth']}")
@@ -72,7 +57,9 @@ def main() -> int:
     parser.add_argument("--map", action="append", dest="maps", help="restrict the campaign")
     parser.add_argument("--condition", action="append", choices=CONDITIONS, dest="conditions")
     parser.add_argument("--seed", action="append", type=int, dest="seeds")
-    parser.add_argument("--max-steps", type=int, default=8000, help="decisions before TIMEOUT")
+    parser.add_argument(
+        "--max-steps", type=int, default=MAX_DECISIONS, help="decisions before TIMEOUT"
+    )
     args = parser.parse_args()
 
     races = campaign(args.maps, args.conditions, tuple(args.seeds or EVAL_SEEDS))

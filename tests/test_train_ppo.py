@@ -1,4 +1,7 @@
-"""E-18 chain end to end, out of CI: the CI has no torch (`uv sync --group train` here)."""
+"""Training chain end to end through the scripts. Slow: run by the Training and ONNX CI job.
+
+Locally: `uv sync --group train`, then `uv run pytest -m slow tests/test_train_ppo.py`.
+"""
 
 import json
 import subprocess
@@ -65,11 +68,14 @@ def test_progress_ablation_matches_masked_inputs_and_keeps_the_source(tmp_path, 
     extra = () if max_speed is None else ("--max-speed", max_speed)
     result = run("ablate_progress.py", "--run-dir", source, "--output-dir", destination, *extra)
     assert result.returncode == 0, result.stderr
-    inputs = np.random.default_rng(12).uniform(-1, 1, (32, 126)).astype(np.float32)
+    from crashlearn.env import controls_to_action
+    from crashlearn.features import FEATURE_SIZE
+
+    inputs = np.random.default_rng(12).uniform(-1, 1, (32, FEATURE_SIZE)).astype(np.float32)
     masked = inputs.copy()
-    masked[:, 102:105] = 0
+    masked[:, 102:105] = 0  # sin and cos of the lap progress, laps completed
     expected = PPO.load(source / "model.zip", device="cpu").predict(masked, deterministic=True)[0]
-    expected_high = 1 / 6 if max_speed is None else (max_speed - 4) / 6
+    expected_high = controls_to_action(max_speed or 5, 0.0)[0]
     expected[:, 0] = np.minimum(expected[:, 0], expected_high)
     derived = PPO.load(destination / "model.zip", device="cpu")
     np.testing.assert_allclose(derived.predict(inputs, deterministic=True)[0], expected, atol=1e-7)
@@ -242,39 +248,24 @@ def test_wandb_failure_does_not_stop_local_logging(tmp_path, monkeypatch):
     import wandb
     from stable_baselines3.common.logger import configure
 
-    from crashlearn.experiments import attach_wandb
+    from crashlearn.experiments import Run, attach_wandb
 
     def unavailable(*args, **kwargs):
         raise ConnectionError("offline")
 
     remote = SimpleNamespace(id="test", url=None, log=unavailable, finish=unavailable)
     monkeypatch.setattr(wandb, "init", lambda **kwargs: remote)
-    manifest = {
-        "run_id": "test",
-        "config": {},
-        "train_seed": 0,
-        "history_depth": 1,
-        "commit": "test",
-        "versions": {},
-        "attempts": [{}],
-    }
-    args = SimpleNamespace(
-        wandb_project="test",
-        wandb_entity=None,
-        output_dir=tmp_path,
-        wandb_group=None,
-        wandb_mode="offline",
-        log_dir=tmp_path,
-    )
+    run = Run.open(tmp_path / "run", history_depth=1, seed=0, config={}, resume=None)
+    run.manifest["attempts"].append({})
     logger = configure(str(tmp_path), ["csv"])
-    attach_wandb(logger, args, manifest)
+    attach_wandb(logger, run, project="test", entity=None, group=None, mode="offline")
     logger.record("reward", 1.0)
     logger.dump(step=10)
     logger.record("reward", 2.0)
     logger.dump(step=20)
     logger.close()
     assert (tmp_path / "progress.csv").read_text().splitlines() == ["reward", "1.0", "2.0"]
-    assert manifest["attempts"][0]["wandb_error"] == "offline"
+    assert run.manifest["attempts"][0]["wandb_error"] == "offline"
 
 
 @pytest.mark.parametrize("key", ["features_sha256", "history_sha256"])
@@ -291,48 +282,3 @@ def test_evaluation_refuses_changed_preprocessing(trained, tmp_path, key):
     assert result.returncode != 0
     assert key in result.stderr
     assert not (tmp_path / "r.json").exists()
-
-
-@pytest.mark.parametrize("failing_cleanup", ["logger", "env"])
-def test_cleanup_failure_keeps_the_final_manifest(tmp_path, monkeypatch, failing_cleanup):
-    import importlib.util
-
-    from stable_baselines3.common.logger import Logger
-    from stable_baselines3.common.vec_env import VecMonitor
-
-    spec = importlib.util.spec_from_file_location("train_ppo", ROOT / "scripts/train_ppo.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    owner = Logger if failing_cleanup == "logger" else VecMonitor
-    original = owner.close
-
-    def fail_after_close(self):
-        original(self)
-        raise RuntimeError(f"{failing_cleanup} cleanup failure")
-
-    monkeypatch.setattr(owner, "close", fail_after_close)
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "train_ppo.py",
-            "--history-depth",
-            "1",
-            "--seed",
-            "0",
-            "--timesteps",
-            "4096",
-            "--n-envs",
-            "2",
-            "--output-dir",
-            str(tmp_path),
-        ],
-    )
-    with pytest.raises(RuntimeError, match="cleanup failure"):
-        module.main()
-    manifest = json.loads((tmp_path / "manifest.json").read_text())
-    assert manifest["status"] == "failed"
-    attempt = manifest["attempts"][-1]
-    assert attempt["status"] == "failed"
-    assert attempt["finished_utc"]
-    assert f"{failing_cleanup} cleanup failure" in attempt["cleanup_error"]

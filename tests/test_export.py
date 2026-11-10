@@ -36,7 +36,8 @@ def test_onnx_matches_torch(tmp_path):
 
 def test_export_keeps_the_trained_action_bounds(tmp_path):
     sb3 = pytest.importorskip("stable_baselines3")
-    from crashlearn.env import CrashLearnEnv
+    from crashlearn.env import CrashLearnEnv, controls_to_action
+    from crashlearn.features import FEATURE_SIZE
 
     env = CrashLearnEnv(max_speed=5.0)
     try:
@@ -44,7 +45,7 @@ def test_export_keeps_the_trained_action_bounds(tmp_path):
         with torch.no_grad():
             model.policy.action_net.weight.zero_()
             model.policy.action_net.bias.copy_(torch.tensor([5.0, -5.0]))
-        inputs = np.zeros((4, 126), dtype=np.float32)
+        inputs = np.zeros((4, FEATURE_SIZE), dtype=np.float32)
         expected = model.predict(inputs, deterministic=True)[0]
         path = tmp_path / "bounded.onnx"
         export.export_onnx(
@@ -53,6 +54,7 @@ def test_export_keeps_the_trained_action_bounds(tmp_path):
         session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
         (actual,) = session.run(None, {session.get_inputs()[0].name: inputs})
         np.testing.assert_allclose(actual, expected, atol=TORCH_ONNX_ATOL, rtol=0)
-        np.testing.assert_allclose(actual[:, 0], 1 / 6, atol=TORCH_ONNX_ATOL, rtol=0)
+        upper = controls_to_action(5.0, 0.0)[0]
+        np.testing.assert_allclose(actual[:, 0], upper, atol=TORCH_ONNX_ATOL, rtol=0)
     finally:
         env.close()

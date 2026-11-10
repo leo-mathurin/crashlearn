@@ -1,4 +1,4 @@
-"""CrashLearnEnv observations stacked by CarHistory (E-18, docs/experience_e18.md).
+"""CrashLearnEnv observations stacked by CarHistory (E-18, docs/results/e-18/README.md).
 
 Kept out of `history.py`, which must stay pure NumPy for the submission `agent.py`. Same
 frames as `agent.py` at the tournament: the first one fills the stack, unlike the zeros of

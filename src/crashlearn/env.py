@@ -28,7 +28,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from crashlearn import add_simulator_to_path, features
+from crashlearn import MAX_DECISIONS, add_simulator_to_path, engine_seed, features
 from crashlearn.reward import STATUS_ACTIVE, STATUS_DNF, STATUS_FINISHED, RaceReward, RewardConfig
 from crashlearn.tracks import train_tracks
 
@@ -79,7 +79,7 @@ class CrashLearnEnv(gym.Env):
         num_cars: int = 1,
         maps: str | Sequence[str] | None = None,
         ego_id: int = 0,
-        max_episode_steps: int = 8000,
+        max_episode_steps: int = MAX_DECISIONS,
         reward_config: RewardConfig | None = None,
         opponent_policy: OpponentPolicy | None = None,
         friction: Setting = None,
@@ -133,7 +133,7 @@ class CrashLearnEnv(gym.Env):
 
         # One seed per episode from np_random: seeding once makes every later episode
         # replayable. It rebuilds the engine (a few ms) and re-arms its noise stream.
-        episode_seed = int(self.np_random.integers(2**31))
+        episode_seed = engine_seed(self.np_random)
         if self.random_start:
             points = sim._get_sim()._waypoints[:, :2]
             index = int(self.np_random.integers(len(points) - 1))

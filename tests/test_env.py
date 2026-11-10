@@ -119,3 +119,20 @@ def test_random_starts_are_seeded_and_restore_the_official_grid(env_class):
         )
     finally:
         official.close()
+
+
+def test_a_race_seed_gives_the_engine_seed_used_without_gymnasium(env_class, monkeypatch):
+    """confirm_submission.py replays races outside the env with `engine_seed`."""
+    from crashlearn import engine_seed
+
+    seeds = []
+    reset = env_module.sim.reset
+    monkeypatch.setattr(
+        env_module.sim, "reset", lambda *a, **k: seeds.append(k["seed"]) or reset(*a, **k)
+    )
+    env = env_class(maps="IMS")
+    try:
+        env.reset(seed=104, options={"map": "IMS"})
+    finally:
+        env.close()
+    assert seeds == [engine_seed(np.random.default_rng(104))]

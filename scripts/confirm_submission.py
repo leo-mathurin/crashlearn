@@ -1,24 +1,26 @@
 """Confirm a frozen solo submission on validation maps in the tournament CPU image.
 
-Runs the actual Agent controls through the native simulator, without Gymnasium or a
-training framework. The race seed maps to the same engine seed as CrashLearnEnv.
+Loads the agent with the tournament loader and runs its controls through the native
+simulator, without Gymnasium or a training framework. A race seed gives the same engine
+seed as in CrashLearnEnv.
 """
 
 import argparse
-import importlib.util
 import json
 import sys
 from pathlib import Path
 
 import numpy as np
 
-from crashlearn import add_simulator_to_path
-from crashlearn.map_cache import cached_map_loader
+from crashlearn import MAX_DECISIONS, add_simulator_to_path, engine_seed, map_cache
+from crashlearn.reward import STATUS_ACTIVE, STATUS_DNF, STATUS_FINISHED
 from crashlearn.tracks import validation_tracks
 
 add_simulator_to_path()
 import env_simulation as sim  # noqa: E402
-from f110_gym.envs.laser_models import ScanSimulator2D  # noqa: E402
+from agent_loader import validate_and_load_agent  # noqa: E402
+
+STATUS = {STATUS_DNF: "DNF", STATUS_ACTIVE: "TIMEOUT", STATUS_FINISHED: "FINISHED"}
 
 
 def main() -> int:
@@ -32,25 +34,24 @@ def main() -> int:
         parser.error("seed-count must be positive")
     if args.output.exists():
         parser.error("output already exists; preserve prior results")
-    spec = importlib.util.spec_from_file_location("submission_agent", args.submission / "agent.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # The loader checks the submission like the tournament; each race gets a fresh Agent.
+    agent_class = type(validate_and_load_agent(args.submission)[1])
     exported = json.loads((args.submission / "export.json").read_text())
-    ScanSimulator2D.set_map = cached_map_loader(ScanSimulator2D.set_map)
+    map_cache.install()
     records = []
     args.output.parent.mkdir(parents=True, exist_ok=True)
     try:
         for track in validation_tracks():
             sim.set_map(track)
             for seed in range(args.seed_start, args.seed_start + args.seed_count):
-                engine_seed = int(np.random.default_rng(seed).integers(2**31))
-                sim.reset(1, seed=engine_seed)
+                race_engine_seed = engine_seed(np.random.default_rng(seed))
+                sim.reset(1, seed=race_engine_seed)
                 sim._get_sim()._last_scan_noise = None
-                agent = module.Agent()
+                agent = agent_class()
                 wall = 0
                 progress = 0.0
                 maximum_speed = float("-inf")
-                for _ in range(8000):
+                for _ in range(MAX_DECISIONS):
                     obs, info = sim.get_obs(0), sim.get_step_info()
                     speed, steer = agent.predict(obs, info)
                     maximum_speed = max(maximum_speed, speed)
@@ -59,16 +60,16 @@ def main() -> int:
                     info = sim.get_step_info()
                     wall += bool(info["collisions"]["wall"][0])
                     progress += info["progress_delta"][0]
-                    if info["agent_status"][0] != 1:
+                    if info["agent_status"][0] != STATUS_ACTIVE:
                         break
-                status = {0: "DNF", 1: "TIMEOUT", 2: "FINISHED"}[info["agent_status"][0]]
+                status = STATUS[info["agent_status"][0]]
                 records.append(
                     {
                         "map": track,
                         "split": "validation",
                         "condition": "nominal",
                         "seed": seed,
-                        "engine_seed": engine_seed,
+                        "engine_seed": race_engine_seed,
                         "status": status,
                         "progress_laps": round(progress, 4),
                         "decisions": info["step_count"],
