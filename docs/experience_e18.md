@@ -1,6 +1,6 @@
 # Expérience E-18 : la mémoire aide-t-elle driver2 ?
 
-**État au 09/11 : premiers PPO capables de finir des courses ; campagne de dix runs lancée.**
+**État au 10/11 : dix entraînements achevés, 1 155 courses évaluées et deux agents ONNX autonomes vérifiés.**
 
 On entraîne un PPO qui décide sur ses 4 dernières observations, et on le compare à un PPO réactif dans les mêmes conditions. La question est de savoir si la mémoire justifie sa complexité, puisque le pilote réactif reste le repli (`docs/history.md`).
 
@@ -146,17 +146,16 @@ uv run pytest -m slow tests/test_train_ppo.py
 - **Station validée le 09/11** : les deux bancs utilisent l'image Docker GPU reconstruite ;
   son identifiant et les versions effectives sont dans les manifests.
 - **Premières courses terminées le 09/11** : le banc CUDA finit BrandsHatch, Budapest et IMS.
-  La fiabilité sur la validation reste à mesurer dans la campagne principale.
+  La fiabilité de la campagne est mesurée dans le rapport, avec tous les échecs conservés.
 - **Document Linear** : « Expériences, robustesse et évaluation » a été relu le 01/11. Le protocole y est aligné : marge de 0,50 m, métriques de comportement et moyenne par carte ont été ajoutées. Le seul écart est le bruit LiDAR, justifié plus haut.
 - **Solo uniquement** : aucune course avec adversaires.
 - **Robustesse hors entraînement** : les perturbations ne sont pas vues à l'entraînement (E-23).
-- **Coût de calcul non comparé** : h4 reçoit quatre fois plus d'entrées, et le temps d'inférence n'est pas mesuré ici. Le contrôle reviendra à l'export (E-25).
+- **Coût de calcul** : h4 reçoit quatre fois plus d’entrées. Les temps d’inférence des agents exportés sont mesurés dans `results/e-18/selection/submission-proof.json`.
 - **Reward v1** : selon la review de #14, le raccourci de Sochi peut rester rentable avec γ = 0,99. Sochi étant en validation, un chrono anormalement bas s'y vérifie d'abord avec les contacts mur et le témoin.
 
 ## Résultats
 
-Campagne lancée le 09/11/2026, résultats et manifests dans `docs/results/e-18/`.
-Le rapport sera produit après les dix entraînements et leurs évaluations.
+Campagne terminée le 10/11/2026. [Synthèse, sélection et limites](results/e-18/README.md) ; [rapport complet](results/e-18/rapport.md). Les 1 155 courses et les manifests sont versionnés.
 
 ## Préparation station du 9 novembre
 
@@ -186,3 +185,8 @@ la même seed : le protocole ne suppose pas une identité numérique entre appar
 
 Reward et features restent figées. Un résultat insuffisant de la campagne sera conservé,
 avec la cible de 90 % de finitions en validation toujours indiquée comme non atteinte.
+
+
+## Fin de campagne et relance du 10 novembre
+
+Le serveur a interrompu le réactif seed 4 ; une relance propre conserve le budget et les poids initiaux tirés de la même seed. La tentative interrompue reste enregistrée, avec ses checkpoints, et n’entre pas dans la comparaison. Les dix runs complets passent les 105 courses attendues, puis le témoin passe le même protocole. La conclusion nominale est « non concluant ». La sélection des deux soumissions utilise les finitions nominales de validation, puis la plus petite seed en cas d’égalité. Voir la synthèse pour les taux et limites.

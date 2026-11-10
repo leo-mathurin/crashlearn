@@ -1,0 +1,23 @@
+{
+  "commit": "a900b2abfa52ce6ff5bb305534f7645a7e1f22ae",
+  "dirty": false,
+  "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
+  "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
+  "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
+  "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
+  "reward_version": "v1",
+  "created_utc": "2026-11-10T09:51:07+00:00",
+  "source_run_id": "ea5e88a0557b4171afec1095fe2b62a4",
+  "source_model_sha256": "57fa9e2516e7f62aec548581d7b2c7b563512cc2d4f1d5014b770d0c223badec",
+  "history_depth": 1,
+  "max_normalized_action_error": 4.76837158203125e-07,
+  "parity_samples": 256,
+  "parity_atol": 1e-05,
+  "opset": 17,
+  "files": {
+    "agent.py": "02bd91117e70884825fcfe6c405b288dbb5bbea59bfeb3705093cdb0b431968e",
+    "model.onnx": "7d0b35d85a0f419d10e549d73184f141915dece083d78eb3d537290e520aea3a",
+    "model.onnx.data": "fbaee45f4b5163402c7fa94629d452fa496d0f10e68612922ba6ce9c9c231353"
+  },
+  "agent_format": "ruff 0.16.7; generated preprocessing is unchanged"
+}

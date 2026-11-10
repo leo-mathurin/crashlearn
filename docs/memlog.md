@@ -217,3 +217,8 @@ L'évaluation contrôle les hashes features/historique ; le rapport refuse les d
 plusieurs modèles par pilote/seed ; une fermeture en erreur ne peut plus empêcher l'écriture
 du statut final. Les tests couvrent chaque cas. La campagne lancée sur la copie figée n'a
 pas changé de prétraitement et n'utilise qu'une tentative par modèle.
+
+
+## 2026-11-10 · [Évaluation] Campagne multi-seeds et livrables ONNX
+
+Dix PPO de fin de budget, cinq seeds et deux profondeurs, ont chacun terminé 5 007 360 interactions et leurs 105 courses d’évaluation. Le témoin ajoute 105 courses. La tentative réactive seed 4 interrompue par le redémarrage est conservée ; une relance propre à budget identique la remplace dans la comparaison. Conclusion nominale appariée : « non concluant ». Les agents de livraison sont choisis sur les finitions nominales de validation ; les égalités sont départagées par la plus petite seed. Les autres modèles restent dans les mesures. Les deux agents passent le vérificateur, une course autonome dans l’image CPU et le chargement partagé, sans PyTorch. W&B reste hors ligne faute de compte partagé configuré. Résultats, limites et provenance : `docs/results/e-18/README.md`.

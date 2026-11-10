@@ -1,0 +1,215 @@
+{
+  "validation": [
+    {
+      "condition": "nominal",
+      "drivers": [
+        {
+          "driver": "ppo-h1",
+          "races": 60,
+          "finished": 25,
+          "finish_rate": 0.4166666666666667,
+          "seed_rates": [
+            0.5833333333333334,
+            0.5,
+            0.25,
+            0.25,
+            0.5
+          ],
+          "bootstrap95": [
+            0.3,
+            0.5333333333333334
+          ]
+        },
+        {
+          "driver": "ppo-h4",
+          "races": 60,
+          "finished": 27,
+          "finish_rate": 0.45,
+          "seed_rates": [
+            0.25,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "bootstrap95": [
+            0.35,
+            0.5
+          ]
+        }
+      ]
+    },
+    {
+      "condition": "low_friction",
+      "drivers": [
+        {
+          "driver": "ppo-h1",
+          "races": 60,
+          "finished": 5,
+          "finish_rate": 0.08333333333333333,
+          "seed_rates": [
+            0.0,
+            0.0,
+            0.25,
+            0.0,
+            0.16666666666666666
+          ],
+          "bootstrap95": [
+            0.0,
+            0.18333333333333332
+          ]
+        },
+        {
+          "driver": "ppo-h4",
+          "races": 60,
+          "finished": 7,
+          "finish_rate": 0.11666666666666667,
+          "seed_rates": [
+            0.0,
+            0.0,
+            0.16666666666666666,
+            0.08333333333333333,
+            0.3333333333333333
+          ],
+          "bootstrap95": [
+            0.016666666666666666,
+            0.2333333333333333
+          ]
+        }
+      ]
+    },
+    {
+      "condition": "lidar_noise",
+      "drivers": [
+        {
+          "driver": "ppo-h1",
+          "races": 60,
+          "finished": 29,
+          "finish_rate": 0.48333333333333334,
+          "seed_rates": [
+            0.75,
+            0.5,
+            0.4166666666666667,
+            0.25,
+            0.5
+          ],
+          "bootstrap95": [
+            0.35,
+            0.6333333333333334
+          ]
+        },
+        {
+          "driver": "ppo-h4",
+          "races": 60,
+          "finished": 27,
+          "finish_rate": 0.45,
+          "seed_rates": [
+            0.25,
+            0.4166666666666667,
+            0.5,
+            0.5,
+            0.5833333333333334
+          ],
+          "bootstrap95": [
+            0.35,
+            0.5333333333333334
+          ]
+        }
+      ]
+    },
+    {
+      "condition": "heavy_rain",
+      "drivers": [
+        {
+          "driver": "ppo-h1",
+          "races": 60,
+          "finished": 4,
+          "finish_rate": 0.06666666666666667,
+          "seed_rates": [
+            0.0,
+            0.0,
+            0.16666666666666666,
+            0.0,
+            0.16666666666666666
+          ],
+          "bootstrap95": [
+            0.0,
+            0.13333333333333333
+          ]
+        },
+        {
+          "driver": "ppo-h4",
+          "races": 60,
+          "finished": 6,
+          "finish_rate": 0.1,
+          "seed_rates": [
+            0.16666666666666666,
+            0.0,
+            0.08333333333333333,
+            0.0,
+            0.25
+          ],
+          "bootstrap95": [
+            0.016666666666666666,
+            0.18333333333333332
+          ]
+        }
+      ]
+    },
+    {
+      "condition": "strict_margin",
+      "drivers": [
+        {
+          "driver": "ppo-h1",
+          "races": 60,
+          "finished": 25,
+          "finish_rate": 0.4166666666666667,
+          "seed_rates": [
+            0.5833333333333334,
+            0.5,
+            0.25,
+            0.25,
+            0.5
+          ],
+          "bootstrap95": [
+            0.3,
+            0.5333333333333334
+          ]
+        },
+        {
+          "driver": "ppo-h4",
+          "races": 60,
+          "finished": 27,
+          "finish_rate": 0.45,
+          "seed_rates": [
+            0.25,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "bootstrap95": [
+            0.35,
+            0.5
+          ]
+        }
+      ]
+    }
+  ],
+  "paired_nominal_finish_rate_differences": {
+    "0": -0.3333333333333333,
+    "1": 0.0,
+    "2": 0.25,
+    "3": 0.25,
+    "4": 0.0
+  },
+  "paired_nominal_finish_interval95": [
+    -0.15,
+    0.2
+  ],
+  "paired_nominal_time_gain_interval95_s": [
+    -1.196666666666664,
+    34.410000000000004
+  ],
+  "nominal_memory_verdict": "non concluant"
+}

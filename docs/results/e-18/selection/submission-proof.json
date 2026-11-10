@@ -1,0 +1,52 @@
+{
+  "official_cpu_image": "crashlearn-sim:20260918",
+  "arbitrary_cwd": "/tmp",
+  "shared_process_two_agents_two_cars": "passed",
+  "torch_imported": false,
+  "stable_baselines3_imported": false,
+  "versions": {
+    "numpy": "2.4.6",
+    "onnx": "1.22.0",
+    "onnxruntime": "1.29.0"
+  },
+  "agents": [
+    {
+      "submission": "driver1",
+      "training_seed": 0,
+      "source_model_sha256": "57fa9e2516e7f62aec548581d7b2c7b563512cc2d4f1d5014b770d0c223badec",
+      "official_checker": "passed",
+      "map": "IMS",
+      "evaluation_seed": 0,
+      "engine_seed": 1826701615,
+      "status": "FINISHED",
+      "decisions": 1834,
+      "lap_times_s": [
+        31.0,
+        30.4,
+        30.3
+      ],
+      "inference_samples": 1000,
+      "inference_median_ms": 0.04499,
+      "inference_p95_ms": 0.0922905
+    },
+    {
+      "submission": "driver2",
+      "training_seed": 1,
+      "source_model_sha256": "3e495a4a35a05b6e4956444207adf6ff65cba76cc79784633f6a129c2336f090",
+      "official_checker": "passed",
+      "map": "IMS",
+      "evaluation_seed": 0,
+      "engine_seed": 1826701615,
+      "status": "FINISHED",
+      "decisions": 1919,
+      "lap_times_s": [
+        32.4,
+        31.8,
+        31.75
+      ],
+      "inference_samples": 1000,
+      "inference_median_ms": 0.051425,
+      "inference_p95_ms": 0.05934349999999999
+    }
+  ]
+}
