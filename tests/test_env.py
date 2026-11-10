@@ -88,3 +88,34 @@ def test_training_speed_limit_is_applied_to_controls(env_class):
 def test_invalid_training_speed_limit_is_refused(env_class, speed):
     with pytest.raises(ValueError, match="max_speed"):
         env_class(max_speed=speed)
+
+
+def test_random_starts_are_seeded_and_restore_the_official_grid(env_class):
+    env = env_class(maps="IMS", random_start=True)
+    try:
+        env_module.sim.set_map("IMS")
+        original = env_module.sim._MAP_SX, env_module.sim._MAP_SY, env_module.sim._MAP_STHETA
+        first, info = env.reset(seed=0)
+        position = env_module.sim._get_sim()._sim.agents[0].state[:3].copy()
+        assert info["raw_obs"]["lap_count"] == 0
+        assert info["raw_obs"]["progress"] == pytest.approx(0)
+        assert (
+            env_module.sim._MAP_SX,
+            env_module.sim._MAP_SY,
+            env_module.sim._MAP_STHETA,
+        ) == original
+        repeated, _ = env.reset(seed=0)
+        np.testing.assert_array_equal(first, repeated)
+        env.reset(seed=1)
+        assert np.linalg.norm(env_module.sim._get_sim()._sim.agents[0].state[:2] - position[:2]) > 1
+    finally:
+        env.close()
+    official = env_class(maps="IMS")
+    try:
+        official.reset(seed=0)
+        expected = env_module.sim._get_sim()._start_poses(1)[0]
+        np.testing.assert_allclose(
+            env_module.sim._get_sim()._sim.agents[0].state[[0, 1, 4]], expected
+        )
+    finally:
+        official.close()

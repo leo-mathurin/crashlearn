@@ -63,7 +63,14 @@ def test_initializing_a_new_run_restarts_the_budget_and_keeps_the_speed_limit(tr
     from stable_baselines3 import PPO
 
     destination = tmp_path / "adapted"
-    result = train(destination, "--initialize-from", trained / "model.zip", "--max-speed", 5)
+    result = train(
+        destination,
+        "--initialize-from",
+        trained / "model.zip",
+        "--max-speed",
+        5,
+        "--random-start",
+    )
     assert result.returncode == 0, result.stderr
     manifest = json.loads((destination / "manifest.json").read_text())
     original = json.loads((trained / "manifest.json").read_text())
@@ -72,16 +79,20 @@ def test_initializing_a_new_run_restarts_the_budget_and_keeps_the_speed_limit(tr
     assert manifest["initialization"]["optimizer_restored"] is False
     assert manifest["run_id"] != original["run_id"]
     assert manifest["timesteps_done"] == 4096
+    assert manifest["config"]["random_start"] is True
     model = PPO.load(destination / "model.zip", device="cpu")
     assert model.action_space.high[0] == pytest.approx(1 / 6)
 
 
-def test_resume_refuses_a_different_speed_limit(trained):
+@pytest.mark.parametrize(
+    ("extra", "field"), [(("--max-speed", 5), "max_speed"), (("--random-start",), "random_start")]
+)
+def test_resume_refuses_a_different_training_distribution(trained, extra, field):
     path = trained / "manifest.json"
     original = path.read_bytes()
-    result = train(trained, "--resume", trained / "model.zip", "--max-speed", 5)
+    result = train(trained, "--resume", trained / "model.zip", *extra)
     assert result.returncode == 2
-    assert "max_speed" in result.stderr
+    assert field in result.stderr
     assert path.read_bytes() == original
 
 

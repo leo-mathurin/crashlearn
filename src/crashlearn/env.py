@@ -85,6 +85,7 @@ class CrashLearnEnv(gym.Env):
         friction: Setting = None,
         lidar_noise: Setting = None,
         max_speed: float = SPEED_MAX,
+        random_start: bool = False,
     ):
         global _open_env
         if _open_env is not None:
@@ -95,6 +96,8 @@ class CrashLearnEnv(gym.Env):
             raise ValueError(f"ego_id must be in [0, {num_cars}), got {ego_id}")
         if not 0 < max_speed <= SPEED_MAX:
             raise ValueError(f"max_speed must be in (0, {SPEED_MAX}]")
+        if random_start and num_cars != 1:
+            raise ValueError("random_start is only supported for solo training")
 
         self.num_cars = num_cars
         self.maps = (maps,) if isinstance(maps, str) else tuple(maps or train_tracks())
@@ -108,6 +111,7 @@ class CrashLearnEnv(gym.Env):
         self.friction = friction
         self.lidar_noise = lidar_noise
         self.max_speed = max_speed
+        self.random_start = random_start
 
         self.observation_space = spaces.Box(-1.0, 1.0, (OBS_SIZE,), dtype=np.float32)
         upper = controls_to_action(max_speed, STEER_MAX)
@@ -130,7 +134,24 @@ class CrashLearnEnv(gym.Env):
         # One seed per episode from np_random: seeding once makes every later episode
         # replayable. It rebuilds the engine (a few ms) and re-arms its noise stream.
         episode_seed = int(self.np_random.integers(2**31))
-        sim.reset(self.num_cars, seed=episode_seed)
+        if self.random_start:
+            points = sim._get_sim()._waypoints[:, :2]
+            index = int(self.np_random.integers(len(points) - 1))
+            tangent = points[index + 1] - points[index]
+            heading = float(np.arctan2(tangent[1], tangent[0]) + self.np_random.uniform(-0.1, 0.1))
+            normal = np.array([-np.sin(heading), np.cos(heading)])
+            # Cancel car 0's native grid offset, then add a small training perturbation.
+            origin = (
+                points[index] + (sim._GRID_LAT_M / 2 + self.np_random.uniform(-0.2, 0.2)) * normal
+            )
+            original = sim._MAP_SX, sim._MAP_SY, sim._MAP_STHETA
+            try:
+                sim._MAP_SX, sim._MAP_SY, sim._MAP_STHETA = *origin, heading
+                sim.reset(self.num_cars, seed=episode_seed)
+            finally:
+                sim._MAP_SX, sim._MAP_SY, sim._MAP_STHETA = original
+        else:
+            sim.reset(self.num_cars, seed=episode_seed)
         self._noise_rng = np.random.default_rng(episode_seed)
 
         self._episode_friction = _sample(options.get("friction", self.friction), self.np_random)

@@ -28,3 +28,18 @@ Si ce premier essai échoue, le changement suivant et sa raison seront ajoutés
 ici avant le prochain entraînement. Chaque essai conserve son manifest, ses
 checkpoints et ses échecs. E-18 reste une expérience historique distincte ; ses
 mesures ne seront pas réécrites avec les nouveaux modèles.
+
+## Deuxième essai : diversifier les départs
+
+Le premier essai finit 10/12 courses : Montreal 3/3, Sochi 3/3, Spielberg 3/3,
+YasMarina 1/3. Des plafonds supplémentaires de 4,5 et 4 m/s sans réentraînement
+font aussi échouer Montreal et YasMarina, seed 0. Le contrôle doit donc s'adapter
+aux états rencontrés, au-delà d'un simple ralentissement.
+
+Le deuxième essai reprend les mêmes poids initiaux de E-18 et tous les paramètres
+du premier, dont le budget de deux millions et le plafond de 5 m/s. Seuls les
+départs train changent : waypoint aléatoire, décalage latéral dans ±0,2 m et
+cap dans ±0,1 rad de la tangente. La progression repart de zéro depuis ce point.
+Cela décorrèle la phase du tour de la géométrie locale et expose la correction
+de petits écarts. La grille officielle est rétablie après chaque reset, et les
+évaluations gardent leurs départs officiels.

@@ -31,12 +31,16 @@ PPO_CONFIG = {
 }
 
 
-def make_env(depth: int, track: str | None = None, max_speed: float = 10.0):
+def make_env(
+    depth: int, track: str | None = None, max_speed: float = 10.0, random_start: bool = False
+):
     def build():
         from f110_gym.envs.laser_models import ScanSimulator2D
 
         ScanSimulator2D.set_map = cached_map_loader(ScanSimulator2D.set_map)
-        return HistoryWrapper(CrashLearnEnv(maps=track, max_speed=max_speed), depth)
+        return HistoryWrapper(
+            CrashLearnEnv(maps=track, max_speed=max_speed, random_start=random_start), depth
+        )
 
     return build
 
@@ -59,6 +63,7 @@ def train(args: argparse.Namespace, manifest: dict, manifest_path: Path) -> None
             args.history_depth,
             maps[i % len(maps)] if args.fixed_map_workers else None,
             args.max_speed,
+            args.random_start,
         )
         for i in range(args.n_envs)
     ]
@@ -191,6 +196,9 @@ def main() -> int:
         help="start a new run from compatible policy weights, with a fresh optimizer",
     )
     parser.add_argument("--max-speed", type=float, default=10.0)
+    parser.add_argument(
+        "--random-start", action="store_true", help="randomize solo training starts"
+    )
     parser.add_argument("--wandb", action="store_true")
     parser.add_argument("--wandb-mode", choices=("online", "offline"), default="offline")
     parser.add_argument("--wandb-project", default="crashlearn")
@@ -219,6 +227,7 @@ def main() -> int:
             "device": args.device,
             "fixed_map_workers": args.fixed_map_workers,
             "max_speed": args.max_speed,
+            "random_start": args.random_start,
         },
     )
     write_manifest(manifest_path, manifest)

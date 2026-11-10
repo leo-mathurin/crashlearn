@@ -232,3 +232,11 @@ Le premier essai d'adaptation reprend ses poids avec un optimiseur neuf, seed 0,
 de 5 m/s. L'export garde les bornes de l'espace d'action appris. Les poids initiaux,
 les échecs et la campagne E-18 restent conservés. Protocole et confirmation sur des
 seeds nouvelles : `docs/reliability_e19.md`.
+
+## 2026-11-10 · [Entraînement] Départs train diversifiés
+
+Le premier essai plafonné à 5 m/s finit 10/12 courses de validation, dont Montreal
+3/3 et YasMarina 1/3. Ralentir encore ne suffit pas. Le prochain essai garde les
+poids initiaux, le plafond et le budget, mais tire ses départs sur les centerlines
+train, avec de petits écarts de position et de cap. La phase reste relative au
+nouveau départ. Le simulateur officiel et les grilles d'évaluation sont inchangés.
