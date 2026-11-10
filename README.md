@@ -19,8 +19,8 @@ Le [projet Linear Crash & Learn](https://linear.app/e-hamilton/project/crash-and
 - [Station Ubuntu et image Docker GPU](docs/station-gpu.md)
 - [Suivi des entraînements, reprise et export ONNX](docs/experiments.md)
 - [MDP et reward](docs/mdp.md)
-- [Expérience E-18 : apport de la mémoire pour driver2](docs/experience_e18.md)
-- [Pilote réactif : 400/400 courses finies en validation nominale](docs/results/e-19-100/README.md)
+- [Expérience E-18 : apport de la mémoire pour driver2](docs/results/e-18/README.md)
+- [driver1 : 400/400 courses finies en validation nominale](docs/results/driver1/README.md)
 - [Dashboard de course et vocabulaire](https://linear.app/e-hamilton/document/dashboard-de-course-et-vocabulaire-0987cb2ff84a)
 
 ## Développement

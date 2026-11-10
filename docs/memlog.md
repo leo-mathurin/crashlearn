@@ -128,7 +128,7 @@ Il a confirmé les défauts de la première archive : les DNF d'IMS, BrandsHatch
 
 ## 2026-10-30 · [Évaluation] Protocole E-18 : mesurer la mémoire contre un PPO réactif identique
 
-Chaîne commune créée pour driver2 (E-18, `docs/experience_e18.md`) : `HistoryWrapper`, `train_ppo.py`, `evaluate_drivers.py`, `compare_drivers.py`. Le PPO à 4 observations est comparé à un PPO à 1 observation, même code, mêmes hyperparamètres, mêmes 5 seeds et même budget. Le pilote scripté reste un témoin. Pourquoi :
+Chaîne commune créée pour driver2 (E-18, `docs/results/e-18/README.md`) : `HistoryWrapper`, `train_ppo.py`, `evaluate_drivers.py`, `compare_drivers.py`. Le PPO à 4 observations est comparé à un PPO à 1 observation, même code, mêmes hyperparamètres, mêmes 5 seeds et même budget. Le pilote scripté reste un témoin. Pourquoi :
 
 - **PPO réactif en baseline** : comparer un PPO à un script mesurerait l'apprentissage, pas la mémoire.
 - **Critère écrit avant les résultats** : un intervalle bootstrap à 95 % par seed d'entraînement doit exclure 0, sinon la conclusion est « non concluant ».
@@ -151,129 +151,33 @@ Avec `--laps 1` ou `2`, le simulateur laisse une voiture arrivée `ACTIVE` sur l
 
 ## 2026-11-01 · [Évaluation] Protocole E-18 aligné sur le document d'expériences
 
-Ajouts au protocole du 30/10 (E-18, `docs/experience_e18.md`), avant tout résultat. Pourquoi : le document Linear « Expériences, robustesse et évaluation » les demande, et le protocole devait être figé avant la campagne.
+Ajouts au protocole du 30/10 (E-18, `docs/results/e-18/README.md`), avant tout résultat. Pourquoi : le document Linear « Expériences, robustesse et évaluation » les demande, et le protocole devait être figé avant la campagne.
 
 - **Condition `strict_margin`** : 4 circuits de validation avec la marge de sortie de piste de 0,50 m annoncée par `INSTRUCTIONS.md`, au lieu du 1,00 m du code. La pédagogie peut encore corriger le simulateur, et un pilote ne doit pas dépendre de cette tolérance. 105 courses par modèle au lieu de 93.
 - **Métriques** : taux d'arrivée moyenné par carte, contacts par 100 m, immobilité, marche arrière, variation des commandes, sauts de progression et écart entre progression créditée et distance roulée (raccourcis).
 - **Bruit LiDAR gardé à 0,1** (±10 %), au-delà des ±5 % de la plage « Champion » du document : c'est la pire condition annoncée pour le tournoi, alors que la plage du document sert au curriculum (E-23).
 
 
-## 2026-11-09 · [Outillage] Reprise des runs et chaîne ONNX
+## 2026-11-09 · [Outillage] Runs reprenables et agents ONNX autonomes
 
-E-20 / E-25 : chaque tentative conserve ses logs CSV et son état dans le manifest ; la reprise
-refuse un changement de seed, de prétraitement ou de reward. W&B reste facultatif, hors ligne
-par défaut, avec métriques et checkpoints ; aucune authentification W&B n'est configurée sur
-la station. L'export incorpore les features et l'historique canoniques dans un agent autonome,
-avec opset 17, poids externes et contrôle numérique PyTorch/ONNX. Les tests exécutent un
-entraînement, une reprise périodique et le vérificateur officiel sur un modèle court.
+E-20 / E-25 : chaque tentative garde ses logs CSV et son statut dans le manifest, y compris après une erreur ou SIGTERM. La reprise refuse un changement de seed, de prétraitement, de reward ou de distribution d'entraînement. W&B reste facultatif et hors ligne par défaut. L'export incorpore les features et l'historique canoniques dans un agent autonome, opset 17, poids externes, accord PyTorch/ONNX contrôlé à 10⁻⁵. Pourquoi : dix runs sur une station partagée doivent survivre aux interruptions, et le tournoi n'autorise que NumPy et ONNX Runtime.
 
-## 2026-11-09 · [Entraînement] Éviter de recalculer la géométrie aux resets
+## 2026-11-09 · [Entraînement] Cache de géométrie et un circuit par worker
 
-Le profilage d'un reset Austin mesure 0,341 s, dont 0,337 s dans les deux chargements LiDAR,
-principalement la transformation de distance. Le cache local de deux cartes par processus
-réutilise seulement leur géométrie ; il ne change ni les seeds ni la physique, et aucun fichier
-`vendor/` n'est modifié. Les observations, rewards et trajectoires restent identiques bit à bit
-sur Austin / BrandsHatch / Austin. Après le premier chargement, un reset Austin prend environ
-0,0003 s sur la station.
+Un reset Austin coûtait 0,341 s, presque tout dans le chargement LiDAR. Un cache de deux cartes par processus le ramène à environ 0,0003 s, avec des trajectoires identiques bit à bit et sans toucher `vendor/`. 15 workers portent chacun un circuit train (`--fixed-map-workers --n-envs 15`). Pourquoi : les interactions sont réparties uniformément par carte, et un changement de carte ne bloque plus tout le `SubprocVecEnv`.
 
-Pour le banc CPU/CUDA et la campagne suivante, 15 workers portent chacun un des 15 circuits
-train (`--fixed-map-workers --n-envs 15`), avec les mêmes paramètres pour h1 et h4. Cela
-répartit uniformément les interactions par carte et évite les rechargements à chaque épisode,
-au lieu de choisir une carte aléatoire par épisode. Les rollouts agrègent 30 720 interactions ;
-le budget demandé est arrondi par SB3 à un nombre entier de rollouts. Reward et features
-restent inchangées. Cette décision précède le banc d'un million d'interactions.
+## 2026-11-09 · [Entraînement] Budget de campagne : 5 000 000 interactions sur GPU
 
+Banc d'un million d'interactions : 3 699 interactions/s en CPU, 6 088 en CUDA. Le banc CUDA finit déjà BrandsHatch, Budapest et IMS. La RTX 5070 est retenue. Budget fixé avant le premier run : 5 000 000 interactions demandées, 5 007 360 après arrondi SB3, pour les dix runs. Les bancs sont exclus de la comparaison.
 
-## 2026-11-09 · [Entraînement] Premières courses PPO terminées et budget de campagne
+## 2026-11-10 · [Évaluation] Campagne E-18 : apport de la mémoire non concluant
 
-Au bout de 1 013 760 interactions, le PPO réactif du banc CUDA finit les trois tours sur
-BrandsHatch, Budapest et IMS (évaluation seed 0, quinze cartes train). Le CPU finit IMS.
-Les autres courses sont des DNF et restent enregistrées. La RTX 5070 est retenue pour les
-dix runs principaux, repartis de zéro : cinq seeds, h1/h4, 5 000 000 interactions demandées
-chacun, soit 5 007 360 après arrondi SB3. Ce budget est fixé avant le premier run principal.
-Les bancs ne participent pas à la comparaison de la mémoire. Les résultats bruts et les
-limites de mesure sont dans `docs/results/station-20261109/` et `docs/experience_e18.md`.
+Dix PPO de fin de budget, cinq seeds et deux profondeurs, ont chacun leurs 105 courses d'évaluation ; le témoin ajoute 105 courses. La tentative réactive seed 4 interrompue par un redémarrage est conservée, et une relance à budget identique la remplace. Conclusion nominale appariée : « non concluant ». Les agents livrés sont choisis sur les finitions nominales de validation, puis la plus petite seed : `ppo-h1` seed 0 (7/12) et `ppo-h4` seed 1 (6/12). Résultats : `docs/results/e-18/README.md`.
 
+## 2026-11-10 · [Entraînement] Fiabilité du réactif : adaptation et ablation de la progression
 
-## 2026-11-09 · [Évaluation] Premier agent ONNX autonome validé en course
+E-19 : aucun plafond de vitesse seul ne fait finir les quatre circuits de validation au réactif. Deux adaptations de deux millions d'interactions, plafond 5 m/s puis départs train diversifiés, finissent 10/12. Masquer les trois entrées de progression et de tours donne 12/12 : une dérivation met à zéro ces seules connexions, sans interaction ajoutée. Confirmation sur 120 courses nouvelles : 118/120, deux DNF à Montreal. Pourquoi : PPO est conservé pour isoler ces changements, et la fiabilité prime sur le chrono (médiane de 120,65 à 203,00 s sur les courses communes).
 
-Le modèle du banc CUDA est exporté en opset 17 avec ses poids externes. L'écart maximal
-PyTorch/ONNX sur 256 entrées est de 5,36 × 10⁻⁷ en action normalisée, sous la tolérance 10⁻⁵.
-Dans l'image CPU officielle, le vérificateur passe et cet agent finit trois tours sur
-BrandsHatch, Budapest et IMS depuis `/tmp`. Ni PyTorch ni Stable-Baselines3 ne sont importés
-pendant ces courses. Ce modèle reste un pilote de banc, exclu de la comparaison multi-seeds.
-Les preuves sont dans `docs/results/station-20261109/preview-*.json` ; la soumission retenue
-sera exportée depuis les modèles de fin de budget de la campagne.
+## 2026-11-10 · [Livraison] driver1 à 400/400 avec un plafond d'inférence de 4,75 m/s
 
-## 2026-11-09 · [Outillage] Isoler les tests et refuser les comparaisons ambiguës
-
-La CI sans dépendances d'entraînement révèle quatre échecs de contrat : un test ferme le
-simulateur global que réutilisait la fixture de session. La fixture prépare désormais deux
-voitures pour chaque test ; les mêmes quatre échecs sont reproduits avant, puis passent après.
-
-La revue Greptile de la PR #19 relève aussi trois cas : évaluation avec un prétraitement
-modifié, mélange de tentatives dans le rapport, et perte du manifest si le nettoyage échoue.
-L'évaluation contrôle les hashes features/historique ; le rapport refuse les doublons et
-plusieurs modèles par pilote/seed ; une fermeture en erreur ne peut plus empêcher l'écriture
-du statut final. Les tests couvrent chaque cas. La campagne lancée sur la copie figée n'a
-pas changé de prétraitement et n'utilise qu'une tentative par modèle.
-
-
-## 2026-11-10 · [Évaluation] Campagne multi-seeds et livrables ONNX
-
-Dix PPO de fin de budget, cinq seeds et deux profondeurs, ont chacun terminé 5 007 360 interactions et leurs 105 courses d’évaluation. Le témoin ajoute 105 courses. La tentative réactive seed 4 interrompue par le redémarrage est conservée ; une relance propre à budget identique la remplace dans la comparaison. Conclusion nominale appariée : « non concluant ». Les agents de livraison sont choisis sur les finitions nominales de validation ; les égalités sont départagées par la plus petite seed. Les autres modèles restent dans les mesures. Les deux agents passent le vérificateur, une course autonome dans l’image CPU et le chargement partagé, sans PyTorch. W&B reste hors ligne faute de compte partagé configuré. Résultats, limites et provenance : `docs/results/e-18/README.md`.
-
-## 2026-11-10 · [Entraînement] Adaptation du réactif pour la cible de fiabilité
-
-E-19 : le meilleur réactif finit 7/12 courses nominales de validation. Un diagnostic
-à six plafonds de vitesse ne trouve aucun réglage qui finisse les quatre circuits.
-Le premier essai d'adaptation reprend ses poids avec un optimiseur neuf, seed 0,
-2 millions d'interactions supplémentaires sur les quinze cartes train et un plafond
-de 5 m/s. L'export garde les bornes de l'espace d'action appris. Les poids initiaux,
-les échecs et la campagne E-18 restent conservés. Protocole et confirmation sur des
-seeds nouvelles : `docs/reliability_e19.md`.
-
-## 2026-11-10 · [Entraînement] Départs train diversifiés
-
-Le premier essai plafonné à 5 m/s finit 10/12 courses de validation, dont Montreal
-3/3 et YasMarina 1/3. Ralentir encore ne suffit pas. Le prochain essai garde les
-poids initiaux, le plafond et le budget, mais tire ses départs sur les centerlines
-train, avec de petits écarts de position et de cap. La phase reste relative au
-nouveau départ. Le simulateur officiel et les grilles d'évaluation sont inchangés.
-
-## 2026-11-10 · [Évaluation] Ablation de la progression dans la politique réactive
-
-Le modèle adapté avec départs diversifiés reste à 10/12. En masquant les trois
-entrées de progression et de tours, il finit les 12 courses initiales. On conserve
-ce modèle et produit une dérivation qui annule seulement ces connexions dans les
-premières couches de l'acteur et du critique. La transformation, son contrôle
-numérique et les hashes source/dérivé sont enregistrés séparément. La confirmation
-sur 120 courses nouvelles doit encore passer avant de déclarer la cible atteinte.
-
-## 2026-11-10 · [Livraison] Fiabilité nominale du réactif confirmée
-
-Le candidat figé finit 118/120 courses ONNX de confirmation (98,3 %), après
-12/12 en sélection, dans l'image CPU officielle. Les deux DNF de Montreal sont
-conservés et les hashes restent identiques. Il remplace `submission/driver1`.
-L'agent et les mesures E-18 restent archivés et identifiés comme historiques.
-Le plafond de 5 m/s coûte du chrono ; faible adhérence et forte pluie restent
-à 6/12 et relèvent de E-23. Détails et preuves : `docs/results/e-19/README.md`.
-
-## 2026-11-10 · [Évaluation] Nouvelle cible de 100 % pour le réactif nominal
-
-La cible passe de 90 % à 100 % observés. Les deux DNF de Montreal deviennent
-des cas de diagnostic et les 132 anciennes courses de validation des cas de
-sélection. Un premier diagnostic teste seulement un plafond global plus bas,
-sur l'agent ONNX réel. Le prochain candidat devra ensuite finir 400 courses sur
-des seeds nouvelles, 200 à 299, avec ses fichiers figés avant cette confirmation.
-Protocole : `docs/reliability_100.md`. Les mesures précédentes sont conservées.
-
-## 2026-11-10 · [Livraison] 400/400 finitions nominales du réactif
-
-Le candidat calibré à 4,75 m/s termine les 400 courses nouvelles, 100/100 par
-carte, après 132/132 cas de sélection. Les deux DNF connus sont corrigés. Ses
-fichiers restent identiques au gel et ses 13 tenseurs appris sont inchangés :
-le plafond d'inférence est la seule différence de contrôle. Sur les 118 mêmes
-courses terminées, le temps médian passe de 236,17 s à 247,57 s. Il remplace
-`submission/driver1` ; modèles, échecs et mesures antérieurs sont conservés.
-La faible adhérence reste à 6/12. Preuves : `docs/results/e-19-100/README.md`.
+La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas de sélection, et 400 courses nouvelles, seeds 200 à 299, sont fixées avant la confirmation. Un plafond global de 4,75 m/s corrige les deux DNF, sans réglage par circuit et avec les mêmes poids appris. Le candidat figé finit 400/400. Coût : médiane de 236,17 à 247,57 s sur 118 courses communes. Faible adhérence et forte pluie restent à 6/12 (E-23). Preuves : `docs/results/driver1/README.md`.

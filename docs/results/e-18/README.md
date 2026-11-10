@@ -1,58 +1,130 @@
-# Campagne solo PPO du 9 et 10 novembre 2026
+# E-18 : la mémoire aide-t-elle driver2 ?
 
-Cette page conserve les mesures E-18 et les agents historiques du commit `779d61b`.
-Le `driver1` courant est désormais confirmé à 400/400 en validation nominale :
-[résultats de la cible de 100 %](../e-19-100/README.md).
-L'ancien agent à 7/12 reste dans
-`/home/leo/runs/crashlearn/e18-20261109/submission/driver1`.
-Les mesures E-18 ci-dessous ne décrivent pas le nouvel artefact.
+Un PPO qui décide sur ses 4 dernières observations (`ppo-h4`, 504 entrées) est
+comparé à un PPO réactif identique (`ppo-h1`, 126 entrées). Le pilote scripté
+d'E-11 sert de témoin de la mesure. Le protocole a été figé avant la campagne
+(memlog du 30/10 et du 01/11).
 
-Dix modèles de fin de budget : cinq seeds (0 à 4), avec une ou quatre observations. Chaque modèle reçoit 5 000 000 interactions demandées, soit 5 007 360 après arrondi SB3. Les 15 workers couvrent les 15 circuits train. Reward, features, historique, paramètres PPO et image Docker restent identiques pour toute la campagne.
-
-**1 050 courses d’évaluation des PPO et 105 courses du témoin scripté sont enregistrées.** Chaque fichier contient les 105 courses attendues, sans doublon. Les DNF et TIMEOUT restent dans le rapport. Les modèles de la campagne ont été évalués sur les circuits train et validation.
-
-## Résultats
-
-[Rapport complet](rapport.md), [sélection et hashes](selection/agents.json), [preuve des soumissions](selection/submission-proof.json), [relecture](review.md).
-
-Conclusion du protocole sur la validation nominale : **non concluant**. Le bootstrap utilise les cinq seeds d’entraînement appariées. Une conclusion non concluante ne prouve pas l’inutilité de la mémoire.
+**Conclusion sur la validation nominale : non concluant.** Avec cinq seeds,
+l'intervalle reste large ; cela ne prouve pas que la mémoire est inutile.
 
 ![Fiabilité sur validation](comparaison.png)
 
-La cible interne de 90 % de finitions nominales est évaluée sur les 12 courses de validation de chaque modèle. Le choix de livraison maximise ce nombre de finitions ; la plus petite seed départage les égalités. Le modèle reste celui de fin de budget.
+## Protocole
 
-| Agent | Modèle | Seed | Arrivées nominales sur validation |
-|---|---|---:|---:|
-| submission/driver1 | ppo-h1 | 0 | 7/12 |
-| submission/driver2 | ppo-h4 | 1 | 6/12 |
+- **Entraînement** : seeds 0 à 4 pour h1 et h4, même `PPO_CONFIG`
+  (`[256, 256]`, `log_std_init = -1`), 5 007 360 interactions chacun, 15 workers
+  fixés sur les 15 circuits train, RTX 5070. Modèle de fin de budget, sans
+  sélection du meilleur checkpoint.
+- **Évaluation** : politique déterministe, 3 tours, 8000 décisions au plus,
+  seeds 0 à 2, soit 105 courses par modèle. Le test scellé n'est jamais utilisé.
 
-**La cible nominale de 90 % n’est pas atteinte. E-19 reste ouvert.**
+| Condition | Friction | Bruit LiDAR | Circuits |
+|---|---:|---:|---|
+| `nominal` | Officielle | Officiel | 15 train + 4 validation |
+| `low_friction` | 0,5 | Officiel | 4 validation |
+| `lidar_noise` | Officielle | 0,1 | 4 validation |
+| `heavy_rain` | 0,5 | 0,1 | 4 validation |
+| `strict_margin` | Officielle | Officiel | 4 validation, marge de sortie de 0,50 m |
 
-L’entraînement est nominal. La baisse sous faible adhérence et forte pluie reste à traiter dans le curriculum de robustesse E-23.
+Friction 0,5 et bruit 0,1 sont les bornes « forte pluie » du simulateur.
+`strict_margin` applique la marge annoncée par `INSTRUCTIONS.md` au lieu du
+1,00 m du code, pour qu'un pilote ne dépende pas d'une tolérance fragile.
 
-## Interruption et provenance
+**Critère de décision** : h4 moins h1 par seed d'entraînement, intervalle
+bootstrap à 95 %. h4 est plus ou moins fiable si l'intervalle du taux d'arrivée
+exclut 0 ; sinon plus rapide ou plus lent si celui du chrono exclut 0, sur les
+seules courses finies par les deux ; sinon, ou avec moins de 3 seeds :
+**non concluant**.
 
-Le redémarrage du serveur a interrompu `ppo-h1-seed4` après le checkpoint `3099690`. Sa tentative et ses checkpoints sont conservés ; son manifest est `manifests/ppo-h1-seed4-interrupted.json`. Une relance propre `ppo-h1-seed4-retry1` repart de zéro avec le même budget. Seule cette relance fournit les courses du réactif seed 4. Les dix modèles comparés ont chacun une tentative complète sans reprise de poids.
+## Résultats
 
-Commit d’entraînement figé : `adf5a5ffbb49d8a6fe067bc9b229ec06914b8aa1`. Image : `sha256:ff88d08af5fd4a202ba98f0b86f027af167df440efd027a79350eadd869e5df2`. Le rapport est recalculé avec les gardes de comparaison de la PR #19. Chaque hash de modèle et chaque empreinte de prétraitement ont été comparés au manifest de leur entraînement.
+1 050 courses PPO et 105 courses du témoin, DNF et TIMEOUT compris. Les tables
+ci-dessous viennent de `scripts/compare_drivers.py`, supprimé après la clôture
+d'E-18 (dernière version au commit `23a289a`). Chaque course reste dans les
+JSON de ce dossier (484 courses non finies sur 1 155).
 
-Les JSON racine sont des tableaux standards, avec une course par ligne pour limiter le volume des diffs. Les valeurs mesurées sont inchangées. Les manifests et fichiers de sélection gardent leur mise en forme indentée.
+### Résultats par pilote
 
-## Archive locale durable
+| Pilote | Partition | Condition | Courses | Arrivées | Arrivées, moyenne par carte | Écart au nominal | DNF | TIMEOUT | Chrono médian (s) |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|
+| ppo-h1 | train | nominal | 225 | 76.9 % | 76.9 % | - | 52 | 0 | 148.60 |
+| ppo-h1 | validation | nominal | 60 | 41.7 % | 41.7 % | - | 35 | 0 | 159.50 |
+| ppo-h1 | validation | low_friction | 60 | 8.3 % | 8.3 % | -33.3 pts | 55 | 0 | 203.30 |
+| ppo-h1 | validation | lidar_noise | 60 | 48.3 % | 48.3 % | +6.7 pts | 31 | 0 | 159.45 |
+| ppo-h1 | validation | heavy_rain | 60 | 6.7 % | 6.7 % | -35.0 pts | 56 | 0 | 200.50 |
+| ppo-h1 | validation | strict_margin | 60 | 41.7 % | 41.7 % | +0.0 pts | 35 | 0 | 159.50 |
+| ppo-h4 | train | nominal | 225 | 93.8 % | 93.8 % | - | 14 | 0 | 146.95 |
+| ppo-h4 | validation | nominal | 60 | 45.0 % | 45.0 % | - | 33 | 0 | 141.35 |
+| ppo-h4 | validation | low_friction | 60 | 11.7 % | 11.7 % | -33.3 pts | 53 | 0 | 135.35 |
+| ppo-h4 | validation | lidar_noise | 60 | 45.0 % | 45.0 % | +0.0 pts | 33 | 0 | 141.20 |
+| ppo-h4 | validation | heavy_rain | 60 | 10.0 % | 10.0 % | -35.0 pts | 54 | 0 | 130.15 |
+| ppo-h4 | validation | strict_margin | 60 | 45.0 % | 45.0 % | +0.0 pts | 33 | 0 | 141.35 |
+| scripted | train | nominal | 45 | 100.0 % | 100.0 % | - | 0 | 0 | 196.75 |
+| scripted | validation | nominal | 12 | 100.0 % | 100.0 % | - | 0 | 0 | 213.62 |
+| scripted | validation | low_friction | 12 | 100.0 % | 100.0 % | +0.0 pts | 0 | 0 | 214.85 |
+| scripted | validation | lidar_noise | 12 | 100.0 % | 100.0 % | +0.0 pts | 0 | 0 | 220.55 |
+| scripted | validation | heavy_rain | 12 | 100.0 % | 100.0 % | +0.0 pts | 0 | 0 | 221.62 |
+| scripted | validation | strict_margin | 12 | 100.0 % | 100.0 % | +0.0 pts | 0 | 0 | 213.62 |
 
-Les modèles PyTorch, checkpoints périodiques, CSV, données W&B et le code figé sont conservés dans
-`/home/leo/runs/crashlearn/e18-20261109`. Les dix modèles de l’archive ont été revérifiés par SHA-256.
-Les modèles ONNX de livraison sont aussi versionnés dans `submission/`.
+### Comportement
 
-## Soumissions et suivi
+Moyennes par course. Contacts par 100 m parcourus. Un saut de progression est un pas où le simulateur crédite plus d'1 m au-delà de la distance roulée, comme une coupe à travers un mur. L'écart crédité moins roulé est un peu positif pour une trajectoire qui coupe les virages, et très positif pour un raccourci.
 
-Les deux agents ONNX opset 17 passent le vérificateur officiel et une course de trois tours sur IMS dans l’image CPU du tournoi, depuis `/tmp`. Le même processus charge les deux agents et les appelle pour deux voitures sans interférence. Ni PyTorch ni Stable-Baselines3 ne sont importés. Le prétraitement est incorporé depuis les sources NumPy canoniques.
+| Pilote | Partition | Condition | Mur / 100 m | Voiture / 100 m | Immobile (pas) | Marche arrière (pas) | Variation des commandes | Sauts de progression | Crédité moins roulé (m) |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|
+| ppo-h1 | train | nominal | 0.32 | 0.00 | 33.6 | 3.5 | 0.0158 | 0.35 | +12.9 |
+| ppo-h1 | validation | nominal | 7.18 | 0.00 | 83.7 | 18.5 | 0.0129 | 0.35 | +5.7 |
+| ppo-h1 | validation | low_friction | 31.22 | 0.00 | 136.4 | 30.4 | 0.0135 | 0.17 | -1.7 |
+| ppo-h1 | validation | lidar_noise | 6.17 | 0.00 | 86.4 | 20.2 | 0.0137 | 0.50 | +6.0 |
+| ppo-h1 | validation | heavy_rain | 30.89 | 0.00 | 135.3 | 32.0 | 0.0148 | 0.12 | -1.9 |
+| ppo-h1 | validation | strict_margin | 7.18 | 0.00 | 83.7 | 18.5 | 0.0129 | 0.35 | +5.7 |
+| ppo-h4 | train | nominal | 0.58 | 0.00 | 9.3 | 3.0 | 0.0095 | 0.08 | +10.7 |
+| ppo-h4 | validation | nominal | 8.04 | 0.00 | 75.4 | 27.6 | 0.0079 | 0.10 | +1.8 |
+| ppo-h4 | validation | low_friction | 33.89 | 0.00 | 124.7 | 50.4 | 0.0089 | 0.00 | -5.7 |
+| ppo-h4 | validation | lidar_noise | 8.38 | 0.00 | 72.8 | 26.2 | 0.0082 | 0.07 | +1.8 |
+| ppo-h4 | validation | heavy_rain | 36.86 | 0.00 | 120.6 | 47.6 | 0.0096 | 0.02 | -5.3 |
+| ppo-h4 | validation | strict_margin | 8.04 | 0.00 | 75.4 | 27.6 | 0.0079 | 0.10 | +1.8 |
+| scripted | train | nominal | 0.00 | 0.00 | 1.0 | 0.0 | 0.0145 | 0.18 | +35.8 |
+| scripted | validation | nominal | 0.00 | 0.00 | 1.0 | 0.0 | 0.0160 | 0.00 | +26.4 |
+| scripted | validation | low_friction | 0.00 | 0.00 | 1.0 | 0.0 | 0.0144 | 0.00 | +22.3 |
+| scripted | validation | lidar_noise | 0.00 | 0.00 | 1.0 | 0.0 | 0.0296 | 0.00 | +25.5 |
+| scripted | validation | heavy_rain | 0.00 | 0.00 | 1.0 | 0.0 | 0.0280 | 0.00 | +22.1 |
+| scripted | validation | strict_margin | 0.00 | 0.00 | 1.0 | 0.0 | 0.0160 | 0.00 | +26.4 |
 
-W&B est hors ligne : métriques et checkpoints sont conservés sur la station, avec les CSV de chaque tentative. Aucun compte partagé W&B n’est configuré ; la synchronisation cloud et son quota n’ont pas été validés. E-20 reste ouvert pour cette configuration.
+### Apport de la mémoire : ppo-h4 moins ppo-h1
 
-Recalcul du rapport :
+Intervalles bootstrap à 95 % par seed d'entraînement. Gain de chrono positif : ppo-h4 plus rapide, sur les courses finies par les deux pilotes.
 
-```bash
-uv run python scripts/compare_drivers.py --results-dir docs/results/e-18 \
-  --output docs/results/e-18/rapport.md
-```
+| Partition | Condition | Seeds | Arrivées (pts) | Gain de chrono (s) | Conclusion |
+|---|---|---:|---|---|---|
+| train | nominal | 5 | [+2.2 ; +36.9] | [-0.1 ; +23.4] | h4 plus fiable |
+| validation | nominal | 5 | [-15.0 ; +20.0] | [-1.2 ; +34.4] | non concluant |
+| validation | low_friction | 5 | [-3.3 ; +10.0] | seeds insuffisantes | non concluant |
+| validation | lidar_noise | 5 | [-26.7 ; +15.0] | [-1.3 ; +33.7] | non concluant |
+| validation | heavy_rain | 5 | [-3.3 ; +11.7] | seeds insuffisantes | non concluant |
+| validation | strict_margin | 5 | [-15.0 ; +20.0] | [-1.2 ; +34.4] | non concluant |
+
+
+## Soumissions
+
+La sélection maximise les finitions nominales de validation, puis retient la
+plus petite seed ([hashes](selection/agents.json),
+[preuve](selection/submission-proof.json)).
+
+| Agent | Modèle | Arrivées nominales en validation |
+|---|---|---:|
+| `submission/driver2` | ppo-h4, seed 1 | 6/12 |
+| ancien `driver1` | ppo-h1, seed 0 | 7/12, remplacé : voir [driver1](../driver1/README.md) |
+
+## Provenance
+
+- Commit d'entraînement `adf5a5f`, image
+  `sha256:ff88d08af5fd4a202ba98f0b86f027af167df440efd027a79350eadd869e5df2`.
+  Chaque hash de modèle et de prétraitement a été comparé à son manifest.
+- Un redémarrage du serveur a interrompu `ppo-h1-seed4` ; sa tentative reste dans
+  `manifests/ppo-h1-seed4-interrupted.json`. Une relance complète, à budget
+  identique, fournit ses courses.
+- Archive de la station : `/home/leo/runs/crashlearn/e18-20261109` (modèles,
+  checkpoints, CSV, W&B hors ligne, code figé).
+- Limites : solo seulement, perturbations jamais vues à l'entraînement (E-23).

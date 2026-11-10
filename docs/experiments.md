@@ -99,11 +99,27 @@ Le modèle ONNX utilise l'opset 17 et le chemin d'export TorchScript explicite d
 PyTorch épinglée. Il conserve les poids dans un vrai fichier externe, même pour les petits
 MLP. Les fichiers des modèles livrés se versionnent sans Git LFS (`docs/remise.md`).
 
-La CI `Training and ONNX` exécute un entraînement court, une reprise, l'export, la comparaison
-sur observations réelles et le vérificateur officiel dans l'image CPU du tournoi.
+## Évaluer et confirmer
 
-L’évaluation refuse un modèle si les empreintes de features ou d’historique diffèrent de
-celles de son entraînement, même si la taille des entrées reste identique. Le rapport refuse
-les courses en double et le mélange de deux modèles pour un même pilote et une même seed :
-conserver les tentatives, puis sélectionner explicitement leurs fichiers avant comparaison.
-Une erreur de fermeture du logger ou des workers est enregistrée avant la sortie du run.
+```bash
+uv run python scripts/evaluate_drivers.py --run-dir runs/baseline --output runs/baseline.json
+uv run python scripts/evaluate_drivers.py --scripted --output runs/scripted.json
+```
+
+`evaluate_drivers.py` fait courir un run, ou le témoin scripté, sur les 105 courses de la
+campagne : nominal sur train et validation, perturbations sur validation, jamais le test.
+Les DNF et TIMEOUT sont des résultats. Le fichier est réécrit après chaque course.
+
+`confirm_submission.py` fait courir un dossier de soumission sur les quatre circuits de
+validation, dans l'image CPU du tournoi, sans Gymnasium ni PyTorch. Une seed de course y
+donne la même seed moteur que dans `CrashLearnEnv`. Exemple dans
+[les résultats de driver1](results/driver1/README.md).
+
+L'évaluation, l'export et l'ablation refusent un run inachevé, un `model.zip` modifié, ou
+des empreintes de features ou d'historique différentes de celles de l'entraînement, même
+si la taille des entrées reste identique. Une erreur de fermeture du logger ou des workers
+est enregistrée dans le manifest avant la sortie du run.
+
+La CI `Training and ONNX` exécute un entraînement court, une reprise, l'export, la
+comparaison sur observations réelles et le vérificateur officiel dans l'image CPU du
+tournoi. Elle installe la pile d'entraînement aux versions de `uv.lock`.
