@@ -58,6 +58,7 @@ def load_run(run_dir: Path) -> tuple[PPOPilot, dict]:
         "budget_timesteps": manifest["budget_timesteps"],
         "training_config": manifest["config"],
         "initialization": manifest.get("initialization"),
+        "derivation": manifest.get("derivation"),
     }
     return pilot, metadata
 

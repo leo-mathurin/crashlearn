@@ -43,3 +43,24 @@ cap dans ±0,1 rad de la tangente. La progression repart de zéro depuis ce poin
 Cela décorrèle la phase du tour de la géométrie locale et expose la correction
 de petits écarts. La grille officielle est rétablie après chaque reset, et les
 évaluations gardent leurs départs officiels.
+
+## Troisième essai : retirer les connexions de progression
+
+Le deuxième entraînement finit aussi 10/12 courses : YasMarina 1/3. Son modèle
+figé est `cap5-random-h1-seed0`, SHA-256
+`f283194ea0334cfbde14c0f4925698d5226b335b89533c39dd1e3b940fc359aa`. Un diagnostic masque les colonnes
+102 à 104 (sinus et cosinus de progression, tours accomplis) à l'inférence : les
+12 courses initiales sont alors finies. Ce résultat motive une ablation explicite.
+
+`scripts/ablate_progress.py` met à zéro les trois colonnes correspondantes dans
+la première couche de l'acteur et du critique, sans modifier les autres poids,
+les features canoniques ni le plafond appris. Un contrôle sur 256 entrées
+compare ce modèle à l'original recevant des progressions masquées. Le modèle
+dérivé a son propre hash et son propre manifest ; l'original reste conservé.
+Il n'y a aucune interaction ni optimisation supplémentaire.
+
+Le candidat est figé avant la confirmation seeds 100 à 129. Cette confirmation
+porte sur les mêmes quatre circuits, en conditions nominales et départ officiel.
+Elle mesure la répétabilité face au bruit du simulateur sur ces cartes ; elle
+ne constitue pas une évaluation sur des cartes nouvelles. Aucun résultat de
+confirmation ne sert à modifier ce candidat.

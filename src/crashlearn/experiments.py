@@ -32,6 +32,8 @@ def prepare_run(args) -> tuple[dict, Path]:
         if not path.is_file():
             raise ValueError("--resume needs the original run directory and its manifest")
         manifest = json.loads(path.read_text())
+        if manifest.get("derivation"):
+            raise ValueError("inference derivations cannot resume; initialize a new training run")
         expected = {"history_depth": args.history_depth, "train_seed": args.seed}
         expected |= {
             k: current[k]

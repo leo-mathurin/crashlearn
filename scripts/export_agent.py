@@ -48,6 +48,7 @@ def main() -> int:
         **current,
         "source_run_id": manifest["run_id"],
         "source_model_sha256": manifest["model_sha256"],
+        "derivation": manifest.get("derivation"),
         "history_depth": depth,
         "action_low": model.action_space.low.tolist(),
         "action_high": model.action_space.high.tolist(),

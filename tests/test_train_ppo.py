@@ -52,6 +52,37 @@ def test_a_run_records_what_produced_it(trained):
     assert len(manifest["model_sha256"]) == 64
 
 
+def test_progress_ablation_matches_masked_inputs_and_keeps_the_source(tmp_path):
+    import numpy as np
+    from stable_baselines3 import PPO
+
+    source = tmp_path / "reactive"
+    result = train(source, "--history-depth", 1, "--max-speed", 5)
+    assert result.returncode == 0, result.stderr
+    original = (source / "manifest.json").read_bytes()
+    destination = tmp_path / "derived"
+    result = run("ablate_progress.py", "--run-dir", source, "--output-dir", destination)
+    assert result.returncode == 0, result.stderr
+    inputs = np.random.default_rng(12).uniform(-1, 1, (32, 126)).astype(np.float32)
+    masked = inputs.copy()
+    masked[:, 102:105] = 0
+    expected = PPO.load(source / "model.zip", device="cpu").predict(masked, deterministic=True)[0]
+    derived = PPO.load(destination / "model.zip", device="cpu")
+    np.testing.assert_allclose(derived.predict(inputs, deterministic=True)[0], expected, atol=1e-7)
+    assert derived.action_space.high[0] == pytest.approx(1 / 6)
+    assert (source / "manifest.json").read_bytes() == original
+    assert (destination / "source-manifest.json").read_bytes() == original
+    manifest = json.loads((destination / "manifest.json").read_text())
+    assert manifest["attempts"] == []
+    assert manifest["derivation"]["training_steps_added"] == 0
+    assert manifest["model_sha256"] != json.loads(original)["model_sha256"]
+    before = (destination / "manifest.json").read_bytes()
+    result = train(destination, "--history-depth", 1, "--resume", destination / "model.zip")
+    assert result.returncode == 2
+    assert "inference derivations cannot resume" in result.stderr
+    assert (destination / "manifest.json").read_bytes() == before
+
+
 def test_an_existing_run_is_not_overwritten(trained):
     before = (trained / "manifest.json").read_text()
     result = train(trained)

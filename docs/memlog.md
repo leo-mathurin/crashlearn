@@ -240,3 +240,12 @@ Le premier essai plafonné à 5 m/s finit 10/12 courses de validation, dont Mont
 poids initiaux, le plafond et le budget, mais tire ses départs sur les centerlines
 train, avec de petits écarts de position et de cap. La phase reste relative au
 nouveau départ. Le simulateur officiel et les grilles d'évaluation sont inchangés.
+
+## 2026-11-10 · [Évaluation] Ablation de la progression dans la politique réactive
+
+Le modèle adapté avec départs diversifiés reste à 10/12. En masquant les trois
+entrées de progression et de tours, il finit les 12 courses initiales. On conserve
+ce modèle et produit une dérivation qui annule seulement ces connexions dans les
+premières couches de l'acteur et du critique. La transformation, son contrôle
+numérique et les hashes source/dérivé sont enregistrés séparément. La confirmation
+sur 120 courses nouvelles doit encore passer avant de déclarer la cible atteinte.
