@@ -65,17 +65,17 @@ def build_model(args: argparse.Namespace, env, run: Run):
 
 
 def train(args: argparse.Namespace, run: Run) -> None:
-    import torch
-    from stable_baselines3.common.callbacks import CheckpointCallback
-    from stable_baselines3.common.logger import configure
-    from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
-
     with run.attempt(
         budget_timesteps=args.timesteps,
         resumed_from=args.resume,
         device=args.device,
         torch_threads=args.torch_threads,
     ) as cleanups:
+        import torch
+        from stable_baselines3.common.callbacks import CheckpointCallback
+        from stable_baselines3.common.logger import configure
+        from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
+
         allow_sb3_saves()
         torch.set_num_threads(args.torch_threads)
         maps = train_tracks()
