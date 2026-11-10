@@ -37,3 +37,14 @@ Si la confirmation échoue, les échecs restent enregistrés et le candidat n'es
 pas déclaré à 100 %. Une nouvelle sélection nécessitera une nouvelle plage de
 seeds de confirmation, fixée avant de l'exécuter. Les circuits test restent
 scellés ; l'adhérence dégradée est une question distincte, suivie dans E-23.
+
+## Résultat du candidat figé
+
+Le plafond de 4,75 m/s finit les 132 cas connus. Le candidat dérivé
+`4956e2a9006f689cb4cf2123a274747798ae53c65504bd5a4b7f995611d7e4c9`
+finit ensuite les 400 courses nouvelles : 100/100 sur chaque carte, sans DNF
+ni TIMEOUT. Ses fichiers restent identiques au gel préalable. Les 13 tenseurs
+appris sont identiques au modèle à 5 m/s ; aucune interaction n'est ajoutée.
+
+L'agent remplace `submission/driver1`. Les [résultats et preuves](results/e-19-100/README.md)
+conservent les anciennes mesures, la baisse de vitesse et le coût en chrono.

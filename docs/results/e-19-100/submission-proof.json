@@ -1,0 +1,36 @@
+{
+  "selection_finished": 132,
+  "selection_races": 132,
+  "confirmation_finished": 400,
+  "confirmation_races": 400,
+  "condition": "nominal",
+  "inference_speed_cap_mps": 4.75,
+  "per_map": {
+    "Montreal": {
+      "FINISHED": 100
+    },
+    "Sochi": {
+      "FINISHED": 100
+    },
+    "Spielberg": {
+      "FINISHED": 100
+    },
+    "YasMarina": {
+      "FINISHED": 100
+    }
+  },
+  "failed_races": [],
+  "unique_map_seed_pairs": 400,
+  "frozen_files_unchanged": true,
+  "confirmation_script_unchanged": true,
+  "candidate_model_sha256": "4956e2a9006f689cb4cf2123a274747798ae53c65504bd5a4b7f995611d7e4c9",
+  "official_cpu_image_id": "sha256:29b9cb8434f940611345f6b61a7a32ddf1a9d7f703b27953b6a22f51e5a8b78c",
+  "official_checker": "passed",
+  "torch_imported": false,
+  "stable_baselines3_imported": false,
+  "max_target_speed_mps": 4.75,
+  "onnx_parity_samples": 256,
+  "onnx_max_normalized_action_error": 4.76837158203125e-07,
+  "policy_tensors_unchanged": true,
+  "training_steps_added": 0
+}

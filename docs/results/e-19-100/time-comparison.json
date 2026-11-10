@@ -1,0 +1,7 @@
+{
+  "paired_finished_races": 118,
+  "reference_speed_cap_mps": 5.0,
+  "candidate_speed_cap_mps": 4.75,
+  "reference_median_three_lap_time_s": 236.17,
+  "candidate_median_three_lap_time_s": 247.57
+}

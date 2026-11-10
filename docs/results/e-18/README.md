@@ -1,8 +1,8 @@
 # Campagne solo PPO du 9 et 10 novembre 2026
 
 Cette page conserve les mesures E-18 et les agents historiques du commit `779d61b`.
-Depuis le 10 novembre, le `driver1` courant est remplacé par le candidat E-19,
-confirmé à 118/120 en validation nominale : [résultats E-19](../e-19/README.md).
+Le `driver1` courant est désormais confirmé à 400/400 en validation nominale :
+[résultats de la cible de 100 %](../e-19-100/README.md).
 L'ancien agent à 7/12 reste dans
 `/home/leo/runs/crashlearn/e18-20261109/submission/driver1`.
 Les mesures E-18 ci-dessous ne décrivent pas le nouvel artefact.

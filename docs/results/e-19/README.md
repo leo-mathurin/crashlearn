@@ -1,5 +1,10 @@
 # E-19 : cible nominale de 90 % atteinte
 
+Ce dossier décrit le modèle historique à 5 m/s livré au commit `80a2c02`.
+Le `driver1` courant est ensuite calibré à 4,75 m/s et confirmé à 400/400 :
+[résultats de la cible de 100 %](../e-19-100/README.md). Les mesures ci-dessous
+restent celles de l'ancien modèle et ne décrivent pas le nouvel artefact.
+
 Le pilote réactif livré dans `submission/driver1` termine **118/120 courses de
 confirmation (98,3 %)** sur les quatre circuits de validation, en conditions
 nominales. Il avait terminé les 12 courses utilisées pour la sélection. Les 120

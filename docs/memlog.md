@@ -267,3 +267,13 @@ sélection. Un premier diagnostic teste seulement un plafond global plus bas,
 sur l'agent ONNX réel. Le prochain candidat devra ensuite finir 400 courses sur
 des seeds nouvelles, 200 à 299, avec ses fichiers figés avant cette confirmation.
 Protocole : `docs/reliability_100.md`. Les mesures précédentes sont conservées.
+
+## 2026-11-10 · [Livraison] 400/400 finitions nominales du réactif
+
+Le candidat calibré à 4,75 m/s termine les 400 courses nouvelles, 100/100 par
+carte, après 132/132 cas de sélection. Les deux DNF connus sont corrigés. Ses
+fichiers restent identiques au gel et ses 13 tenseurs appris sont inchangés :
+le plafond d'inférence est la seule différence de contrôle. Sur les 118 mêmes
+courses terminées, le temps médian passe de 236,17 s à 247,57 s. Il remplace
+`submission/driver1` ; modèles, échecs et mesures antérieurs sont conservés.
+La faible adhérence reste à 6/12. Preuves : `docs/results/e-19-100/README.md`.

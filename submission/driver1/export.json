@@ -1,14 +1,14 @@
 {
-  "commit": "cef4968290b87c7bf9f69bc1529d268c716c252b",
+  "commit": "2e5a75132d658f485e334bb8760583b142628701",
   "dirty": false,
   "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
   "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
   "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
   "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
   "reward_version": "v1",
-  "created_utc": "2026-11-10T15:15:04+00:00",
-  "source_run_id": "d4d9a17fa74d4de7a56d3251301cb403",
-  "source_model_sha256": "3af6a59fe7796c6f5711d5e799e0432e1c04fb6755e81762611a508e3830d8d6",
+  "created_utc": "2026-11-10T16:11:55+00:00",
+  "source_run_id": "7bf25c8c01d149f1a35f6b58ab646db5",
+  "source_model_sha256": "4956e2a9006f689cb4cf2123a274747798ae53c65504bd5a4b7f995611d7e4c9",
   "derivation": {
     "method": "zero_progress_weights",
     "feature_columns": [
@@ -20,18 +20,27 @@
     "source_model_sha256": "f283194ea0334cfbde14c0f4925698d5226b335b89533c39dd1e3b940fc359aa",
     "source_manifest_sha256": "948d6bc4c868d58fc48ea965c93b7982c63483012109240d901626f151ef8933",
     "provenance": {
-      "commit": "cef4968290b87c7bf9f69bc1529d268c716c252b",
+      "commit": "2e5a75132d658f485e334bb8760583b142628701",
       "dirty": false,
       "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
       "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
       "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
       "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
       "reward_version": "v1",
-      "created_utc": "2026-11-10T15:14:31+00:00"
+      "created_utc": "2026-11-10T16:11:53+00:00"
     },
     "parity_samples": 256,
     "max_normalized_action_error": 0.0,
-    "training_steps_added": 0
+    "training_steps_added": 0,
+    "requested_max_speed_mps": 4.75,
+    "source_action_high": [
+      0.1666666716337204,
+      1.0
+    ],
+    "derived_action_high": [
+      0.125,
+      1.0
+    ]
   },
   "history_depth": 1,
   "action_low": [
@@ -39,7 +48,7 @@
     -1.0
   ],
   "action_high": [
-    0.1666666716337204,
+    0.125,
     1.0
   ],
   "max_normalized_action_error": 4.76837158203125e-07,
@@ -49,6 +58,6 @@
   "files": {
     "agent.py": "02bd91117e70884825fcfe6c405b288dbb5bbea59bfeb3705093cdb0b431968e",
     "model.onnx": "052c1a2e6b73470fc9190470e6d911f7555a50f2eaec9e6ce625db500f5b8629",
-    "model.onnx.data": "32745e7c80302865d600110e4a1aee2b11ca1fccf9e87d072bfabcbfbfc85c94"
+    "model.onnx.data": "96e35bbcf7dad6173f25442fa963f337c18bff3589f8e4b2a9554f94b0702830"
   }
 }

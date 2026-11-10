@@ -76,6 +76,11 @@ transformation. Une dérivation ne peut pas reprendre son entraînement ; utilis
 ses poids avec `--initialize-from` pour un nouveau run. Les bornes d'action
 enregistrées dans le modèle sont conservées par l'export ONNX.
 
+Ajouter `--max-speed 4.75` à l'ablation pour abaisser aussi la borne de vitesse
+d'inférence. Cette option conserve les poids appris et la configuration du run
+d'entraînement ; le manifest dérivé enregistre les deux bornes. Le plafond doit
+être positif et au plus égal à celui du modèle source.
+
 ## Export et contrôle
 
 ```bash
