@@ -27,7 +27,10 @@ l'intervalle reste large ; cela ne prouve pas que la mémoire est inutile.
 | `heavy_rain` | 0,5 | 0,1 | 4 validation |
 | `strict_margin` | Officielle | Officiel | 4 validation, marge de sortie de 0,50 m |
 
-Friction 0,5 et bruit 0,1 sont les bornes « forte pluie » du simulateur.
+Friction 0,5 et bruit 0,1 sont les bornes « forte pluie » du simulateur. Le sujet
+v1.3.0 donne la plage du tournoi : friction de 0,7 à 1,0, bruit de 0,001 à 0,1, avec des
+changements pendant la course. La friction 0,5 est donc plus basse que toute friction du
+tournoi, mais la campagne garde une météo constante pendant chaque course.
 `strict_margin` applique la marge annoncée par `INSTRUCTIONS.md` au lieu du
 1,00 m du code, pour qu'un pilote ne dépende pas d'une tolérance fragile.
 

@@ -45,7 +45,11 @@ des entraînements indépendants : le taux décrit ces quatre cartes en nominal.
   de 120,65 s à 203,00 s.
 - **Robustesse** : la [campagne de 105 cas](full-campaign-105.json) garde 45/45
   sur train et 12/12 en nominal, bruit LiDAR et marge stricte, mais **6/12** sous
-  faible adhérence et forte pluie. Suite dans E-23.
+  faible adhérence et forte pluie. Ces deux cas utilisent une friction de 0,5, sous
+  la plage du sujet v1.3.0 (0,7 à 1,0). À friction 0,7, avec ou sans bruit LiDAR
+  de 0,1, le réactif livré finit **9/12** : Montreal échoue sur ses trois seeds
+  ([courses](weather-v1.3.0.json)). La météo y reste constante pendant la course,
+  alors qu'au tournoi elle change en pleine course. Suite dans E-23.
 - Les circuits test restent scellés.
 
 ## Provenance et reproduction
