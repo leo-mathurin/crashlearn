@@ -102,6 +102,33 @@ def test_progress_ablation_matches_masked_inputs_and_keeps_the_source(tmp_path, 
         assert not rejected.exists()
 
 
+def test_zeroed_opponent_weights_ignore_opponents_in_every_frame(trained, tmp_path):
+    import numpy as np
+    from stable_baselines3 import PPO
+
+    from crashlearn.features import EGO_SIZE, FEATURE_SIZE
+
+    destination = tmp_path / "solo-only"
+    result = run("zero_opponent_weights.py", "--run-dir", trained, "--output-dir", destination)
+    assert result.returncode == 0, result.stderr
+    inputs = np.random.default_rng(3).uniform(-1, 1, (32, 4 * FEATURE_SIZE)).astype(np.float32)
+    alone = inputs.reshape(32, 4, FEATURE_SIZE).copy()
+    alone[:, :, EGO_SIZE:] = 0
+    alone = alone.reshape(32, -1)
+    source = PPO.load(trained / "model.zip", device="cpu")
+    derived = PPO.load(destination / "model.zip", device="cpu")
+    expected = source.predict(alone, deterministic=True)[0]
+    np.testing.assert_array_equal(derived.predict(inputs, deterministic=True)[0], expected)
+    np.testing.assert_array_equal(derived.predict(alone, deterministic=True)[0], expected)
+    manifest = json.loads((destination / "manifest.json").read_text())
+    assert manifest["derivation"]["method"] == "zero_opponent_weights"
+    assert len(manifest["derivation"]["feature_columns"]) == 4 * (FEATURE_SIZE - EGO_SIZE)
+    assert manifest["derivation"]["source_derivation"] is None
+    assert (destination / "source-manifest.json").read_bytes() == (
+        trained / "manifest.json"
+    ).read_bytes()
+
+
 def test_an_existing_run_is_not_overwritten(trained):
     before = (trained / "manifest.json").read_text()
     result = train(trained)
