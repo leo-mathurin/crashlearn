@@ -50,6 +50,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - run: uv sync --locked
+      - name: Delivered models intact and linked to their provenance
+        run: uv run python scripts/check_deliverables.py
       - name: uv run pytest
         # explicit `shell: bash` adds -o pipefail, so a pytest failure is not masked by tee
         shell: bash
