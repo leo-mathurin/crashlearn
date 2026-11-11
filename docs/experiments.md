@@ -41,8 +41,13 @@ d'interactions SB3. Un retour à un checkpoint antérieur peut rejouer une plage
 ## Reprise après interruption
 
 Garder le même dossier, la même seed, profondeur et le même nombre d'environnements. Le
-checkpoint doit être dans ce dossier. Une modification du prétraitement, de la reward ou du
-simulateur est refusée : démarrer un nouveau run pour mesurer cette modification.
+checkpoint doit être dans ce dossier et correspondre au hash que le manifest a enregistré
+pour lui (`checkpoints` pour les checkpoints périodiques, `model_sha256` pour le modèle
+final). Les checkpoints sans hash enregistré, par exemple ceux des runs antérieurs à ce
+contrôle, ne peuvent pas reprendre. Une modification du prétraitement, de la reward ou du
+simulateur est refusée : démarrer un nouveau run pour mesurer cette modification. Un budget
+`--timesteps` inférieur ou égal à l'étape du checkpoint est refusé avant toute tentative,
+sans modifier le manifest.
 
 ```bash
 uv run python scripts/train_ppo.py --history-depth 1 --seed 0 --timesteps 2000000 \

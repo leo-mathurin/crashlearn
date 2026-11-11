@@ -12,7 +12,7 @@ from pathlib import Path
 
 from crashlearn import map_cache
 from crashlearn.env import SPEED_MAX, CrashLearnEnv
-from crashlearn.experiments import Run, allow_sb3_saves, attach_wandb, sha256
+from crashlearn.experiments import Run, allow_sb3_saves, attach_wandb, checkpoint_step, sha256
 from crashlearn.history_env import HistoryWrapper
 from crashlearn.tracks import train_tracks
 
@@ -42,12 +42,7 @@ def build_model(args: argparse.Namespace, env, run: Run):
     from stable_baselines3 import PPO
 
     if args.resume:
-        model = PPO.load(args.resume, env=env, device=args.device)
-        if args.timesteps <= model.num_timesteps:
-            raise ValueError("target --timesteps must exceed the checkpoint step")
-        if model.seed != args.seed:
-            raise ValueError("checkpoint seed differs from the run seed")
-        return model
+        return PPO.load(args.resume, env=env, device=args.device)
     model = PPO("MlpPolicy", env, seed=args.seed, device=args.device, **PPO_CONFIG)
     if args.initialize_from:
         source = PPO.load(args.initialize_from, device=args.device)
@@ -109,8 +104,11 @@ def train(args: argparse.Namespace, run: Run) -> None:
         class TrackedCheckpoint(CheckpointCallback):
             def _on_step(self):
                 result = super()._on_step()
-                if writer is not None and self.n_calls % self.save_freq == 0:
-                    writer.checkpoint(Path(self._checkpoint_path(extension="zip")))
+                if self.n_calls % self.save_freq == 0:
+                    path = Path(self._checkpoint_path(extension="zip"))
+                    run.record_checkpoint(path)
+                    if writer is not None:
+                        writer.checkpoint(path)
                 return result
 
         checkpoints = TrackedCheckpoint(
@@ -186,6 +184,9 @@ def main() -> int:
             config=config,
             resume=args.resume,
         )
+        # checked before the attempt, so a refused resume leaves a completed run usable
+        if args.resume and args.timesteps <= checkpoint_step(args.resume):
+            raise ValueError("target --timesteps must exceed the checkpoint step")
     except ValueError as error:
         parser.error(str(error))
 

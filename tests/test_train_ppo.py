@@ -192,6 +192,29 @@ def test_resume_keeps_prior_logs_and_reloads_a_periodic_checkpoint(tmp_path):
     assert list(run_dir.glob("logs/attempt-001/wandb/offline-run-*/*.wandb"))
 
 
+def test_resume_refuses_an_unrecorded_checkpoint(trained):
+    checkpoint = trained / "checkpoints" / "foreign.zip"
+    checkpoint.write_bytes((trained / "model.zip").read_bytes() + b"x")
+    path = trained / "manifest.json"
+    before = path.read_bytes()
+    try:
+        result = train(trained, "--resume", checkpoint, "--timesteps", 8192)
+        assert result.returncode == 2
+        assert "does not match a checkpoint recorded by this run" in result.stderr
+        assert path.read_bytes() == before
+    finally:
+        checkpoint.unlink()
+
+
+def test_a_refused_budget_keeps_the_run_completed(trained):
+    path = trained / "manifest.json"
+    before = path.read_bytes()
+    result = train(trained, "--resume", trained / "model.zip", "--timesteps", 4096)
+    assert result.returncode == 2
+    assert "must exceed the checkpoint step" in result.stderr
+    assert path.read_bytes() == before
+
+
 def test_resume_refuses_changed_preprocessing_without_rewriting_the_run(trained):
     path = trained / "manifest.json"
     original = path.read_text()

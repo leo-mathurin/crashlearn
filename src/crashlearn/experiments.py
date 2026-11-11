@@ -16,6 +16,7 @@ import sys
 import time
 import traceback
 import uuid
+import zipfile
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
@@ -115,6 +116,12 @@ def load_completed_run(run_dir: Path) -> dict:
     return manifest
 
 
+def checkpoint_step(path: Path) -> int:
+    """The step a Stable-Baselines3 checkpoint reached, read without importing SB3."""
+    with zipfile.ZipFile(path) as archive:
+        return json.loads(archive.read("data"))["num_timesteps"]
+
+
 def save_model(model, path: Path) -> str:
     """Save a Stable-Baselines3 model and return its SHA-256."""
     allow_sb3_saves()
@@ -187,6 +194,10 @@ class Run:
             for key, recorded, requested in frozen:
                 if recorded != requested:
                     raise ValueError(f"resume would change {key}; start a separate run")
+            saved = manifest.get("checkpoints", {}) | {"model.zip": manifest.get("model_sha256")}
+            name = resume.resolve().relative_to(directory.resolve()).as_posix()
+            if saved.get(name) != sha256(resume):
+                raise ValueError(f"{resume} does not match a checkpoint recorded by this run")
         directory.mkdir(parents=True, exist_ok=True)
         return cls(directory, manifest)
 
@@ -201,6 +212,12 @@ class Run:
 
     def save(self) -> None:
         write_manifest(self.directory / "manifest.json", self.manifest)
+
+    def record_checkpoint(self, path: Path) -> None:
+        """Keep the hash of a periodic checkpoint: only recorded checkpoints can resume."""
+        name = path.relative_to(self.directory).as_posix()
+        self.manifest.setdefault("checkpoints", {})[name] = sha256(path)
+        self.save()
 
     @contextmanager
     def attempt(self, *, budget_timesteps: int, resumed_from: Path | None, **details):
