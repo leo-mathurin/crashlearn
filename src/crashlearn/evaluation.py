@@ -160,7 +160,12 @@ def _race(env, pilot: Pilot, race: Race, settings: dict) -> dict:
 
 
 def evaluate(env, pilot: Pilot, races: list[Race], output: Path, metadata: dict) -> list[dict]:
-    """Rewrite `output` after every race: a crash mid-campaign keeps the finished races."""
+    """Rewrite `output` after every race: a crash mid-campaign keeps the finished races.
+
+    Raises FileExistsError if `output` exists: earlier results are kept, not replaced.
+    """
+    if output.exists():
+        raise FileExistsError(f"{output} already exists; preserve prior results")
     output.parent.mkdir(parents=True, exist_ok=True)
     records = []
     for race in races:

@@ -61,6 +61,8 @@ def main() -> int:
         "--max-steps", type=int, default=MAX_DECISIONS, help="decisions before TIMEOUT"
     )
     args = parser.parse_args()
+    if args.output.exists():
+        parser.error("output already exists; preserve prior results")
 
     races = campaign(args.maps, args.conditions, tuple(args.seeds or EVAL_SEEDS))
     if not races:

@@ -191,3 +191,11 @@ def test_results_are_on_disk_after_each_race(env, tmp_path):
     kept = json.loads(output.read_text())
     assert [r["seed"] for r in kept] == [0]
     assert kept[0]["driver"] == "x"
+
+
+def test_an_existing_campaign_file_is_not_replaced(env, tmp_path):
+    output = tmp_path / "races.json"
+    output.write_text("[]\n")
+    with pytest.raises(FileExistsError):
+        evaluate(env, Fixed(1.5), [RACE], output, {"driver": "x"})
+    assert output.read_text() == "[]\n"

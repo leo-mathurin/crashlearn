@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from crashlearn import MAX_DECISIONS, add_simulator_to_path, engine_seed, map_cache
+from crashlearn.experiments import sha256
 from crashlearn.reward import STATUS_ACTIVE, STATUS_DNF, STATUS_FINISHED
 from crashlearn.tracks import validation_tracks
 
@@ -21,6 +22,13 @@ import env_simulation as sim  # noqa: E402
 from agent_loader import validate_and_load_agent  # noqa: E402
 
 STATUS = {STATUS_DNF: "DNF", STATUS_ACTIVE: "TIMEOUT", STATUS_FINISHED: "FINISHED"}
+
+
+def check_files(submission: Path, exported: dict) -> None:
+    """The races must use the exact files that export.json describes."""
+    for name, recorded in exported["files"].items():
+        if sha256(submission / name) != recorded:
+            raise SystemExit(f"{submission / name} does not match export.json")
 
 
 def main() -> int:
@@ -37,6 +45,7 @@ def main() -> int:
     # The loader checks the submission like the tournament; each race gets a fresh Agent.
     agent_class = type(validate_and_load_agent(args.submission)[1])
     exported = json.loads((args.submission / "export.json").read_text())
+    check_files(args.submission, exported)
     map_cache.install()
     records = []
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -89,6 +98,7 @@ def main() -> int:
             )
     finally:
         sim.close()
+    check_files(args.submission, exported)
     assert "torch" not in sys.modules and "stable_baselines3" not in sys.modules
     return 0
 
