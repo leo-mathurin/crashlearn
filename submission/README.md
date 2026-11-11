@@ -12,6 +12,12 @@ a été mis à jour dans `export.json`. Ce formatage ne change pas le prétraite
 Ces deux pilotes constituent la livraison solo actuelle. Le pilote SAC et le champion
 multi-agent relèvent des étapes E-24 et E-26/E-31.
 
+**Course solo uniquement.** L'entraînement et toutes les validations se font sans
+adversaire : les colonnes 105 à 125 des features (adversaires) restent nulles, et leurs
+poids d'entrée gardent leur initialisation aléatoire. Avec des adversaires actifs, ces
+colonnes ajoutent un décalage non appris et le comportement n'est pas mesuré. N'engagez
+pas ces pilotes dans une course à plusieurs voitures.
+
 ```bash
 uv run python vendor/simulation/verify_submission.py --submission submission/driver1
 uv run python vendor/simulation/verify_submission.py --submission submission/driver2
