@@ -67,7 +67,8 @@ jobs:
   training:
     name: Training and ONNX
     # The Pytest job has no torch and skips slow tests: this job is the only one that trains,
-    # resumes and exports an agent, in the tournament CPU image.
+    # resumes and exports an agent, in the tournament CPU image. It also checks that each
+    # delivered agent.py is the generated source.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -87,5 +88,6 @@ jobs:
             -e PYTHONPATH=/workspace/src \
             crashlearn-sim:ci sh -c '
               python -m pip install -c constraints.txt gymnasium stable-baselines3 wandb &&
-              python -m pytest -m "slow or not slow" tests/test_train_ppo.py tests/test_export.py
+              python -m pytest -m "slow or not slow" tests/test_train_ppo.py tests/test_export.py \
+                tests/test_submission_contract.py
             '
