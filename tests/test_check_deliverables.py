@@ -88,7 +88,9 @@ def test_model_without_results_is_reported(repo):
     ]
 
 
-@pytest.mark.parametrize("sums", [None, "", "# crashlearn/crashlearn/results-e-18\n"])
+@pytest.mark.parametrize(
+    "sums", [None, "", "# crashlearn/crashlearn/results-e-18\n", "# x/y/results-e-18:v0\n\n"]
+)
 def test_results_without_artifact_version_are_reported(repo, sums):
     """The README cites the model, but no SHA256SUMS names the W&B artifact version."""
     model = source_model(repo, "driver2")

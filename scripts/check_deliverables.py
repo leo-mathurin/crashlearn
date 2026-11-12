@@ -53,7 +53,7 @@ def results_links(model: str, root: Path) -> tuple[list[str], list[str]]:
         sums = readme.parent / "SHA256SUMS"
         header, *entries = (sums.read_text() if sums.is_file() else "").splitlines() or [""]
         campaign = readme.parent.relative_to(root)
-        if ARTIFACT.fullmatch(header) and entries:
+        if ARTIFACT.fullmatch(header) and any(entries):
             links.append(f"{campaign} ({header.removeprefix('# ')})")
         else:
             unlinked.append(str(campaign))
