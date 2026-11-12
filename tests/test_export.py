@@ -58,3 +58,38 @@ def test_export_keeps_the_trained_action_bounds(tmp_path):
         np.testing.assert_allclose(actual[:, 0], upper, atol=TORCH_ONNX_ATOL, rtol=0)
     finally:
         env.close()
+
+
+class _FullThrottle:
+    """Stands for the ONNX session: always the highest speed command, straight ahead."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def get_inputs(self):
+        return [type("Input", (), {"name": "features"})()]
+
+    def run(self, outputs, feed):
+        return [np.array([[1.0, 0.0]], dtype=np.float32)]
+
+
+def _agent(monkeypatch, friction_cap):
+    namespace = {"__file__": "agent.py"}
+    exec(export.agent_source(1, friction_cap), namespace)
+    monkeypatch.setattr(namespace["ort"], "InferenceSession", _FullThrottle)
+    return namespace["Agent"]()
+
+
+@pytest.mark.parametrize(
+    ("info", "expected"),
+    [({"friction_current": 0.7}, 4.75 * 0.7**0.5), ({"friction_current": 1.0}, 4.75), ({}, 4.75)],
+)
+def test_the_friction_cap_bounds_the_speed_by_the_friction_in_info(monkeypatch, info, expected):
+    agent = _agent(monkeypatch, {"reference_mps": 4.75, "exponent": 0.5})
+    speed, steering = agent.predict({"agent_id": 0}, info)
+    assert speed == pytest.approx(expected) and steering == 0.0
+
+
+def test_without_a_friction_cap_the_agent_ignores_the_friction(monkeypatch):
+    agent = _agent(monkeypatch, None)
+    assert agent.predict({"agent_id": 0}, {"friction_current": 0.7})[0] == pytest.approx(10.0)
