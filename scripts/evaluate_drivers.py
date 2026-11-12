@@ -5,11 +5,12 @@ whenever the races ran. The sealed test tracks are not part of the campaign.
 """
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
 from crashlearn import MAX_DECISIONS
-from crashlearn.env import OBS_SIZE, CrashLearnEnv
+from crashlearn.env import OBS_SIZE, CrashLearnEnv, controls_to_action
 from crashlearn.evaluation import CONDITIONS, EVAL_SEEDS, ScriptedPilot, campaign, evaluate
 from crashlearn.experiments import load_completed_run, provenance
 from crashlearn.history_env import FrictionWrapper, HistoryWrapper
@@ -27,6 +28,37 @@ class PPOPilot:
 
     def act(self, obs, info):
         return self.model.predict(obs, deterministic=True)[0]
+
+
+class SubmissionPilot:
+    """A delivered agent folder, loaded by the official loader: the exact code that races."""
+
+    def __init__(self, folder: Path):
+        from agent_loader import validate_and_load_agent
+
+        self.agent_class = type(validate_and_load_agent(folder)[1])
+        self.agent = None
+
+    def reset(self) -> None:
+        self.agent = self.agent_class()
+
+    def act(self, obs, info):
+        return controls_to_action(*self.agent.predict(info["raw_obs"], info["step_info"]))
+
+
+def load_submission(folder: Path) -> tuple[SubmissionPilot, dict]:
+    exported = json.loads((folder / "export.json").read_text())
+    metadata = {
+        "driver": f"submission/{folder.name}",
+        "train_seed": None,
+        # the agent keeps its own history; the env only has to report raw observations
+        "history_depth": 1,
+        "agent_history_depth": exported["history_depth"],
+        "source_model_sha256": exported["source_model_sha256"],
+        "export_files": exported["files"],
+        "friction_speed_cap": exported.get("friction_speed_cap"),
+    }
+    return SubmissionPilot(folder), metadata
 
 
 def load_run(run_dir: Path) -> tuple[PPOPilot, dict]:
@@ -53,6 +85,7 @@ def main() -> int:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--run-dir", type=Path, help="directory written by train_ppo.py")
     source.add_argument("--scripted", action="store_true", help="the E-11 control driver")
+    source.add_argument("--submission", type=Path, help="a submission/<driver> folder")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--map", action="append", dest="maps", help="restrict the campaign")
     parser.add_argument("--condition", action="append", choices=CONDITIONS, dest="conditions")
@@ -71,6 +104,8 @@ def main() -> int:
     if args.scripted:
         pilot = ScriptedPilot()
         metadata = {"driver": "scripted", "train_seed": None, "history_depth": 1}
+    elif args.submission:
+        pilot, metadata = load_submission(args.submission)
     else:
         pilot, metadata = load_run(args.run_dir)
     metadata |= {**provenance(), "max_steps": args.max_steps}
