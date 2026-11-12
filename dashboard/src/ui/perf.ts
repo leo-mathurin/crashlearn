@@ -23,6 +23,7 @@ export class PerfMeter {
   private readonly intervals: number[] = [];
   private readonly work: number[] = [];
   private lastShown = 0;
+  private load = "";
 
   /** Adds one frame: the time since the previous frame and the time spent in the frame loop. */
   sample(intervalMs: number, workMs: number, now: number, detail: string): void {
@@ -37,8 +38,17 @@ export class PerfMeter {
     const summary = this.summary();
     setText(
       this.element,
-      `${summary.fps.toFixed(0)} fps · ${summary.frameMs.toFixed(1)} ms (p95 ${summary.frameP95Ms.toFixed(1)}) · CPU ${summary.workMs.toFixed(2)} ms · ${detail}`,
+      `${summary.fps.toFixed(0)} fps · ${summary.frameMs.toFixed(1)} ms (p95 ${summary.frameP95Ms.toFixed(1)}) · CPU ${summary.workMs.toFixed(2)} ms · ${detail}${this.load}`,
     );
+  }
+
+  /** Shows the time of each step of the opening of the replay, in milliseconds. */
+  setLoad(steps: Record<string, number>): void {
+    const total = Object.values(steps).reduce((sum, value) => sum + value, 0);
+    const detail = Object.entries(steps)
+      .map(([step, value]) => `${step} ${value}`)
+      .join(", ");
+    this.load = `\nouverture ${total} ms (${detail})`;
   }
 
   reset(): void {

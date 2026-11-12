@@ -72,6 +72,7 @@ export class Telemetry {
   private shownKey = "";
 
   constructor() {
+    this.steering.element.classList.add("gauge-steering");
     this.element = h(
       "div",
       { class: "panel telemetry", hidden: true },
@@ -80,7 +81,7 @@ export class Telemetry {
       this.steering.element,
       h(
         "div",
-        { class: "gauge" },
+        { class: "gauge gauge-lap" },
         h(
           "div",
           { class: "gauge-head" },

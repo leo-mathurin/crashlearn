@@ -1,6 +1,7 @@
 /**
  * Free camera: a perspective camera in orbit around a point on the ground. Orbit, zoom and
- * move with the mouse, the trackpad or touch; a double-click moves the orbit point.
+ * move with the mouse, the trackpad or touch; a double-click moves the orbit point. The keys
+ * Z, Q, S, D (W, A, S, D on a QWERTY keyboard) move the camera over the ground.
  */
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import * as THREE from "three/webgpu";
@@ -8,6 +9,22 @@ import * as THREE from "three/webgpu";
 const FOV_DEG = 42;
 /** Polar angle of the first view, from the vertical: a three-quarter view from the south. */
 const FIRST_POLAR_RAD = (52 * Math.PI) / 180;
+
+/**
+ * Move keys by their place on the keyboard, not by their letter: the same four keys are Z, Q,
+ * S, D on an AZERTY keyboard and W, A, S, D on a QWERTY one. Each gives (forward, right).
+ */
+const MOVE_KEYS: Record<string, readonly [number, number]> = {
+  KeyW: [1, 0],
+  KeyS: [-1, 0],
+  KeyA: [0, -1],
+  KeyD: [0, 1],
+};
+/** Speed of a key move, in orbit distances per second: the same pace on screen at any zoom. */
+const MOVE_SPEED = 0.9;
+const FAST_FACTOR = 2.5;
+/** How fast a key move starts and stops, per second. */
+const MOVE_EASE_RATE = 12;
 
 export class FreeCamera {
   readonly camera = new THREE.PerspectiveCamera(FOV_DEG, 1, 0.1, 4000);
@@ -17,6 +34,12 @@ export class FreeCamera {
   /** Point that the orbit centre moves to after a double-click, or null. */
   private orbitGoal: THREE.Vector3 | null = null;
   private readonly scratch = new THREE.Vector3();
+  private readonly heldKeys = new Set<string>();
+  /** With Shift, a key move is faster. */
+  fast = false;
+  /** Current speed of the key move over the ground, in metres per second (Three.js x and z). */
+  private readonly velocity = new THREE.Vector2();
+  private readonly forward = new THREE.Vector3();
   /** False until the first view is set: the camera then frames what the Aerial camera shows. */
   placed = false;
 
@@ -34,6 +57,22 @@ export class FreeCamera {
 
   set enabled(value: boolean) {
     this.controls.enabled = value;
+    if (!value) this.releaseKeys();
+  }
+
+  /** Holds a move key down. Returns false when `code` is not a move key. */
+  pressKey(code: string): boolean {
+    if (!(code in MOVE_KEYS)) return false;
+    this.heldKeys.add(code);
+    return true;
+  }
+
+  releaseKey(code: string): void {
+    this.heldKeys.delete(code);
+  }
+
+  releaseKeys(): void {
+    this.heldKeys.clear();
   }
 
   /** Orbit centre on the ground, in Three.js world axes. */
@@ -49,6 +88,7 @@ export class FreeCamera {
   frame(target: THREE.Vector3, halfHeight: number): void {
     const distance = halfHeight / Math.tan(THREE.MathUtils.degToRad(FOV_DEG / 2));
     this.orbitGoal = null;
+    this.velocity.set(0, 0);
     this.controls.target.copy(target);
     this.camera.position
       .set(0, Math.cos(FIRST_POLAR_RAD), Math.sin(FIRST_POLAR_RAD))
@@ -75,7 +115,38 @@ export class FreeCamera {
     this.camera.updateProjectionMatrix();
   }
 
+  /** Moves the camera and its orbit centre over the ground, for the move keys held down. */
+  private moveWithKeys(seconds: number): void {
+    let ahead = 0;
+    let right = 0;
+    if (this.controls.enabled) {
+      for (const code of this.heldKeys) {
+        ahead += MOVE_KEYS[code]?.[0] ?? 0;
+        right += MOVE_KEYS[code]?.[1] ?? 0;
+      }
+    }
+    const { velocity, forward } = this;
+    if (ahead === 0 && right === 0 && velocity.lengthSq() < 1e-6) return;
+    // "Forward" is where the camera looks, flat on the ground.
+    forward.subVectors(this.controls.target, this.camera.position).setY(0);
+    if (forward.lengthSq() < 1e-9) this.camera.getWorldDirection(forward).setY(0);
+    forward.normalize();
+    const length = Math.hypot(ahead, right) || 1;
+    const speed = Math.max(this.distance, 2) * MOVE_SPEED * (this.fast ? FAST_FACTOR : 1);
+    // The right of the view is the forward direction turned by a quarter turn.
+    const wantedX = ((forward.x * ahead - forward.z * right) / length) * speed;
+    const wantedZ = ((forward.z * ahead + forward.x * right) / length) * speed;
+    const ease = 1 - Math.exp(-seconds * MOVE_EASE_RATE);
+    velocity.x += (wantedX - velocity.x) * ease;
+    velocity.y += (wantedZ - velocity.y) * ease;
+    if (ahead !== 0 || right !== 0) this.orbitGoal = null;
+    this.scratch.set(velocity.x * seconds, 0, velocity.y * seconds);
+    this.controls.target.add(this.scratch);
+    this.camera.position.add(this.scratch);
+  }
+
   update(seconds: number): void {
+    this.moveWithKeys(seconds);
     if (this.orbitGoal) {
       // The camera moves with its orbit centre: the view glides to the new point.
       const step = this.scratch

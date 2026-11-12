@@ -104,8 +104,25 @@ export interface Surface {
   normalMap: THREE.Texture;
 }
 
+const cache = new Map<string, Surface>();
+
+/** The surfaces are drawn once and used by every circuit: they must not be disposed. */
+function cached(name: string, anisotropy: number, draw: (anisotropy: number) => Surface): Surface {
+  const key = `${name}:${anisotropy}`;
+  let surface = cache.get(key);
+  if (!surface) {
+    surface = draw(anisotropy);
+    cache.set(key, surface);
+  }
+  return surface;
+}
+
+export const asphalt = (anisotropy: number) => cached("asphalt", anisotropy, drawAsphalt);
+export const grass = (anisotropy: number) => cached("grass", anisotropy, drawGrass);
+export const concrete = (anisotropy: number) => cached("concrete", anisotropy, drawConcrete);
+
 /** Asphalt: dark binder with pale aggregate stones and slow tone variations. */
-export function asphalt(anisotropy: number): Surface {
+function drawAsphalt(anisotropy: number): Surface {
   const grain = tileableNoise(11, 64, 3);
   const blotches = tileableNoise(12, 4, 3);
   const next = random(13);
@@ -127,7 +144,7 @@ export function asphalt(anisotropy: number): Surface {
 }
 
 /** Grass: mottled greens with fine blade-scale grain. */
-export function grass(anisotropy: number): Surface {
+function drawGrass(anisotropy: number): Surface {
   const patches = tileableNoise(21, 4, 4);
   const blades = tileableNoise(22, 128, 2);
   const dry = tileableNoise(23, 8, 2);
@@ -151,7 +168,7 @@ export function grass(anisotropy: number): Surface {
 }
 
 /** Cast concrete: pale gray with pores and soft stains. */
-export function concrete(anisotropy: number): Surface {
+function drawConcrete(anisotropy: number): Surface {
   const stains = tileableNoise(31, 4, 4);
   const pores = tileableNoise(32, 96, 2);
   const next = random(33);
