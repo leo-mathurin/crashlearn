@@ -1,8 +1,0 @@
-{
-  "observed_utc": "2026-11-10T09:41:57+00:00",
-  "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
-  "logical_cpus": 16,
-  "gpu": "NVIDIA GeForce RTX 5070, 595.91.07, 12227 MiB",
-  "training_image_id": "sha256:ff88d08af5fd4a202ba98f0b86f027af167df440efd027a79350eadd869e5df2",
-  "tournament_cpu_image_id": "sha256:29b9cb8434f940611345f6b61a7a32ddf1a9d7f703b27953b6a22f51e5a8b78c"
-}

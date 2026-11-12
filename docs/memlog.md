@@ -185,3 +185,7 @@ La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas 
 ## 2026-11-12 · [Outillage] Équipe W&B partagée
 
 E-20 : création de l'entité W&B `crashlearn` (organisation `crashlearn-org`, plan académique en essai, 100 Go inclus, aucun moyen de paiement), invitation de Lucas et Thibaud, clé d'API de la station dans `~/.netrc` hors Git. Les 13 runs hors ligne des campagnes E-18 et E-19 sont dans le projet `crashlearn-archive`, avec leurs identifiants d'origine (métriques et configuration ; leurs checkpoints restent sur la station, l'envoi des artefacts hors ligne n'aboutit pas) ; un run en ligne de contrôle (4096 puis 8192 interactions, reprise comprise) garde le même identifiant W&B. Le suivi hors ligne reste le défaut. Pourquoi : comparer les runs à trois sans passer par la station, sans dépendre du réseau pendant un entraînement.
+
+## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
+
+Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.

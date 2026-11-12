@@ -146,3 +146,19 @@ est enregistrée dans le manifest avant la sortie du run.
 La CI `Training and ONNX` exécute un entraînement court, une reprise, l'export, la
 comparaison sur observations réelles et le vérificateur officiel dans l'image CPU du
 tournoi. Elle installe la pile d'entraînement aux versions de `uv.lock`.
+
+## Résultats bruts
+
+Les courses brutes (`.json` de `docs/results/`) ne sont pas dans Git : chaque campagne
+est un artefact W&B `results-<dossier>` du projet `crashlearn/crashlearn`. Git garde le
+README, les manifests et `SHA256SUMS`, qui donne la version de l'artefact et l'empreinte
+de chaque fichier. Le `.gitignore` refuse les autres `.json` de `docs/results/`.
+
+```bash
+uv run python scripts/results_artifact.py fetch docs/results/e-18     # télécharge et vérifie
+uv run python scripts/results_artifact.py publish docs/results/e-23   # nouvelle version
+```
+
+`publish` envoie tous les `.json` du dossier hors `manifests/` et réécrit `SHA256SUMS` ;
+committer ce fichier avec le README qui cite les résultats. `fetch` échoue si un fichier
+diffère de `SHA256SUMS`. L'accès demande un compte de l'équipe W&B (section W&B).
