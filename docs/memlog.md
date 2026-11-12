@@ -182,6 +182,10 @@ E-19 : aucun plafond de vitesse seul ne fait finir les quatre circuits de valida
 
 La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas de sélection, et 400 courses nouvelles, seeds 200 à 299, sont fixées avant la confirmation. Un plafond global de 4,75 m/s corrige les deux DNF, sans réglage par circuit et avec les mêmes poids appris. Le candidat figé finit 400/400. Coût : médiane de 236,17 à 247,57 s sur 118 courses communes. Faible adhérence et forte pluie restent à 6/12 (E-23). Preuves : `docs/results/driver1/README.md`.
 
+## 2026-11-12 · [Outillage] Équipe W&B partagée
+
+E-20 : entité W&B `crashlearn` (organisation `crashlearn-org`, plan académique en essai jusqu'au 12/12/2026, 100 Go inclus, aucun moyen de paiement). Lucas et Thibaud sont invités ; la clé d'API de la station est dans `~/.netrc`, hors Git. Les 13 runs hors ligne de E-18 et E-19 sont dans le projet `crashlearn-archive` avec leurs identifiants d'origine, sans leurs checkpoints, qui restent sur la station. Un run en ligne de contrôle (4096 puis 8192 interactions) garde son identifiant W&B à la reprise. Le suivi hors ligne reste le défaut. Pourquoi : comparer les runs à trois sans passer par la station, sans dépendre du réseau pendant un entraînement.
+
 ## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
 
 Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
