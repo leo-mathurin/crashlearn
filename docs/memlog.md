@@ -217,3 +217,7 @@ Piste 1, sans réentraînement : l'agent borne sa vitesse à 4,75 × μ^k m/s, �
 ## 2026-11-12 · [Livraison] driver1 ralentit selon la friction : 800/800 sous météo
 
 E-49 : sur les 280 cas de sélection, la borne 4,75 × μ^k finit tout pour k = 0,5 et k = 0,75 ; k = 0,5 est retenu (plus petit, plus rapide). Confirmation neuve : 800/800 courses météo contre 716/800 sans la borne, et 400/400 courses nominales identiques à E-23. Coût : +5,6 % de temps médian sous météo. Le modèle ne change pas, seul `agent.py`. Pourquoi : le tournoi donne `friction_current`, et ralentir sous la pluie règle Montreal sans réentraîner. Résultats : `docs/results/e-49/README.md`.
+
+## 2026-11-12 · [Outillage] Dashboard de course : scène 3D, Bun et Three.js
+
+E-33, commencé avant le champion à la demande de Léo. Le lecteur de replays est dans `dashboard/` : TypeScript, Three.js avec `WebGPURenderer` (WebGPU si le navigateur l'offre, WebGL 2 sinon), Bun comme serveur, bundler et lanceur de tests. Il décode les `.npz` du recorder dans le navigateur ; le format ne change pas. Sur la piste, tout vient des données : bitume depuis la centerline et les largeurs, murs de 0,25 m depuis les pixels occupés (seuil 128 du simulateur), limite de DNF calculée comme `_is_off_track`. Les replays ne sont pas dans Git : `scripts/record_replay.py` les enregistre avec le recorder fourni et refuse le test scellé. Pourquoi : un replay doit montrer ce que le simulateur a vu, sans alourdir le dépôt de remise. Détails : `dashboard/README.md`.

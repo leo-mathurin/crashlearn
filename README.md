@@ -123,6 +123,15 @@ uv run python scripts/control_race.py                          # 5 cartes train,
 uv run python scripts/control_race.py --map Austin --cars 4 --seed 1 --output runs/austin.json
 ```
 
+## Dashboard de course
+
+Lecteur web local de replays, dans une scène 3D ([dashboard/README.md](dashboard/README.md)). Il demande [Bun](https://bun.sh).
+
+```bash
+uv run python scripts/record_replay.py --demo    # 3 replays de démonstration dans replays/
+cd dashboard && bun install && bun start         # http://localhost:5173
+```
+
 ## Intégration continue
 
 GitHub Actions lance trois jobs, **Ruff**, **Pytest** et **Training and ONNX**, sur chaque PR et chaque push vers `develop` et `main`. Pour une PR empilée sur une autre branche, les lancer à la main (`gh workflow run ci.yml --ref <branche>`). Le workflow **Commitlint** s'exécute sur chaque PR et à chaque modification de son titre.
@@ -147,6 +156,7 @@ src/crashlearn/     package applicatif (code de l'équipe)
 scripts/            points d'entrée CLI (run de contrôle, …)
 src/crashlearn/tracks.yaml  circuits, alias et partitions train/validation/test (source unique)
 tests/              tests pytest (contrat simulateur, soumission, circuits, pilote scripté, wrapper, features, export)
+dashboard/          dashboard de course : lecteur web local de replays (Bun, TypeScript, Three.js)
 docs/               documentation technique (circuits et partitions, pilote scripté)
 .github/workflows/  CI GitHub Actions (ci.yml, commitlint.yml)
 .pre-commit-config.yaml  hooks Git (ruff en local, commitlint en hook distant)
