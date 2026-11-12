@@ -30,6 +30,7 @@ export class Stage {
   readonly simRoot = new THREE.Group();
   private readonly sun = new THREE.DirectionalLight(0xfff1dc, 2.6);
   private readonly fog = new THREE.Fog(HAZE_COLOR, 1e5, 1e6);
+  private scale = 1;
 
   private constructor(
     readonly renderer: THREE.WebGPURenderer,
@@ -77,8 +78,55 @@ export class Stage {
   }
 
   resize(width: number, height: number): void {
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * this.scale);
     this.renderer.setSize(width, height, false);
+  }
+
+  /** Share of the full resolution that the scene is drawn at, from 0 to 1. */
+  get resolutionScale(): number {
+    return this.scale;
+  }
+
+  /**
+   * Draws the scene with fewer pixels, for a GPU that cannot keep the frame rate at the full
+   * resolution of the screen. The HUD is not part of the scene: it stays sharp.
+   */
+  setResolutionScale(scale: number, width: number, height: number): void {
+    this.scale = scale;
+    this.resize(width, height);
+  }
+
+  /**
+   * Prepares the GPU programs of everything in the scene, for each camera of `cameras`: also
+   * what is hidden or out of view now. Without this, each object stops the frame loop the first
+   * time it comes on screen (a change of camera, the first DNF mark), for as long as its
+   * program takes to build. The programs build in parallel where the browser can do it.
+   * Nothing must be rendered before the promise resolves.
+   */
+  async warmUp(cameras: readonly THREE.Camera[]): Promise<void> {
+    const hidden: THREE.Object3D[] = [];
+    const culled: THREE.Object3D[] = [];
+    this.scene.traverse((object) => {
+      if (!object.visible) hidden.push(object);
+      if (object.frustumCulled) culled.push(object);
+      object.visible = true;
+      object.frustumCulled = false;
+    });
+    try {
+      for (const camera of cameras) {
+        const { mask } = camera.layers;
+        // The scenery is drawn in a pass of its own, or with the race in one pass.
+        for (const layers of [1 << SCENERY_LAYER, 1, ALL_LAYERS]) {
+          camera.layers.mask = layers;
+          // oxlint-disable-next-line no-await-in-loop -- one render state at a time
+          await this.renderer.compileAsync(this.scene, camera);
+        }
+        camera.layers.mask = mask;
+      }
+    } finally {
+      for (const object of hidden) object.visible = false;
+      for (const object of culled) object.frustumCulled = true;
+    }
   }
 
   /**

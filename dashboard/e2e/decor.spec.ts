@@ -52,7 +52,7 @@ test("draws the scenery by default and removes it in one click", async ({ page }
 
 test("remembers that the scenery is off", async ({ page }) => {
   await openReplay(page, "demo-solo-spielberg");
-  await press(page, "d");
+  await press(page, "g");
   expect((await state(page)).decorVisible).toBe(false);
   await openReplay(page, "demo-solo-spielberg");
   expect((await state(page)).decorVisible).toBe(false);
@@ -70,9 +70,9 @@ test("never hides the LiDAR rays behind the scenery, whatever the camera", async
     // The scenery is drawn first and the race over it: with or without the scenery, the same
     // pixels show the beams.
     const withDecor = await lidarShare(page);
-    await press(page, "d");
+    await press(page, "g");
     const without = await lidarShare(page);
-    await press(page, "d");
+    await press(page, "g");
     expect(withDecor).toBeGreaterThan(0);
     expect(Math.abs(withDecor - without)).toBeLessThan(Math.max(without * 0.03, 0.0005));
   }

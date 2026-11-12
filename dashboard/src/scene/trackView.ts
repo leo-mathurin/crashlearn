@@ -394,11 +394,8 @@ export function buildTrackView(assets: TrackAssets, anisotropy: number): TrackVi
       group.traverse((child) => {
         if (!(child instanceof THREE.Mesh)) return;
         child.geometry.dispose();
-        const material: THREE.Material & { map?: THREE.Texture; normalMap?: THREE.Texture } =
-          child.material;
-        material.map?.dispose();
-        material.normalMap?.dispose();
-        material.dispose();
+        // The surface textures are shared by every circuit: they stay.
+        (child.material as THREE.Material).dispose();
       });
     },
   };

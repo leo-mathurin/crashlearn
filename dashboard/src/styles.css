@@ -72,8 +72,19 @@ code {
   pointer-events: none;
 }
 
-#hud > *,
-#hud .panel {
+/* The HUD is a column: top bar, notices, side panels, timeline. Each part takes its own
+   space, so no panel can be over another one, whatever the size of the window. */
+#hud {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+#hud .panel,
+#hud .library {
   pointer-events: auto;
 }
 
@@ -88,26 +99,45 @@ code {
     0 12px 32px rgb(0 0 0 / 0.35);
 }
 
-/* Top bar and side columns */
+/* Top bar and side panels */
 
-.hud-column {
-  position: absolute;
-  top: 12px;
+.hud-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.hud-middle {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.hud-side {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: calc(100% - 24px);
-  pointer-events: none !important;
+  min-width: 0;
+  min-height: 0;
 }
 
-.hud-column.left {
-  left: 12px;
+.hud-side.left {
   align-items: flex-start;
 }
 
-.hud-column.right {
-  right: 12px;
+.hud-side.right {
   align-items: flex-end;
+}
+
+/* The mini-map and the frame meter stay at the bottom of their side. */
+.hud-side .minimap,
+.hud-side .perf {
+  margin-top: auto;
 }
 
 .brand,
@@ -117,9 +147,13 @@ code {
   gap: 12px;
   padding: 8px 8px 8px 14px;
   min-height: 46px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .view-options {
+  flex-wrap: wrap;
+  row-gap: 6px;
   padding-right: 12px;
 }
 
@@ -142,7 +176,7 @@ code {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 34ch;
+  max-width: min(34ch, 40vw);
 }
 
 .replay-title {
@@ -375,9 +409,7 @@ code {
 /* Mini-map */
 
 .minimap {
-  position: absolute;
-  right: 12px;
-  bottom: 84px;
+  flex: none;
   padding: 5px;
   line-height: 0;
 }
@@ -391,10 +423,6 @@ code {
 /* Notices */
 
 .notices {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -429,11 +457,11 @@ code {
 
 /* Timeline */
 
+.notices:empty {
+  display: none;
+}
+
 .hud-bottom {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
   display: flex;
   justify-content: center;
   pointer-events: none !important;
@@ -699,6 +727,7 @@ code {
 }
 
 .leaderboard {
+  --row-height: 44px;
   width: 306px;
   padding: 12px 8px 8px;
 }
@@ -718,6 +747,7 @@ code {
 
 .leaderboard-rows {
   position: relative;
+  height: calc(var(--rows, 0) * var(--row-height));
 }
 
 .leaderboard-row {
@@ -728,7 +758,8 @@ code {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 40px;
+  height: calc(var(--row-height) - 4px);
+  transform: translateY(calc(var(--place, 0) * var(--row-height)));
   padding: 0 10px 0 8px;
   border: 1px solid transparent;
   border-radius: 10px;
@@ -1093,17 +1124,22 @@ code {
 }
 
 .perf {
-  position: absolute;
-  bottom: 84px;
-  left: 12px;
   padding: 6px 10px;
+  white-space: pre-line;
   font: 11px/1.4 var(--mono);
   color: var(--muted);
 }
 
+/* Medium windows: narrower side panels, no speed chart. */
+@media (max-width: 1100px), (max-height: 760px) {
+  .telemetry .chart {
+    display: none;
+  }
+}
+
 @media (max-width: 1100px) {
-  .telemetry .chart,
-  .leaderboard h2 {
+  .leaderboard h2,
+  .view-options .badge {
     display: none;
   }
 
@@ -1111,49 +1147,117 @@ code {
   .telemetry {
     width: 250px;
   }
+}
 
-  .hud-column.right .view-options .badge {
+/* Short windows: the telemetry keeps the speed and the lap, next to a small mini-map. */
+@media (max-height: 640px) {
+  .minimap-canvas {
+    width: 132px;
+    height: 132px;
+  }
+
+  .hud-side.right {
+    flex-direction: row-reverse;
+    align-items: flex-start;
+  }
+
+  .hud-side .minimap {
+    margin-top: 0;
+  }
+
+  .telemetry {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .telemetry .gauge-steering,
+  .telemetry .telemetry-line,
+  .telemetry .gauge-target {
+    display: none;
+  }
+
+  .leaderboard h2 {
+    display: none;
+  }
+
+  .leaderboard {
+    --row-height: 36px;
+  }
+}
+
+@media (max-height: 640px) and (max-width: 900px) {
+  .leaderboard,
+  .telemetry {
+    width: 210px;
+  }
+
+  .row-detail {
     display: none;
   }
 }
 
+/* Very short windows (a phone held flat): no mini-map, and the panels are cut at the timeline
+   if they are still too tall. */
+@media (max-height: 420px) {
+  .minimap,
+  .telemetry .gauge-lap {
+    display: none;
+  }
+
+  .leaderboard {
+    --row-height: 30px;
+    padding: 6px;
+  }
+
+  .hud-middle {
+    overflow: clip;
+  }
+}
+
+/* Small windows (a phone held upright): two compact panels side by side, the mini-map under
+   the telemetry. */
 @media (max-width: 760px) {
   .minimap-canvas {
     width: 120px;
     height: 120px;
   }
 
-  .minimap {
-    bottom: 124px;
+  .hud-side {
+    flex: 1 1 0;
   }
 
-  .hud-column.right {
-    top: 64px;
-    right: auto;
-    left: 12px;
-    align-items: flex-start;
+  .hud-side.right {
+    flex-direction: column;
+    align-items: flex-end;
   }
 
-  .hud-column.left {
-    top: 12px;
+  .hud-side .minimap {
+    margin-top: auto;
   }
 
-  .leaderboard {
-    display: none;
-  }
-
-  .view-options {
-    flex-wrap: wrap;
+  .leaderboard,
+  .telemetry {
+    width: 100%;
+    max-width: 250px;
   }
 
   .telemetry {
-    display: none;
+    gap: 8px;
+    padding: 10px 12px;
   }
 
+  .telemetry .gauge-steering,
+  .telemetry .telemetry-line,
+  .telemetry .gauge-target,
+  .row-detail,
   .frame-label,
   .brand-mark,
   .badge {
     display: none;
+  }
+
+  .gauge-value {
+    font-size: 18px;
   }
 
   .brand-replay {
