@@ -44,7 +44,9 @@ La sélection et la confirmation utilisent donc l'agent ONNX livré
 - Résultat sur les 4 circuits de validation, seul en piste. Les circuits test restent
   scellés ; le comportement avec des adversaires n'est pas mesuré (E-28).
 - La borne suppose que le tournoi donne `friction_current`, comme le sujet l'annonce.
-  Absente ou invalide, elle vaut 1 : l'agent roule alors comme le driver1 d'E-23.
+  Absente ou non numérique, la friction vaut 1 et l'agent roule comme le driver1 d'E-23 ;
+  une valeur hors de [0,05 ; 1] est ramenée dans cet intervalle (0 donne 1,06 m/s). Le
+  tournoi annonce 0,7 à 1,0.
 
 ## Provenance
 
