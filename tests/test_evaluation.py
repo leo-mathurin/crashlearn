@@ -89,8 +89,25 @@ def test_a_dnf_is_a_record_not_an_error(env):
 @pytest.mark.parametrize("condition", list(CONDITIONS))
 def test_conditions_reach_the_simulator(env, condition):
     result = run_race(env, Fixed(1.0), Race("validation", "Sochi", condition, 0))
+    if condition == "changing_weather":
+        last = result["weather_segments"][-1]
+        assert (result["friction"], result["lidar_noise"]) == (
+            last["friction"],
+            last["lidar_noise"],
+        )
+        return
     assert result["friction"] == CONDITIONS[condition]["friction"]
     assert result["lidar_noise"] == CONDITIONS[condition]["lidar_noise"]
+    assert result["weather_segments"] is None
+
+
+def test_changing_weather_is_the_same_race_for_every_driver(env):
+    race = Race("validation", "Sochi", "changing_weather", 1)
+    first = run_race(env, Fixed(1.0), race)["weather_segments"]
+    assert first == run_race(env, Fixed(2.0), race)["weather_segments"]
+    other = Race("validation", "Sochi", "changing_weather", 2)
+    assert first != run_race(env, Fixed(1.0), other)["weather_segments"]
+    assert first[0]["start_step"] == 0
 
 
 def test_the_strict_margin_reaches_the_simulator_and_is_restored(env):

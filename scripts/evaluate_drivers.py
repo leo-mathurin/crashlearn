@@ -12,7 +12,7 @@ from crashlearn import MAX_DECISIONS
 from crashlearn.env import OBS_SIZE, CrashLearnEnv
 from crashlearn.evaluation import CONDITIONS, EVAL_SEEDS, ScriptedPilot, campaign, evaluate
 from crashlearn.experiments import load_completed_run, provenance
-from crashlearn.history_env import HistoryWrapper
+from crashlearn.history_env import FrictionWrapper, HistoryWrapper
 
 
 class PPOPilot:
@@ -76,6 +76,8 @@ def main() -> int:
     metadata |= {**provenance(), "max_steps": args.max_steps}
 
     env = HistoryWrapper(CrashLearnEnv(max_episode_steps=args.max_steps), metadata["history_depth"])
+    if (metadata.get("training_config") or {}).get("friction_feature"):
+        env = FrictionWrapper(env)
     try:
         records = evaluate(env, pilot, races, args.output, metadata)
     finally:

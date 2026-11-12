@@ -16,19 +16,25 @@ import numpy as np
 from crashlearn import tracks
 from crashlearn.env import STATUS_DNF, STATUS_FINISHED, controls_to_action, sim
 from crashlearn.scripted_driver import ScriptedDriver
+from crashlearn.weather import WeatherConfig, schedule
 
 DECISION_DT = 0.05  # s, 20 Hz
 EVAL_SEEDS = (0, 1, 2)
-# Bounds documented in env_simulation.py: friction 1 = sunny, 0.5 = heavy rain; LiDAR noise
-# half-range 0.001 = dry, 0.1 = heavy rain. `strict_margin` applies the 0.50 m off-track
-# tolerance of INSTRUCTIONS.md instead of the 1.00 m of the code, so that a driver does not
-# depend on a margin the organizers may still fix (memlog, 2026-10-06).
+# Subject v1.3.0 bounds: friction 1 = sunny, 0.7 = heavy rain; LiDAR noise half-range
+# 0.001 = dry, 0.1 = heavy rain. `changing_weather` changes both during the race, as the
+# tournament does, from a seeded schedule that training never draws (E-23, docs/weather.md).
+# `strict_margin` applies the 0.50 m off-track tolerance of INSTRUCTIONS.md instead of the
+# 1.00 m of the code, so that a driver does not depend on a margin the organizers may still
+# fix (memlog, 2026-10-06).
 STRICT_OFFTRACK_MARGIN_M = 0.5
+# Seeds evaluation schedules from the race seed, apart from the training stream of the env.
+EVAL_WEATHER_STREAM = 2301
 CONDITIONS = {
     "nominal": {"friction": None, "lidar_noise": None},
-    "low_friction": {"friction": 0.5, "lidar_noise": None},
+    "low_friction": {"friction": 0.7, "lidar_noise": None},
     "lidar_noise": {"friction": None, "lidar_noise": 0.1},
-    "heavy_rain": {"friction": 0.5, "lidar_noise": 0.1},
+    "heavy_rain": {"friction": 0.7, "lidar_noise": 0.1},
+    "changing_weather": {"weather": WeatherConfig()},
     "strict_margin": {
         "friction": None,
         "lidar_noise": None,
@@ -102,6 +108,9 @@ def run_race(env, pilot: Pilot, race: Race) -> dict:
 
 def _race(env, pilot: Pilot, race: Race, settings: dict) -> dict:
     pilot.reset()
+    if isinstance(settings.get("weather"), WeatherConfig):
+        rng = np.random.default_rng([race.seed, EVAL_WEATHER_STREAM])
+        settings["weather"] = schedule(settings["weather"], rng, env.unwrapped.max_episode_steps)
     obs, info = env.reset(seed=race.seed, options={"map": race.map, **settings})
 
     wall = vehicle = decisions = idle = reverse = jumps = 0
@@ -133,10 +142,13 @@ def _race(env, pilot: Pilot, race: Race, settings: dict) -> dict:
 
     status = {STATUS_FINISHED: "FINISHED", STATUS_DNF: "DNF"}.get(info["status"], "TIMEOUT")
     lap_times = list(info["step_info"]["lap_times"][env.unwrapped.ego_id])
+    weather = settings.get("weather")
     return {
         **asdict(race),
+        # the last values in effect; changing weather lists its segments below
         "friction": info["friction"],
         "lidar_noise": info["lidar_noise"],
+        "weather_segments": [asdict(s) for s in weather] if weather else None,
         "status": status,
         "laps_completed": info["lap_count"],
         "progress_laps": round(progress, 4),

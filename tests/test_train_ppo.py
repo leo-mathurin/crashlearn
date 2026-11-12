@@ -129,6 +129,27 @@ def test_zeroed_opponent_weights_ignore_opponents_in_every_frame(trained, tmp_pa
     ).read_bytes()
 
 
+def test_weather_training_records_its_distribution_and_can_measure_friction(trained, tmp_path):
+    destination = tmp_path / "weather"
+    result = train(
+        destination,
+        *("--initialize-from", trained / "model.zip", "--weather", "--nominal-share", 0.5),
+        "--friction-feature",
+    )
+    assert result.returncode == 0, result.stderr
+    config = json.loads((destination / "manifest.json").read_text())["config"]
+    assert config["weather"]["friction"] == [0.7, 1.0]
+    assert config["weather"]["nominal_share"] == 0.5
+    assert config["friction_feature"] is True
+    records = race(destination, tmp_path / "race.json")
+    assert records[0]["training_config"]["friction_feature"] is True
+    result = run("export_agent.py", "--run-dir", destination, "--output-dir", tmp_path / "agent")
+    assert result.returncode == 2
+    result = train(destination, "--resume", destination / "model.zip", "--timesteps", 8192)
+    assert result.returncode == 2
+    assert "resume would change weather" in result.stderr
+
+
 def test_an_existing_run_is_not_overwritten(trained):
     before = (trained / "manifest.json").read_text()
     result = train(trained)

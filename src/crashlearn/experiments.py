@@ -39,6 +39,8 @@ FROZEN_CONFIG = {
     "fixed_map_workers": False,
     "max_speed": 10.0,
     "random_start": False,
+    "weather": None,
+    "friction_feature": False,
 }
 
 
@@ -188,7 +190,7 @@ class Run:
                 )
             expected = current | {"history_depth": history_depth, "train_seed": seed}
             frozen = [(k, manifest[k], expected[k]) for k in FROZEN_ON_RESUME] + [
-                (k, manifest["config"].get(k, default), config[k])
+                (k, manifest["config"].get(k, default), config.get(k, default))
                 for k, default in FROZEN_CONFIG.items()
             ]
             for key, recorded, requested in frozen:
