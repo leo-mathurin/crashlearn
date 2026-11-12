@@ -150,6 +150,21 @@ def test_weather_training_records_its_distribution_and_can_measure_friction(trai
     assert "resume would change weather" in result.stderr
 
 
+def test_a_run_older_than_the_weather_settings_still_resumes(trained, tmp_path):
+    import shutil
+
+    old = tmp_path / "old"
+    shutil.copytree(trained, old)
+    path = old / "manifest.json"
+    manifest = json.loads(path.read_text())
+    for key in ("max_speed", "random_start", "weather", "friction_feature"):
+        manifest["config"].pop(key)
+    path.write_text(json.dumps(manifest))
+    result = train(old, "--resume", old / "model.zip", "--timesteps", 8192)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(path.read_text())["timesteps_done"] >= 8192
+
+
 def test_an_existing_run_is_not_overwritten(trained):
     before = (trained / "manifest.json").read_text()
     result = train(trained)

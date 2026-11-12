@@ -12,7 +12,14 @@ from pathlib import Path
 
 from crashlearn import map_cache
 from crashlearn.env import SPEED_MAX, CrashLearnEnv
-from crashlearn.experiments import Run, allow_sb3_saves, attach_wandb, checkpoint_step, sha256
+from crashlearn.experiments import (
+    FROZEN_CONFIG,
+    Run,
+    allow_sb3_saves,
+    attach_wandb,
+    checkpoint_step,
+    sha256,
+)
 from crashlearn.history_env import FrictionWrapper, HistoryWrapper
 from crashlearn.tracks import train_tracks
 from crashlearn.weather import WeatherConfig
@@ -103,7 +110,8 @@ def train(args: argparse.Namespace, run: Run) -> None:
             make_env(
                 args.history_depth,
                 maps[i % len(maps)] if args.fixed_map_workers else None,
-                run.manifest["config"],
+                # a resumed run older than a setting trains with its recorded default
+                FROZEN_CONFIG | run.manifest["config"],
             )
             for i in range(args.n_envs)
         ]
