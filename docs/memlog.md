@@ -182,6 +182,10 @@ E-19 : aucun plafond de vitesse seul ne fait finir les quatre circuits de valida
 
 La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas de sélection, et 400 courses nouvelles, seeds 200 à 299, sont fixées avant la confirmation. Un plafond global de 4,75 m/s corrige les deux DNF, sans réglage par circuit et avec les mêmes poids appris. Le candidat figé finit 400/400. Coût : médiane de 236,17 à 247,57 s sur 118 courses communes. Faible adhérence et forte pluie restent à 6/12 (E-23). Preuves : `docs/results/driver1/README.md`.
 
+## 2026-11-12 · [Livraison] Modèles livrés sans LFS, provenance contrôlée
+
+E-36 demandait Git LFS pour les modèles livrés. On garde Git simple, comme décidé dans `docs/remise.md` : les fichiers font moins de 800 Ko, et une récupération qui ignore LFS ne verrait que des pointeurs. Pour l'intention du critère, `scripts/check_deliverables.py` vérifie en CI les hashes de `export.json` et relie chaque modèle à son manifest (commit, configuration, seed), à ses ancêtres et à ses résultats. Un clone neuf passe le contrôle, et les deux modèles sont restaurés depuis les archives de la station puis ré-exportés à l'octet près. Pourquoi : la remise doit rester récupérable et prouvable sans outil en plus. Détails : `docs/remise.md`.
+
 ## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
 
 Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
