@@ -181,3 +181,17 @@ E-19 : aucun plafond de vitesse seul ne fait finir les quatre circuits de valida
 ## 2026-11-10 · [Livraison] driver1 à 400/400 avec un plafond d'inférence de 4,75 m/s
 
 La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas de sélection, et 400 courses nouvelles, seeds 200 à 299, sont fixées avant la confirmation. Un plafond global de 4,75 m/s corrige les deux DNF, sans réglage par circuit et avec les mêmes poids appris. Le candidat figé finit 400/400. Coût : médiane de 236,17 à 247,57 s sur 118 courses communes. Faible adhérence et forte pluie restent à 6/12 (E-23). Preuves : `docs/results/driver1/README.md`.
+
+## 2026-11-12 · [Évaluation] Protocole E-23 figé avant les résultats
+
+La météo du tournoi change en pleine course (sujet v1.3.0) : friction dans [0,7 ; 1,0] et bruit LiDAR dans [0,001 ; 0,1], ensemble ou séparément. Le wrapper applique un calendrier de segments constants de 5 à 40 s, tiré par seed. Conditions d'évaluation : `low_friction` et `heavy_rain` passent de 0,5 à 0,7, et `changing_weather` tire son calendrier de la seed de course, par un flux que l'entraînement n'utilise jamais. Les anciens fichiers de résultats gardent leurs valeurs, enregistrées course par course.
+
+Campagne fixée avant tout résultat, à partir de `cap5-random-h1-seed0` (source de driver1), 2 000 000 interactions demandées par run, plafond 5 m/s, départs diversifiés, seeds 0, 1 et 2 :
+
+- **A** : météo changeante, 25 % d'épisodes nominaux ;
+- **B** : A plus `friction_current` en entrée (mesure seulement) ;
+- **C** : même adaptation sans météo, pour séparer l'effet de la météo de celui des interactions ajoutées.
+
+Chaque modèle brut, la source comprise, court les 117 courses de la campagne (train nominal, validation en six conditions). Règle pour la friction en entrée : l'adopter seulement si B finit au moins 10 courses de plus que A sur les 108 courses météo (`low_friction`, `heavy_rain`, `changing_weather`, trois seeds), sans perdre en nominal. Sinon les features restent à 126 colonnes.
+
+Candidat livrable : chaque seed de A passe par la chaîne de driver1 (progression masquée, plafond 4,75 m/s, poids adversaires à zéro), puis la campagne. La seed qui finit le plus de courses de validation, toutes conditions, est retenue (égalité : la plus petite seed). Elle remplace driver1 seulement si elle finit 400/400 sur la confirmation nominale (seeds 200 à 299, image du tournoi) et strictement plus de courses que driver1 sur une confirmation météo neuve : `changing_weather` seeds 300 à 349, `low_friction` et `heavy_rain` seeds 300 à 309, sur les quatre circuits de validation.
