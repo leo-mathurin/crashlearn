@@ -6,7 +6,13 @@ declare global {
     /** Debug access for the browser tests and the performance measurements. */
     dashboard?: Pick<
       App,
-      "state" | "focus" | "benchmark" | "setCamera" | "setFollowed" | "selectCar"
+      | "state"
+      | "focus"
+      | "benchmark"
+      | "setCamera"
+      | "setFollowed"
+      | "selectCar"
+      | "setDecorVisible"
     >;
   }
 }

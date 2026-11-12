@@ -18,6 +18,7 @@ import {
   startPose,
 } from "../track/track";
 import { buildWalls } from "../track/walls";
+import { SCENERY_LAYER } from "./stage";
 import { asphalt, concrete, grass } from "./textures";
 
 export const WALL_HEIGHT_M = 0.25;
@@ -59,7 +60,7 @@ function flatMaterial(parameters: THREE.MeshStandardMaterialParameters, offset: 
 }
 
 function buildGround(bounds: Bounds, anisotropy: number): THREE.Mesh {
-  const margin = 400;
+  const margin = 900;
   const width = bounds.maxX - bounds.minX + margin * 2;
   const depth = bounds.maxY - bounds.minY + margin * 2;
   const surface = grass(anisotropy);
@@ -72,6 +73,7 @@ function buildGround(bounds: Bounds, anisotropy: number): THREE.Mesh {
   );
   mesh.position.set((bounds.minX + bounds.maxX) / 2, (bounds.minY + bounds.maxY) / 2, 0);
   mesh.receiveShadow = true;
+  mesh.layers.set(SCENERY_LAYER);
   return mesh;
 }
 
@@ -413,6 +415,7 @@ export function buildFallbackGround(bounds: Bounds): TrackView {
   );
   plane.position.set((bounds.minX + bounds.maxX) / 2, (bounds.minY + bounds.maxY) / 2, 0);
   plane.receiveShadow = true;
+  plane.layers.set(SCENERY_LAYER);
   const grid = new THREE.GridHelper(
     Math.ceil(size / 10) * 10,
     Math.ceil(size / 10),

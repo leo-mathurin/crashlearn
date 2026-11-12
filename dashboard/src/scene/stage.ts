@@ -11,7 +11,15 @@ const SHADOW_MAP_SIZE = 2048;
 /** Direction to the sun, in Three.js world axes (y up): a low afternoon sun from the south-west. */
 const SUN_DIRECTION = new THREE.Vector3(-0.55, 0.62, 0.56).normalize();
 
-const HAZE_COLOR = 0xa9bdd0;
+export const HAZE_COLOR = 0xa9bdd0;
+
+/**
+ * Layer of the ground and of the optional scenery. Everything else (track, walls, cars, LiDAR)
+ * is on the default layer 0.
+ */
+export const SCENERY_LAYER = 1;
+
+const ALL_LAYERS = 1 | (1 << SCENERY_LAYER);
 
 export class Stage {
   readonly scene = new THREE.Scene();
@@ -33,7 +41,13 @@ export class Stage {
     this.scene.background = new THREE.Color(HAZE_COLOR);
     this.scene.fog = this.fog;
 
-    this.scene.add(new THREE.HemisphereLight(0xcfe2ff, 0x4d5a3a, 0.9));
+    const ambient = new THREE.HemisphereLight(0xcfe2ff, 0x4d5a3a, 0.9);
+    this.scene.add(ambient);
+    // The lights shine on both layers, and the shadow map holds the objects of both: a wall
+    // still casts its shadow on the grass when the two layers are drawn one after the other.
+    for (const object of [ambient, this.sun, this.sun.shadow.camera]) {
+      object.layers.enable(SCENERY_LAYER);
+    }
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
     this.sun.shadow.bias = -0.0004;
@@ -121,7 +135,30 @@ export class Stage {
     }
   }
 
-  render(camera: THREE.Camera): void {
-    this.renderer.render(this.scene, camera);
+  /**
+   * Renders a frame. With `sceneryBehind`, the ground and the scenery are drawn first, then
+   * the depth buffer is cleared and the track, the walls, the cars and the LiDAR are drawn
+   * over them: whatever the camera, the scenery cannot hide them.
+   */
+  render(camera: THREE.Camera, sceneryBehind = false): void {
+    const { renderer } = this;
+    if (!sceneryBehind) {
+      camera.layers.mask = ALL_LAYERS;
+      renderer.render(this.scene, camera);
+      return;
+    }
+    camera.layers.set(SCENERY_LAYER);
+    renderer.render(this.scene, camera);
+    // The second pass must keep the colours of the first: no clear, and no background, which
+    // would paint over them.
+    const { background } = this.scene;
+    this.scene.background = null;
+    renderer.autoClear = false;
+    renderer.clearDepth();
+    camera.layers.set(0);
+    renderer.render(this.scene, camera);
+    renderer.autoClear = true;
+    this.scene.background = background;
+    camera.layers.mask = ALL_LAYERS;
   }
 }

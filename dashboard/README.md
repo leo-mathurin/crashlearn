@@ -78,6 +78,29 @@ Une seule caméra est à l'écran à la fois. Changer de caméra ne change pas l
 - **Transitions** : un clic fait glisser la vue d'une caméra à l'autre en 0,65 s. Au clavier, le changement est immédiat. Avec « réduire les animations » dans le système, il l'est toujours.
 - **Mini-carte** : toujours visible, affichage seul. Le circuit est une image de la scène 3D prise d'en haut, avec le rendu de la caméra Aérienne ; elle est refaite quand la limite de DNF change. Par-dessus : un point par voiture active (cerclé de blanc pour la Voiture sélectionnée), une croix rouge par marqueur DNF, et un cercle à l'endroit que regarde la caméra.
 
+## Décor
+
+Le décor donne une ambiance et ne dit rien de la course : ciel, nuages, collines, arbres, tribunes et portique de départ. Il est affiché par défaut et l'interrupteur « Décor » l'enlève en un clic.
+
+- **Hors de la piste** : chaque arbre et chaque tribune est à 4 m au moins au-delà de la limite de DNF, distance vérifiée avec le calcul de sortie de piste du simulateur (`src/track/decorLayout.ts`, testé sur cinq circuits). Les poteaux du portique sont au-delà de la limite, de chaque côté ; seule sa traverse passe au-dessus de la piste, à 1 m de haut.
+- **Ne cache jamais la course** : à chaque frame, le sol et le décor sont dessinés d'abord, puis la piste, les murs, les voitures et le LiDAR sont dessinés par-dessus (`Stage.render`). Quelle que soit la caméra, un arbre ou la traverse du portique ne peut pas masquer un mur, une voiture ou un rayon. Un test compare les pixels du LiDAR avec et sans décor, pour les trois caméras.
+- **Déterministe** : le décor d'un circuit est tiré de son nom. Il est le même à chaque ouverture.
+- **Coût** : voir les mesures ci-dessous.
+
+## Fluidité
+
+`bun run measure` rejoue un replay dans Chromium (WebGPU et WebGL 2) et Firefox, pour chaque caméra, avec et sans décor (`scripts/measure-performance.ts`). Mesures du 12 novembre 2026 sur la station (Ryzen 7 7800X3D, RTX 5070, Ubuntu, écran virtuel 1920 × 1080 à 60 Hz), replay `demo-4-voitures-spielberg` (4 voitures, 4 267 frames) :
+
+| Navigateur            |      Lecture réelle | Coût d'une frame sans décor | Coût d'une frame avec décor |
+| --------------------- | ------------------: | --------------------------: | --------------------------: |
+| Chromium 158, WebGPU  | 60 fps, p95 16,8 ms |                1,5 à 1,8 ms |                      2,0 ms |
+| Chromium 158, WebGL 2 | 60 fps, p95 16,8 ms |                0,7 à 1,0 ms |                0,9 à 1,2 ms |
+| Firefox 159, WebGL 2  | 60 fps, p95 17,1 ms |                0,6 à 1,0 ms |                0,7 à 1,3 ms |
+
+La lecture réelle est limitée par l'écran (60 Hz). Le coût d'une frame est mesuré sans cette limite, travail du GPU compris : il laisse une large marge sur cette machine. La scène fait 165 000 triangles sans décor et 268 000 avec. Le tas JavaScript reste sous 70 Mo. Ces chiffres valent pour cette carte graphique ; sur une autre machine, la touche `P` affiche les mêmes mesures en direct.
+
+Le flou d'arrière-plan des panneaux a été retiré après mesure : il faisait tomber Firefox de 60 à 44 fps.
+
 ## Classement et télémétrie
 
 - **Classement** : ordre du simulateur (`ranks`), nom, couleur, tour et progression du tour. Une voiture inactive affiche « Arrivée » ou « DNF » avec le temps simulé de sa fin de course. À la dernière frame, c'est le classement final. Les marques de couleur sur la timeline donnent ces mêmes instants.
@@ -102,11 +125,12 @@ Si la carte du replay est introuvable, les voitures sont affichées sur une gril
 ```
 server.ts            serveur local : page, /api/replays, /api/maps
 src/replay/          décodage NPZ, validation, horloge de lecture, classement, valeurs par voiture, Voiture suivie
-src/track/           données de piste : centerline, limite de DNF, murs (sans Three.js, testé)
-src/scene/           rendu : renderer, lumières, circuit, voitures, LiDAR, marqueur DNF, caméras
+src/track/           données de piste : centerline, limite de DNF, murs, placement du décor (sans Three.js, testé)
+src/scene/           rendu : renderer, lumières, circuit, voitures, LiDAR, marqueur DNF, caméras, décor
 src/ui/              HUD : timeline, classement, télémétrie, caméras, Mini-carte, étiquettes, choix du replay, mesures
 tests/               tests unitaires (bun test)
 e2e/                 tests navigateur, Chromium et Firefox (Playwright)
+scripts/             mesure de fluidité
 ```
 
 ## Qualité
@@ -124,6 +148,6 @@ bunx playwright install chromium firefox    # une fois
 bun run test:e2e                            # sur une machine sans écran : xvfb-run -a bun run test:e2e
 ```
 
-Sans écran, Firefox n'a pas de WebGL : `xvfb-run` lui en donne un.
+Sans écran, Firefox n'a pas de WebGL : `xvfb-run` lui en donne un. `E2E_WEBGPU=1` ajoute un troisième passage, dans Chromium avec WebGPU (il ouvre des fenêtres).
 
 `window.dashboard` donne l'état de la page aux tests (`state()`) et mesure le coût d'une frame sans la limite de l'écran (`benchmark()`).

@@ -11,7 +11,8 @@
     "format:check": "oxfmt --check .",
     "typecheck": "tsc --noEmit",
     "test": "bun test tests",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "measure": "bun scripts/measure-performance.ts"
   },
   "dependencies": {
     "fflate": "^0.8.3",

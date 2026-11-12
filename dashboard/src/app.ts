@@ -15,11 +15,13 @@ import { type CarValues, type Outcome, orderAt, outcomes } from "./replay/standi
 import type { Insets } from "./scene/aerialCamera";
 import { CAMERA_LABELS, CameraDirector, type CameraMode } from "./scene/cameraDirector";
 import { CAR_LENGTH_M, carColor, CarView } from "./scene/cars";
+import { buildDecor, type Decor } from "./scene/decor";
 import { buildDnfMarker } from "./scene/dnfMarker";
 import { LidarView } from "./scene/lidar";
 import { Stage } from "./scene/stage";
 import { buildFallbackGround, buildTrackView, type TrackView } from "./scene/trackView";
 import { loadTrackAssets, MapNotFoundError } from "./track/assets";
+import { type DecorLayout, layoutDecor } from "./track/decorLayout";
 import { type Bounds, boundsOf } from "./track/track";
 import { CameraSwitch, FollowMenu } from "./ui/cameraControls";
 import { h, icon, ICONS, setText } from "./ui/dom";
@@ -38,6 +40,8 @@ interface Session {
   cars: CarView[];
   /** Everything that moves or belongs to the race: cars, LiDAR, DNF marks. */
   actors: THREE.Group;
+  /** Optional scenery around the circuit. */
+  decor: Decor;
   /** How the race of each car ended. */
   outcomes: Outcome[];
   /** Ground mark at the last pose of each car that ended in DNF, or null. */
@@ -72,6 +76,9 @@ export interface DashboardState {
   ended: boolean;
   speed: number;
   limitVisible: boolean;
+  /** True when the optional scenery is drawn. */
+  decorVisible: boolean;
+  decorTriangles: number;
   lidarVisible: boolean;
   /** Voiture sélectionnée: the car whose telemetry and LiDAR are shown. */
   selectedCar: number;
@@ -121,6 +128,7 @@ export class App {
   private lastError: string | null = null;
   private limitVisible = true;
   private lidarVisible = true;
+  private decorVisible = readPreference(DECOR_PREFERENCE, true);
   private selectedCar = 0;
   private lastFrameAt = 0;
   private benchmarking = false;
@@ -152,6 +160,7 @@ export class App {
   private readonly dropHint = h("div", { class: "drop-hint", hidden: true }, "Déposez le replay");
   private readonly limitSwitch: HTMLButtonElement;
   private readonly lidarSwitch: HTMLButtonElement;
+  private readonly decorSwitch: HTMLButtonElement;
   private readonly bottom: HTMLElement;
 
   private constructor(
@@ -186,6 +195,10 @@ export class App {
       "Limite de DNF : bord de piste + 1 m (L)",
       () => this.setLimitVisible(!this.limitVisible),
     );
+    this.decorSwitch = toggleSwitch("Décor", "Décor : arbres, tribunes, portique, ciel (D)", () =>
+      this.setDecorVisible(!this.decorVisible),
+    );
+    this.decorSwitch.setAttribute("aria-checked", String(this.decorVisible));
     this.lidarSwitch = toggleSwitch("LiDAR", "LiDAR de la voiture sélectionnée (I)", () =>
       this.setLidarVisible(!this.lidarVisible),
     );
@@ -224,6 +237,7 @@ export class App {
           this.followMenu.element,
           this.limitSwitch,
           this.lidarSwitch,
+          this.decorSwitch,
           h("span", { class: "badge", title: "Moteur de rendu" }, stage.backend),
         ),
         this.telemetry.element,
@@ -280,6 +294,8 @@ export class App {
       ended: session?.playback.ended ?? false,
       speed: session?.playback.speed ?? 1,
       limitVisible: this.limitVisible,
+      decorVisible: this.decorVisible,
+      decorTriangles: session?.decor.triangles ?? 0,
       lidarVisible: this.lidarVisible && Boolean(session?.lidar?.group.visible),
       selectedCar: this.selectedCar,
       followedCar: this.follow.followed,
@@ -300,7 +316,7 @@ export class App {
         y: -this.cameras.focusPoint(this.focusScratch).z,
         pixelsPerMetre: this.cameras.pixelsPerMetreAt(this.cameras.focusPoint(this.focusScratch)),
       },
-      triangles: session?.track.triangles ?? 0,
+      triangles: this.triangles(),
       error: this.lastError,
       perf: this.perf.summary(),
     };
@@ -371,12 +387,14 @@ export class App {
 
     const notices: string[] = [];
     let track: TrackView | null = null;
+    let layout: DecorLayout | null = null;
     if (replay.mapName === null) {
       notices.push("Ce replay ne nomme pas sa carte : le circuit n'est pas affiché.");
     } else {
       try {
         const assets = await loadTrackAssets(replay.mapName);
         track = buildTrackView(assets, this.stage.maxAnisotropy);
+        layout = layoutDecor(assets.centerline, assets.name);
       } catch (error) {
         if (!(error instanceof MapNotFoundError)) throw error;
         notices.push(`Carte « ${replay.mapName} » introuvable : le circuit n'est pas affiché.`);
@@ -398,13 +416,17 @@ export class App {
     for (const object of [...dnfMarkers, lidar?.group]) {
       if (object) actors.add(object);
     }
-    this.stage.simRoot.add(track.group, actors);
+    const decor = buildDecor(layout, track.bounds, replay.frameCount);
+    decor.setVisible(this.decorVisible);
+    this.stage.simRoot.add(track.group, decor.ground, actors);
+    this.stage.scene.add(decor.sky);
     this.session = {
       replay,
       playback: new Playback(replay),
       track,
       cars,
       actors,
+      decor,
       outcomes: results,
       dnfMarkers,
       lidar,
@@ -463,9 +485,19 @@ export class App {
     if (!session) return;
     this.stage.simRoot.remove(session.track.group, session.actors);
     session.lidar?.dispose();
+    this.stage.simRoot.remove(session.decor.ground);
+    this.stage.scene.remove(session.decor.sky);
+    session.decor.dispose();
     session.track.dispose();
     for (const car of session.cars) car.dispose();
     this.session = null;
+  }
+
+  /** Triangles of the circuit, and of the scenery when it is drawn. */
+  private triangles(): number {
+    const session = this.session;
+    if (!session) return 0;
+    return session.track.triangles + (this.decorVisible ? session.decor.triangles : 0);
   }
 
   /** Makes `car` the Voiture sélectionnée: its telemetry and its LiDAR are shown. */
@@ -502,6 +534,16 @@ export class App {
     this.lidarSwitch.setAttribute("aria-checked", String(visible));
   }
 
+  /** Shows or hides the optional scenery. The choice is kept for the next visit. */
+  setDecorVisible(visible: boolean): void {
+    this.decorVisible = visible;
+    this.decorSwitch.setAttribute("aria-checked", String(visible));
+    this.session?.decor.setVisible(visible);
+    writePreference(DECOR_PREFERENCE, visible);
+    // The mini-map is a picture of the scene: take it again.
+    this.minimap.stale = true;
+  }
+
   private setLimitVisible(visible: boolean): void {
     this.limitVisible = visible;
     this.limitSwitch.setAttribute("aria-checked", String(visible));
@@ -528,7 +570,7 @@ export class App {
       interval,
       performance.now() - started,
       now,
-      `${this.stage.backend} · ${Math.round(this.session?.track.triangles ?? 0)} triangles`,
+      `${this.stage.backend} · ${Math.round(this.triangles())} triangles`,
     );
   }
 
@@ -561,7 +603,7 @@ export class App {
 
     this.stage.fitShadow(this.focusScratch, this.cameras.shadowFocus(this.focusScratch));
     this.stage.setFog(this.cameras.focusDistance());
-    this.stage.render(camera);
+    this.stage.render(camera, this.decorVisible);
   }
 
   /**
@@ -600,7 +642,7 @@ export class App {
     minimap.prepare(this.canvas.width, this.canvas.height);
     this.stage.fitShadow(minimap.center(this.focusScratch), minimap.radius);
     this.stage.setFog(minimap.camera.position.y);
-    this.stage.render(minimap.camera);
+    this.stage.render(minimap.camera, this.decorVisible);
     minimap.capture(this.canvas);
     session.actors.visible = true;
   }
@@ -723,6 +765,7 @@ export class App {
         ArrowDown: () => this.shiftSpeed(-1),
         l: () => this.setLimitVisible(!this.limitVisible),
         i: () => this.setLidarVisible(!this.lidarVisible),
+        d: () => this.setDecorVisible(!this.decorVisible),
         "1": () => this.selectCar(0),
         "2": () => this.selectCar(1),
         "3": () => this.selectCar(2),
@@ -776,4 +819,24 @@ function toggleSwitch(label: string, title: string, onToggle: () => void): HTMLB
     h("span", { class: "switch-dot" }),
     label,
   );
+}
+
+const DECOR_PREFERENCE = "dashboard.decor";
+
+/** Reads a yes or no choice kept in the browser. Storage can be refused: use the default. */
+function readPreference(key: string, fallback: boolean): boolean {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored === null ? fallback : stored === "1";
+  } catch {
+    return fallback;
+  }
+}
+
+function writePreference(key: string, value: boolean): void {
+  try {
+    localStorage.setItem(key, value ? "1" : "0");
+  } catch {
+    // The choice then lasts for this visit only.
+  }
 }
