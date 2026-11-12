@@ -1,0 +1,75 @@
+{
+  "commit": "adf5a5ffbb49d8a6fe067bc9b229ec06914b8aa1",
+  "dirty": null,
+  "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
+  "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
+  "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
+  "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
+  "reward_version": "v1",
+  "created_utc": "2026-11-09T20:09:35+00:00",
+  "run_id": "f2714e1b2af2463bab2108e4269a9fd7",
+  "driver": "ppo-h1",
+  "train_seed": 4,
+  "history_depth": 1,
+  "attempts": [
+    {
+      "started_utc": "2026-11-09T20:09:35+00:00",
+      "status": "interrupted",
+      "commit": "adf5a5ffbb49d8a6fe067bc9b229ec06914b8aa1",
+      "resumed_from": null,
+      "checkpoint_sha256": null,
+      "budget_timesteps": 5000000,
+      "device": "cuda",
+      "torch_threads": 1,
+      "wandb": {
+        "mode": "offline",
+        "id": "f2714e1b2af2463bab2108e4269a9fd7",
+        "url": null
+      },
+      "first_step": 0,
+      "log_dir": "logs/attempt-001",
+      "cuda_version": "13.0",
+      "gpu": "NVIDIA GeForce RTX 5070",
+      "interruption_reason": "T3 server restarted; no training process remains",
+      "interruption_detected_utc": "2026-11-10T09:15:04+00:00",
+      "last_checkpoint": "ppo-h1-seed4/checkpoints/ppo_attempt001_3099690_steps.zip",
+      "last_checkpoint_sha256": "a15e91d1046f11755f41a85dd50cdfce412abc83b09c023cdbd30d94551c612a"
+    }
+  ],
+  "versions": {
+    "numpy": "2.4.6",
+    "torch": "2.13.0+cu130",
+    "stable-baselines3": "2.9.0",
+    "gymnasium": "1.3.0",
+    "wandb": "0.30.0"
+  },
+  "python": "3.11.18",
+  "host": "69df7e27f9e3",
+  "image_id": "sha256:ff88d08af5fd4a202ba98f0b86f027af167df440efd027a79350eadd869e5df2",
+  "status": "interrupted",
+  "budget_timesteps": 5000000,
+  "resumed_from": null,
+  "config": {
+    "n_steps": 2048,
+    "batch_size": 512,
+    "n_epochs": 10,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "policy_kwargs": {
+      "net_arch": [
+        256,
+        256
+      ],
+      "log_std_init": -1.0
+    },
+    "n_envs": 15,
+    "device": "cuda",
+    "fixed_map_workers": true
+  },
+  "interruption_reason": "T3 server restarted; no training process remains",
+  "interruption_detected_utc": "2026-11-10T09:15:04+00:00",
+  "last_checkpoint": "ppo-h1-seed4/checkpoints/ppo_attempt001_3099690_steps.zip",
+  "last_checkpoint_sha256": "a15e91d1046f11755f41a85dd50cdfce412abc83b09c023cdbd30d94551c612a"
+}

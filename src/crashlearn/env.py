@@ -28,7 +28,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from crashlearn import add_simulator_to_path, features
+from crashlearn import MAX_DECISIONS, add_simulator_to_path, engine_seed, features
 from crashlearn.reward import STATUS_ACTIVE, STATUS_DNF, STATUS_FINISHED, RaceReward, RewardConfig
 from crashlearn.tracks import train_tracks
 
@@ -79,11 +79,13 @@ class CrashLearnEnv(gym.Env):
         num_cars: int = 1,
         maps: str | Sequence[str] | None = None,
         ego_id: int = 0,
-        max_episode_steps: int = 8000,
+        max_episode_steps: int = MAX_DECISIONS,
         reward_config: RewardConfig | None = None,
         opponent_policy: OpponentPolicy | None = None,
         friction: Setting = None,
         lidar_noise: Setting = None,
+        max_speed: float = SPEED_MAX,
+        random_start: bool = False,
     ):
         global _open_env
         if _open_env is not None:
@@ -92,6 +94,10 @@ class CrashLearnEnv(gym.Env):
             raise ValueError(f"num_cars must be in [1, {sim._MAX_SLOTS}], got {num_cars}")
         if not 0 <= ego_id < num_cars:
             raise ValueError(f"ego_id must be in [0, {num_cars}), got {ego_id}")
+        if not 0 < max_speed <= SPEED_MAX:
+            raise ValueError(f"max_speed must be in (0, {SPEED_MAX}]")
+        if random_start and num_cars != 1:
+            raise ValueError("random_start is only supported for solo training")
 
         self.num_cars = num_cars
         self.maps = (maps,) if isinstance(maps, str) else tuple(maps or train_tracks())
@@ -104,9 +110,12 @@ class CrashLearnEnv(gym.Env):
         self.opponent_policy = opponent_policy
         self.friction = friction
         self.lidar_noise = lidar_noise
+        self.max_speed = max_speed
+        self.random_start = random_start
 
         self.observation_space = spaces.Box(-1.0, 1.0, (OBS_SIZE,), dtype=np.float32)
-        self.action_space = spaces.Box(-1.0, 1.0, (2,), dtype=np.float32)
+        upper = controls_to_action(max_speed, STEER_MAX)
+        self.action_space = spaces.Box(-np.ones(2, dtype=np.float32), upper, dtype=np.float32)
 
         self._noise_rng = np.random.default_rng()
         self._episode_noise: float | None = None
@@ -124,8 +133,25 @@ class CrashLearnEnv(gym.Env):
 
         # One seed per episode from np_random: seeding once makes every later episode
         # replayable. It rebuilds the engine (a few ms) and re-arms its noise stream.
-        episode_seed = int(self.np_random.integers(2**31))
-        sim.reset(self.num_cars, seed=episode_seed)
+        episode_seed = engine_seed(self.np_random)
+        if self.random_start:
+            points = sim._get_sim()._waypoints[:, :2]
+            index = int(self.np_random.integers(len(points) - 1))
+            tangent = points[index + 1] - points[index]
+            heading = float(np.arctan2(tangent[1], tangent[0]) + self.np_random.uniform(-0.1, 0.1))
+            normal = np.array([-np.sin(heading), np.cos(heading)])
+            # Cancel car 0's native grid offset, then add a small training perturbation.
+            origin = (
+                points[index] + (sim._GRID_LAT_M / 2 + self.np_random.uniform(-0.2, 0.2)) * normal
+            )
+            original = sim._MAP_SX, sim._MAP_SY, sim._MAP_STHETA
+            try:
+                sim._MAP_SX, sim._MAP_SY, sim._MAP_STHETA = *origin, heading
+                sim.reset(self.num_cars, seed=episode_seed)
+            finally:
+                sim._MAP_SX, sim._MAP_SY, sim._MAP_STHETA = original
+        else:
+            sim.reset(self.num_cars, seed=episode_seed)
         self._noise_rng = np.random.default_rng(episode_seed)
 
         self._episode_friction = _sample(options.get("friction", self.friction), self.np_random)
@@ -146,7 +172,11 @@ class CrashLearnEnv(gym.Env):
         return features.build_features(raw), self._info(raw, sim.get_step_info())
 
     def step(self, action):
-        speed, steering = action_to_controls(action)
+        clipped = np.clip(
+            np.asarray(action, dtype=np.float64), self.action_space.low, self.action_space.high
+        )
+        speed, steering = action_to_controls(clipped)
+        speed = min(speed, self.max_speed)
         sim.apply_action(self.ego_id, speed, steering)
         if self.opponent_policy is not None:
             for car in range(self.num_cars):
@@ -158,7 +188,6 @@ class CrashLearnEnv(gym.Env):
 
         raw = sim.get_obs(self.ego_id)
         step_info = sim.get_step_info()
-        clipped = np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0)
         reward, self._reward_terms = self.reward(raw, step_info, self.ego_id, clipped)
         terminated = step_info["agent_status"][self.ego_id] != STATUS_ACTIVE
         truncated = not terminated and step_info["step_count"] >= self.max_episode_steps

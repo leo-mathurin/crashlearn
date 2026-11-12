@@ -68,3 +68,71 @@ def test_reset_then_step(env_class, num_cars):
 
 def test_seeded_short_episode_is_reproducible(env_class):
     assert data_equivalence(rollout(env_class), rollout(env_class))
+
+
+def test_training_speed_limit_is_applied_to_controls(env_class):
+    env = env_class(maps="IMS", max_speed=5.0)
+    try:
+        env.reset(seed=0)
+        env.step(np.ones(2, dtype=np.float32))
+        steer, speed = env_module.sim._sim_instance._actions[0]
+        assert speed <= 5.0
+        assert speed == pytest.approx(5.0)
+        assert steer == pytest.approx(env_module.STEER_MAX)
+        assert env.action_space.high[0] == pytest.approx(1 / 6)
+    finally:
+        env.close()
+
+
+@pytest.mark.parametrize("speed", [0, -1, 11, float("nan"), float("inf")])
+def test_invalid_training_speed_limit_is_refused(env_class, speed):
+    with pytest.raises(ValueError, match="max_speed"):
+        env_class(max_speed=speed)
+
+
+def test_random_starts_are_seeded_and_restore_the_official_grid(env_class):
+    env = env_class(maps="IMS", random_start=True)
+    try:
+        env_module.sim.set_map("IMS")
+        original = env_module.sim._MAP_SX, env_module.sim._MAP_SY, env_module.sim._MAP_STHETA
+        first, info = env.reset(seed=0)
+        position = env_module.sim._get_sim()._sim.agents[0].state[:3].copy()
+        assert info["raw_obs"]["lap_count"] == 0
+        assert info["raw_obs"]["progress"] == pytest.approx(0)
+        assert (
+            env_module.sim._MAP_SX,
+            env_module.sim._MAP_SY,
+            env_module.sim._MAP_STHETA,
+        ) == original
+        repeated, _ = env.reset(seed=0)
+        np.testing.assert_array_equal(first, repeated)
+        env.reset(seed=1)
+        assert np.linalg.norm(env_module.sim._get_sim()._sim.agents[0].state[:2] - position[:2]) > 1
+    finally:
+        env.close()
+    official = env_class(maps="IMS")
+    try:
+        official.reset(seed=0)
+        expected = env_module.sim._get_sim()._start_poses(1)[0]
+        np.testing.assert_allclose(
+            env_module.sim._get_sim()._sim.agents[0].state[[0, 1, 4]], expected
+        )
+    finally:
+        official.close()
+
+
+def test_a_race_seed_gives_the_engine_seed_used_without_gymnasium(env_class, monkeypatch):
+    """confirm_submission.py replays races outside the env with `engine_seed`."""
+    from crashlearn import engine_seed
+
+    seeds = []
+    reset = env_module.sim.reset
+    monkeypatch.setattr(
+        env_module.sim, "reset", lambda *a, **k: seeds.append(k["seed"]) or reset(*a, **k)
+    )
+    env = env_class(maps="IMS")
+    try:
+        env.reset(seed=104, options={"map": "IMS"})
+    finally:
+        env.close()
+    assert seeds == [engine_seed(np.random.default_rng(104))]

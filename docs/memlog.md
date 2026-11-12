@@ -126,6 +126,17 @@ Pilote scripté sans apprentissage, qui vise la direction la plus dégagée du L
 
 Il a confirmé les défauts de la première archive : les DNF d'IMS, BrandsHatch et MexicoCity venaient du faux DNF après la ligne, et ils ont disparu à configuration de pilote inchangée. Temps de référence sur 3 tours, seed 0 : IMS 132,35 s, BrandsHatch 163,50 s, MexicoCity 176,80 s, Budapest 189,45 s, Austin 224,30 s. Tout agent RL doit au moins faire mieux que ces temps.
 
+## 2026-10-30 · [Évaluation] Protocole E-18 : mesurer la mémoire contre un PPO réactif identique
+
+Chaîne commune créée pour driver2 (E-18, `docs/results/e-18/README.md`) : `HistoryWrapper`, `train_ppo.py`, `evaluate_drivers.py`, `compare_drivers.py`. Le PPO à 4 observations est comparé à un PPO à 1 observation, même code, mêmes hyperparamètres, mêmes 5 seeds et même budget. Le pilote scripté reste un témoin. Pourquoi :
+
+- **PPO réactif en baseline** : comparer un PPO à un script mesurerait l'apprentissage, pas la mémoire.
+- **Critère écrit avant les résultats** : un intervalle bootstrap à 95 % par seed d'entraînement doit exclure 0, sinon la conclusion est « non concluant ».
+- **Chronos sur les courses finies par les deux pilotes** : sinon, échouer sur les circuits durs améliorerait le chrono.
+- **Échecs versionnés** dans `docs/results/e-18/`, puisque `runs/` est ignoré par git.
+
+Conditions de robustesse : friction 0,5 et bruit LiDAR 0,1, bornes « forte pluie » du simulateur, sur les 4 circuits de validation. Budget à fixer après un banc de débit sur la station. `log_std_init = -1` pour les deux profondeurs : avec le défaut, l'écart-type de 1 sature l'action de bruit et la reward d'entraînement baisse sur 200 000 pas. Choix sur une seule seed, sans course finie : une validation sur la station passe avant la campagne.
+
 ## 2026-11-01 · [Reward] Reward v1 inchangée après revue : contacts, marche arrière et raccourci de Sochi
 
 Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalider la campagne E-18 qui attend une reward stable. Trois corrections de l'entrée du 14/10 :
@@ -137,3 +148,40 @@ Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalid
 ## 2026-11-01 · [Évaluation] Témoin : une voiture arrivée continue de rouler sur les courses courtes
 
 Avec `--laps 1` ou `2`, le simulateur laisse une voiture arrivée `ACTIVE` sur la piste. `control_race.py` lui envoyait `(0, 0)` : elle s'arrêtait après la ligne et ralentissait les suivantes, même sans contact. Elle continue maintenant d'être conduite, et ses mesures restent figées à son arrivée. Pourquoi : un témoin ne doit pas fausser les temps des autres voitures. Référence Budapest à 1 tour et 2 voitures : voiture 0 64,65 → 64,50 s, voiture 1 inchangée (63,45 s). Les courses de 3 tours ne changent pas : le simulateur y fige la voiture arrivée.
+
+## 2026-11-01 · [Évaluation] Protocole E-18 aligné sur le document d'expériences
+
+Ajouts au protocole du 30/10 (E-18, `docs/results/e-18/README.md`), avant tout résultat. Pourquoi : le document Linear « Expériences, robustesse et évaluation » les demande, et le protocole devait être figé avant la campagne.
+
+- **Condition `strict_margin`** : 4 circuits de validation avec la marge de sortie de piste de 0,50 m annoncée par `INSTRUCTIONS.md`, au lieu du 1,00 m du code. La pédagogie peut encore corriger le simulateur, et un pilote ne doit pas dépendre de cette tolérance. 105 courses par modèle au lieu de 93.
+- **Métriques** : taux d'arrivée moyenné par carte, contacts par 100 m, immobilité, marche arrière, variation des commandes, sauts de progression et écart entre progression créditée et distance roulée (raccourcis).
+- **Bruit LiDAR gardé à 0,1** (±10 %), au-delà des ±5 % de la plage « Champion » du document : c'est la pire condition annoncée pour le tournoi, alors que la plage du document sert au curriculum (E-23).
+
+
+## 2026-11-09 · [Outillage] Runs reprenables et agents ONNX autonomes
+
+E-20 / E-25 : chaque tentative garde ses logs CSV et son statut dans le manifest, y compris après une erreur ou SIGTERM. La reprise refuse un changement de seed, de prétraitement, de reward ou de distribution d'entraînement. W&B reste facultatif et hors ligne par défaut. L'export incorpore les features et l'historique canoniques dans un agent autonome, opset 17, poids externes, accord PyTorch/ONNX contrôlé à 10⁻⁵. Pourquoi : dix runs sur une station partagée doivent survivre aux interruptions, et le tournoi n'autorise que NumPy et ONNX Runtime.
+
+## 2026-11-09 · [Entraînement] Cache de géométrie et un circuit par worker
+
+Un reset Austin coûtait 0,341 s, presque tout dans le chargement LiDAR. Un cache de deux cartes par processus le ramène à environ 0,0003 s, avec des trajectoires identiques bit à bit et sans toucher `vendor/`. 15 workers portent chacun un circuit train (`--fixed-map-workers --n-envs 15`). Pourquoi : les interactions sont réparties uniformément par carte, et un changement de carte ne bloque plus tout le `SubprocVecEnv`.
+
+## 2026-11-09 · [Entraînement] Budget de campagne : 5 000 000 interactions sur GPU
+
+Banc d'un million d'interactions : 3 699 interactions/s en CPU, 6 088 en CUDA. Le banc CUDA finit déjà BrandsHatch, Budapest et IMS. La RTX 5070 est retenue. Budget fixé avant le premier run : 5 000 000 interactions demandées, 5 007 360 après arrondi SB3, pour les dix runs. Les bancs sont exclus de la comparaison.
+
+## 2026-11-10 · [Évaluation] Campagne E-18 : apport de la mémoire non concluant
+
+Dix PPO de fin de budget, cinq seeds et deux profondeurs, ont chacun leurs 105 courses d'évaluation ; le témoin ajoute 105 courses. La tentative réactive seed 4 interrompue par un redémarrage est conservée, et une relance à budget identique la remplace. Conclusion nominale appariée : « non concluant ». Les agents livrés sont choisis sur les finitions nominales de validation, puis la plus petite seed : `ppo-h1` seed 0 (7/12) et `ppo-h4` seed 1 (6/12). Résultats : `docs/results/e-18/README.md`.
+
+## 2026-11-10 · [Entraînement] Fiabilité du réactif : adaptation et ablation de la progression
+
+E-19 : aucun plafond de vitesse seul ne fait finir les quatre circuits de validation au réactif. Deux adaptations de deux millions d'interactions, plafond 5 m/s puis départs train diversifiés, finissent 10/12. Masquer les trois entrées de progression et de tours donne 12/12 : une dérivation met à zéro ces seules connexions, sans interaction ajoutée. Confirmation sur 120 courses nouvelles : 118/120, deux DNF à Montreal. Pourquoi : PPO est conservé pour isoler ces changements, et la fiabilité prime sur le chrono (médiane de 120,65 à 203,00 s sur les courses communes).
+
+## 2026-11-10 · [Livraison] driver1 à 400/400 avec un plafond d'inférence de 4,75 m/s
+
+La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas de sélection, et 400 courses nouvelles, seeds 200 à 299, sont fixées avant la confirmation. Un plafond global de 4,75 m/s corrige les deux DNF, sans réglage par circuit et avec les mêmes poids appris. Le candidat figé finit 400/400. Coût : médiane de 236,17 à 247,57 s sur 118 courses communes. Faible adhérence et forte pluie restent à 6/12 (E-23). Preuves : `docs/results/driver1/README.md`.
+
+## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
+
+Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
