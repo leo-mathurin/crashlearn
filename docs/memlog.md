@@ -185,3 +185,7 @@ La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas 
 ## 2026-11-12 · [Livraison] Poids adversaires des pilotes solo à zéro
 
 Préparation de E-28 : les poids d'entrée des colonnes adversaires (105 à 125 de chaque frame) n'avaient jamais été entraînés et décalaient les actions jusqu'à 0,25 avec des voitures adverses. Une dérivation sans interaction les met à zéro dans driver1 et driver2. Seul en piste, rien ne change : 40 courses de driver1 et 20 de driver2 sont identiques, les résultats publiés restent valables. Pourquoi : la course commune doit montrer les pilotes tels qu'ils ont appris, pas un bruit d'initialisation. Preuves : `docs/results/opponent-weights/README.md`.
+
+## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
+
+Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
