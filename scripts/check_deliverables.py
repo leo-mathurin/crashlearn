@@ -73,10 +73,10 @@ def check_lineage(model: str, manifests: dict, root: Path, errors: list, lines: 
             f"  {model[:12]}  {path.relative_to(root)}  commit {str(manifest.get('commit'))[:12]}"
             f"  seed {manifest.get('train_seed')}  {made_by}"
         )
-        if manifest.get("derivation"):
+        if manifest.get("derivation") is not None:
             parent, field = derivation.get("source_model_sha256"), "derivation.source_model_sha256"
-        elif manifest.get("initialization"):
-            parent = manifest["initialization"].get("checkpoint_sha256")
+        elif manifest.get("initialization") is not None:
+            parent = (manifest["initialization"] or {}).get("checkpoint_sha256")
             field = "initialization.checkpoint_sha256"
         else:
             return

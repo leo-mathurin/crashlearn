@@ -108,15 +108,24 @@ def test_missing_file_is_reported_with_the_other_drivers_checked(repo):
     ]
 
 
-def test_derivation_without_source_is_reported(repo):
-    path = next(
-        p
+@pytest.mark.parametrize("empty", [False, True], ids=["no-hash", "empty-record"])
+@pytest.mark.parametrize("field", ["derivation", "initialization"])
+def test_parent_without_hash_is_reported(repo, field, empty):
+    """driver1's source has both records: the derivation is its parent, then the
+    initialization of the model it derives from."""
+    key = {"derivation": "source_model_sha256", "initialization": "checkpoint_sha256"}[field]
+    manifests = {
+        json.loads(p.read_text()).get("model_sha256"): p
         for p in (repo / "docs/results").rglob("manifests/*.json")
-        if json.loads(p.read_text()).get("model_sha256") == source_model(repo)
-    )
+    }
+    path = manifests[source_model(repo)]
+    if field == "initialization":
+        parent = json.loads(path.read_text())["derivation"]["source_model_sha256"]
+        path = manifests[parent]
     manifest = json.loads(path.read_text())
-    del manifest["derivation"]["source_model_sha256"]
+    if empty:
+        manifest[field] = {}
+    else:
+        del manifest[field][key]
     path.write_text(json.dumps(manifest))
-    assert check_deliverables.check(repo) == [
-        f"{path.relative_to(repo)}: no derivation.source_model_sha256"
-    ]
+    assert check_deliverables.check(repo) == [f"{path.relative_to(repo)}: no {field}.{key}"]
