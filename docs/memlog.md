@@ -185,6 +185,7 @@ La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas 
 ## 2026-11-12 · [Livraison] Poids adversaires des pilotes solo à zéro
 
 Préparation de E-28 : les poids d'entrée des colonnes adversaires (105 à 125 de chaque frame) n'avaient jamais été entraînés et décalaient les actions jusqu'à 0,25 avec des voitures adverses. Une dérivation sans interaction les met à zéro dans driver1 et driver2. Seul en piste, rien ne change : 40 courses de driver1 et 20 de driver2 sont identiques, les résultats publiés restent valables. Pourquoi : la course commune doit montrer les pilotes tels qu'ils ont appris, pas un bruit d'initialisation. Preuves : `docs/results/opponent-weights/README.md`.
+
 ## 2026-11-12 · [Évaluation] Protocole E-23 figé avant les résultats
 
 La météo du tournoi change en pleine course (sujet v1.3.0) : friction dans [0,7 ; 1,0] et bruit LiDAR dans [0,001 ; 0,1], ensemble ou séparément. Le wrapper applique un calendrier de segments constants de 5 à 40 s, tiré par seed. Conditions d'évaluation : `low_friction` et `heavy_rain` passent de 0,5 à 0,7, et `changing_weather` tire son calendrier de la seed de course, par un flux que l'entraînement n'utilise jamais. Les anciens fichiers de résultats gardent leurs valeurs, enregistrées course par course.
@@ -202,3 +203,7 @@ Candidat livrable : chaque seed de A passe par la chaîne de driver1 (progressio
 ## 2026-11-12 · [Livraison] driver1 réentraîné sous météo changeante
 
 E-23 : selon le protocole figé, A seed 2 dérivé (progression masquée, plafond 4,75 m/s, poids adversaires à zéro) remplace driver1. Il finit 400/400 en nominal dans l'image du tournoi et 262/280 courses météo neuves, contre 218/280 pour l'ancien ; le gain vient de Montreal. `friction_current` n'entre pas dans les features : B ne gagne que 5 courses météo sur 108 face à A, sous le seuil de 10, et perd en nominal. Limite : C, sans météo, fait aussi bien que A en brut ; la part de la météo dans le gain n'est pas isolée. Pourquoi : la météo du tournoi change en pleine course, et l'ancien driver1 échouait à Montreal sous faible adhérence. Résultats : `docs/results/e-23/README.md`.
+
+## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
+
+Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
