@@ -20,17 +20,35 @@ environnements. SB3 arrondit le budget au prochain rollout complet.
 
 `--wandb` utilise le mode **hors ligne par défaut** : métriques et artefacts de checkpoints
 restent sur la station. Une panne de W&B ne supprime pas les logs CSV et n'arrête pas le run.
-Pour un projet partagé déjà configuré, fournir `WANDB_API_KEY` hors Git et ajouter
-`--wandb-mode online --wandb-entity <équipe>`. Le projet est `crashlearn` par défaut ;
-`--wandb-project` et `--wandb-group` permettent de le choisir.
 
-Avant de synchroniser une campagne, vérifier le quota de stockage du compte et le volume
-local des checkpoints. Aucun compte, abonnement payant ni secret n'est créé par le code.
+**Équipe partagée** (E-20, depuis le 12/11/2026) : entité `crashlearn`, projet
+`crashlearn`, organisation `crashlearn-org` ([runs](https://wandb.ai/crashlearn/crashlearn)).
+Les 13 runs hors ligne des campagnes E-18 et E-19 sont dans le projet
+[`crashlearn-archive`](https://wandb.ai/crashlearn/crashlearn-archive), avec les mêmes
+identifiants que dans leurs manifests : métriques, configuration et console. Leurs
+checkpoints n'y sont pas : `wandb sync` annonce l'envoi des artefacts hors ligne, mais
+l'API n'en trouve aucun. Ces checkpoints restent dans les archives de la station. Un run
+en ligne envoie bien les siens (6 versions pour le run de contrôle).
+Lucas et Thibaud sont invités par e-mail ; le plan gratuit ne propose que le rôle Admin.
+W&B s'appelle désormais CoreWeave Forge ; les anciennes URL `wandb.ai` redirigent.
+
+- **Station** : la clé d'API est dans `~/.netrc` (droits 600), jamais dans Git. Elle
+  s'appelle `tour-station-crashlearn` et expire au bout de 30 jours : la recréer dans
+  les réglages du compte, puis `uv run wandb login --relogin`.
+- **Plan** : « Academic plan », essai jusqu'au 12/12/2026, 100 Go de stockage inclus.
+  Aucun moyen de paiement n'est enregistré et le paiement à l'usage est désactivé. Le
+  formulaire « Complete application » (statut académique) reste à remplir par Léo.
+- **Quota** : avant une campagne, comparer `du -sh` des checkpoints au stockage restant
+  (page Billing de l'organisation). Les 13 runs archivés pèsent 5 Mio hors ligne ; tous
+  les checkpoints de la station, 2,3 Gio.
 
 ```bash
-du -sh runs/baseline
-# Après configuration du compte et vérification du quota :
-uv run wandb sync --entity <équipe> --project crashlearn \
+uv run python scripts/train_ppo.py ... --wandb --wandb-mode online --wandb-entity crashlearn
+# runs hors ligne, une seule fois chacun (wandb marque *.wandb.synced et les ignore ensuite).
+# Un run créé dans Docker se synchronise dans la même image et avec les mêmes montages,
+# sinon ses chemins d'artefacts (/runs/...) n'existent pas. Ne jamais supprimer un run
+# synchronisé : W&B refuse ensuite son identifiant dans ce projet.
+uv run wandb sync --entity crashlearn --project crashlearn \
   runs/baseline/logs/attempt-001/wandb/offline-run-*
 ```
 

@@ -181,3 +181,7 @@ E-19 : aucun plafond de vitesse seul ne fait finir les quatre circuits de valida
 ## 2026-11-10 · [Livraison] driver1 à 400/400 avec un plafond d'inférence de 4,75 m/s
 
 La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas de sélection, et 400 courses nouvelles, seeds 200 à 299, sont fixées avant la confirmation. Un plafond global de 4,75 m/s corrige les deux DNF, sans réglage par circuit et avec les mêmes poids appris. Le candidat figé finit 400/400. Coût : médiane de 236,17 à 247,57 s sur 118 courses communes. Faible adhérence et forte pluie restent à 6/12 (E-23). Preuves : `docs/results/driver1/README.md`.
+
+## 2026-11-12 · [Outillage] Équipe W&B partagée
+
+E-20 : création de l'entité W&B `crashlearn` (organisation `crashlearn-org`, plan académique en essai, 100 Go inclus, aucun moyen de paiement), invitation de Lucas et Thibaud, clé d'API de la station dans `~/.netrc` hors Git. Les 13 runs hors ligne des campagnes E-18 et E-19 sont dans le projet `crashlearn-archive`, avec leurs identifiants d'origine (métriques et configuration ; leurs checkpoints restent sur la station, l'envoi des artefacts hors ligne n'aboutit pas) ; un run en ligne de contrôle (4096 puis 8192 interactions, reprise comprise) garde le même identifiant W&B. Le suivi hors ligne reste le défaut. Pourquoi : comparer les runs à trois sans passer par la station, sans dépendre du réseau pendant un entraînement.
