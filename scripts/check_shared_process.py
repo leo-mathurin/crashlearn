@@ -237,6 +237,7 @@ def race(sim, agents: list, track: str, seed: int, steps: int) -> list[tuple]:
     dry_obs, dry_info = schema(agent_loader.create_dummy_obs()), agent_loader.create_dummy_info()
     sim.set_map(track)
     sim.reset(num_cars=len(agents), seed=seed)
+    sim.simulation_step()  # sim_recorder.py idles step 0: the first decision sees step 1
     calls = []
     for _ in range(steps):
         info = sim.get_step_info()
