@@ -11,6 +11,8 @@ const SHADOW_MAP_SIZE = 2048;
 /** Direction to the sun, in Three.js world axes (y up): a low afternoon sun from the south-west. */
 const SUN_DIRECTION = new THREE.Vector3(-0.55, 0.62, 0.56).normalize();
 
+const HAZE_COLOR = 0xa9bdd0;
+
 export class Stage {
   readonly scene = new THREE.Scene();
   /**
@@ -19,6 +21,7 @@ export class Stage {
    */
   readonly simRoot = new THREE.Group();
   private readonly sun = new THREE.DirectionalLight(0xfff1dc, 2.6);
+  private readonly fog = new THREE.Fog(HAZE_COLOR, 1e5, 1e6);
 
   private constructor(
     readonly renderer: THREE.WebGPURenderer,
@@ -26,7 +29,9 @@ export class Stage {
   ) {
     this.simRoot.rotation.x = -Math.PI / 2;
     this.scene.add(this.simRoot);
-    this.scene.background = new THREE.Color(0x0e1116);
+    // Sky haze behind the ground, for the cameras that see the horizon.
+    this.scene.background = new THREE.Color(HAZE_COLOR);
+    this.scene.fog = this.fog;
 
     this.scene.add(new THREE.HemisphereLight(0xcfe2ff, 0x4d5a3a, 0.9));
     this.sun.castShadow = true;
@@ -46,7 +51,7 @@ export class Stage {
     const renderer = new THREE.WebGPURenderer({ canvas, antialias: true, forceWebGL });
     await renderer.init();
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.NeutralToneMapping;
     renderer.toneMappingExposure = 0.95;
     const isWebGPU = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend === true;
@@ -82,6 +87,16 @@ export class Stage {
     camera.near = 300 - size * 1.5 - 5;
     camera.far = 300 + size * 1.5 + 5;
     camera.updateProjectionMatrix();
+  }
+
+  /**
+   * Fades the far ground into the haze. `focusDistance` is the distance from the camera to the
+   * point it looks at: the fog starts beyond it, so the subject of the view is always clear,
+   * also for the Aerial camera that is high above the ground.
+   */
+  setFog(focusDistance: number): void {
+    this.fog.near = focusDistance + 140;
+    this.fog.far = focusDistance + 900;
   }
 
   /** Resolves when the GPU has finished the frames submitted so far. For measurements. */

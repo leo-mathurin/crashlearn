@@ -27,6 +27,7 @@ export class Timeline {
   private readonly fill: HTMLElement;
   private readonly thumb: HTMLElement;
   private readonly tooltip: HTMLElement;
+  private readonly events = h("div", { class: "scrub-events" });
   private readonly clock: HTMLElement;
   private readonly total: HTMLElement;
   private readonly frameLabel: HTMLElement;
@@ -57,6 +58,7 @@ export class Timeline {
         "aria-valuemin": 0,
       },
       h("div", { class: "scrub-track" }, this.fill),
+      this.events,
       this.thumb,
       this.tooltip,
     );
@@ -81,6 +83,18 @@ export class Timeline {
       speeds,
     );
     this.bindScrubber();
+  }
+
+  /** Marks on the timeline: the moment a car finished or ended in DNF. */
+  setEvents(events: readonly { time: number; color: string; label: string }[]): void {
+    this.events.replaceChildren(
+      ...events.map((event) => {
+        const mark = h("div", { class: "scrub-event", title: event.label });
+        mark.style.left = `${this.duration > 0 ? (event.time / this.duration) * 100 : 0}%`;
+        mark.style.setProperty("--car", event.color);
+        return mark;
+      }),
+    );
   }
 
   setReplay(duration: number, frameCount: number): void {

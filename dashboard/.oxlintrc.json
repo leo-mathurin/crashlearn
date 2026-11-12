@@ -7,10 +7,23 @@
     "perf": "error"
   },
   "rules": {
-    "no-console": ["error", { "allow": ["warn", "error", "info"] }],
+    "no-console": [
+      "error",
+      {
+        "allow": ["warn", "error", "info"]
+      }
+    ],
     "eqeqeq": "error",
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-imports": "error"
   },
-  "ignorePatterns": ["dist/**", "node_modules/**", "test-results/**", "playwright-report/**"]
+  "ignorePatterns": ["dist/**", "node_modules/**", "test-results/**", "playwright-report/**"],
+  "overrides": [
+    {
+      "files": ["e2e/**"],
+      "rules": {
+        "no-await-in-loop": "off"
+      }
+    }
+  ]
 }

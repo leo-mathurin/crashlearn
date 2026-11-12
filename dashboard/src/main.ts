@@ -4,7 +4,10 @@ import { h } from "./ui/dom";
 declare global {
   interface Window {
     /** Debug access for the browser tests and the performance measurements. */
-    dashboard?: Pick<App, "state" | "focus" | "benchmark">;
+    dashboard?: Pick<
+      App,
+      "state" | "focus" | "benchmark" | "setCamera" | "setFollowed" | "selectCar"
+    >;
   }
 }
 

@@ -41,6 +41,24 @@ export default function setup(): void {
     copyFileSync(join(root, "replays", `${name}.npz`), join(target, `${name}.npz`));
   }
 
+  // Values of one demo race read with NumPy: the tests compare the page with them.
+  const dump = `
+import json, sys, numpy as np
+ep = np.load(sys.argv[1])
+frames = [0, 200, ep["poses"].shape[0] - 1]
+print(json.dumps({str(f): [{
+    "status": int(ep["status"][f, c]), "rank": int(ep["ranks"][f, c]),
+    "laps": int(ep["lap_count"][f, c]), "progress": float(ep["progress"][f, c]),
+    "speed": float(ep["velocity"][f, c]), "targetSpeed": float(ep["actions"][f, c, 0]),
+    "steering": float(ep["steering"][f, c]), "targetSteering": float(ep["actions"][f, c, 1]),
+} for c in range(int(ep["num_cars"]))] for f in frames}))`;
+  writeFileSync(
+    join(target, "demo-dnf-sochi.expected.json"),
+    execFileSync("uv", ["run", "python", "-c", dump, join(target, "demo-dnf-sochi.npz")], {
+      cwd: root,
+    }),
+  );
+
   const fixture = unzipSync(readFileSync(join(here, "../tests/fixtures/two-cars-40-frames.npz")));
   writeFileSync(
     join(target, "unknown-map.npz"),
