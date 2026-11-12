@@ -111,9 +111,25 @@ uv run python scripts/evaluate_drivers.py --run-dir runs/baseline --output runs/
 uv run python scripts/evaluate_drivers.py --scripted --output runs/scripted.json
 ```
 
-`evaluate_drivers.py` fait courir un run, ou le témoin scripté, sur les 105 courses de la
+`evaluate_drivers.py` fait courir un run, ou le témoin scripté, sur les 117 courses de la
 campagne : nominal sur train et validation, perturbations sur validation, jamais le test.
-Les DNF et TIMEOUT sont des résultats. Le fichier est réécrit après chaque course.
+Les DNF et TIMEOUT sont des résultats. Le fichier est réécrit après chaque course. Depuis
+E-23, les perturbations suivent le sujet v1.3.0 : friction 0,7 au lieu de 0,5, et météo qui
+change en pleine course (`changing_weather`, [docs/weather.md](weather.md)). Les anciens
+fichiers de 105 courses gardent leurs valeurs, enregistrées course par course.
+
+## Météo changeante (E-23)
+
+```bash
+uv run python scripts/train_ppo.py --history-depth 1 --seed 0 --timesteps 2000000 \
+  --device cuda --n-envs 15 --fixed-map-workers --max-speed 5 --random-start \
+  --weather --nominal-share 0.25 --initialize-from <model.zip> --output-dir runs/weather
+```
+
+`--weather` tire à chaque épisode un calendrier de friction et de bruit LiDAR qui change
+en pleine course ; `--nominal-share` garde une part d'épisodes aux valeurs officielles.
+Une reprise doit garder ces réglages. `--friction-feature` ajoute `friction_current` en
+entrée pour le mesurer seulement : un tel modèle ne s'exporte pas.
 
 `confirm_submission.py` fait courir un dossier de soumission sur les quatre circuits de
 validation, dans l'image CPU du tournoi, sans Gymnasium ni PyTorch. Une seed de course y
