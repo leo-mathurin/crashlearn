@@ -25,5 +25,25 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    // WebGPU needs a GPU and, on Linux, these flags and a window: `E2E_WEBGPU=1` adds the project.
+    ...(process.env.E2E_WEBGPU
+      ? [
+          {
+            name: "chromium-webgpu",
+            use: {
+              ...devices["Desktop Chrome"],
+              headless: false,
+              launchOptions: {
+                args: [
+                  "--enable-unsafe-webgpu",
+                  "--enable-features=Vulkan,VulkanFromANGLE",
+                  "--use-angle=vulkan",
+                  "--ignore-gpu-blocklist",
+                ],
+              },
+            },
+          },
+        ]
+      : []),
   ],
 });
