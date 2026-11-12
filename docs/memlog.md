@@ -188,9 +188,9 @@ Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver
 
 ## 2026-11-12 · [Livraison] Soumission contrôlée dans un processus partagé
 
-E-27 : `scripts/check_shared_process.py` charge quatre dossiers de pilote dans un seul processus, depuis un cwd vide, dans l'image CPU du tournoi. Il refuse tout import hors NumPy, ONNX Runtime et bibliothèque standard pendant le chargement. Il exécute le dry-run officiel, puis trois courses de 600 décisions à quatre voitures sur Austin. La CI lance aussi `verify_submission.py --submission` sur chaque pilote et `--grandprix` sur les quatre dossiers. Pourquoi : le vérificateur officiel charge chaque pilote seul et ne contrôle `model.onnx.data` que par sa présence. Un état global partagé, une mémoire non séparée par voiture ou des poids lus hors du fichier passeraient sans erreur.
+E-27 : `scripts/check_shared_process.py` charge les quatre pilotes dans un seul processus, comme au tournoi, puis lance trois courses de 600 décisions à quatre voitures sur Austin. La CI l'exécute dans l'image CPU du tournoi, avec `verify_submission.py` sur chaque pilote et en mode Grand Prix. Pourquoi : le vérificateur officiel charge chaque pilote seul et ne contrôle que la présence de `model.onnx.data`. Un état global partagé, une mémoire commune aux voitures ou des poids lus hors du fichier passeraient sans erreur. Détail des contrôles : `submission/README.md`.
 
-- **Copies en attendant driver3 et driver4** : `driver3` copie `driver1` et `driver4` copie `driver2`, et la sortie l'indique. Le même `agent.py` est donc chargé deux fois.
-- **Lecture de `model.onnx` sans le paquet `onnx`** : un petit lecteur protobuf suffit pour les références externes. Les hashes viennent de `export.json`, jamais du code, car les poids vont changer (mise à zéro des entrées adversaires).
-- **Pas de mesure avec adversaires** : les courses testent le chargement et la mémoire, pas la conduite ensemble. Le format des courses finales est inconnu, deux de nos voitures ne se croiseront peut-être jamais.
-- **Preuve** : le contrôle échoue sur un `model.onnx.data` absent, sur un import de `yaml` dans `Agent()`, sur un état global non séparé et sur une mémoire commune à toutes les voitures. Il passe sur la livraison actuelle en 20 s.
+- **driver3 et driver4 manquants** : remplacés par des copies de `driver1` et `driver2`, et la sortie l'indique.
+- **Hashes lus dans `export.json`** : jamais écrits dans le code, car les poids vont changer (mise à zéro des entrées adversaires, E-28).
+- **Pas de mesure avec adversaires** : ces courses testent le chargement et la mémoire, pas la conduite à plusieurs. Le format des courses finales est inconnu.
+- **Preuve** : le contrôle échoue sur un `model.onnx.data` absent, un import de `yaml` dans `Agent()`, un état global partagé et une mémoire commune à toutes les voitures. Il passe sur la livraison actuelle en 20 s.
