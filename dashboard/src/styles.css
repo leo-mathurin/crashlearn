@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
   --bg: #0e1116;
-  --panel: rgb(17 20 26 / 0.78);
+  --panel: rgb(17 20 26 / 0.9);
   --panel-solid: #14171d;
   --border: rgb(255 255 255 / 0.09);
   --text: #eef0f4;
@@ -81,7 +81,8 @@ code {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  backdrop-filter: blur(16px) saturate(1.3);
+  /* No backdrop blur: over a canvas that changes at each frame, it costs Firefox a quarter of
+     its frames (measured: 44 fps with the blur, 60 fps without). */
   box-shadow:
     0 1px 0 rgb(255 255 255 / 0.04) inset,
     0 12px 32px rgb(0 0 0 / 0.35);
