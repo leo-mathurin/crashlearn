@@ -81,11 +81,24 @@ def test_manifest_without_seed_is_reported(repo):
 
 def test_model_without_results_is_reported(repo):
     model = source_model(repo, "driver2")
-    for path in (repo / "docs/results").rglob("*.json"):
-        if path.parent.name != "manifests" and model in path.read_text():
-            path.unlink()
+    readme = repo / "docs/results/e-18/README.md"
+    readme.write_text(readme.read_text().replace(model[:12], ""))
     assert check_deliverables.check(repo) == [
-        f"submission/driver2: no result file under docs/results/ names model {model[:12]}"
+        f"submission/driver2: no docs/results/*/README.md cites model {model[:12]}"
+    ]
+
+
+@pytest.mark.parametrize("sums", [None, "", "# crashlearn/crashlearn/results-e-18\n"])
+def test_results_without_artifact_version_are_reported(repo, sums):
+    """The README cites the model, but no SHA256SUMS names the W&B artifact version."""
+    model = source_model(repo, "driver2")
+    path = repo / "docs/results/e-18/SHA256SUMS"
+    if sums is None:
+        path.unlink()
+    else:
+        path.write_text(sums)
+    assert check_deliverables.check(repo) == [
+        f"docs/results/e-18/SHA256SUMS: names no artifact version for {model[:12]}"
     ]
 
 

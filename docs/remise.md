@@ -24,20 +24,20 @@ L'organisation impose le SSO SAML d'Epitech. Un token GitHub (API, MCP) doit êt
 
 ## Pas de Git LFS
 
-Les modèles livrés (`submission/driver1..4/model.onnx`) sont versionnés directement dans Git. Ce sont de petits réseaux, de quelques Mo chacun, très loin de l'avertissement de GitHub (50 Mo) et de sa limite (100 Mo par fichier). LFS aurait ajouté un risque inutile : une récupération du rendu qui ne suit pas LFS ne trouverait que des pointeurs texte à la place des modèles. Si un modèle approche 50 Mo, on regarde d'abord la quantification (E-41) avant de revenir sur ce choix.
+Les modèles livrés (`submission/driver1..4/model.onnx`) sont versionnés directement dans Git. Ce sont de petits réseaux, de moins de 1 Mo chacun, très loin de l'avertissement de GitHub (50 Mo) et de sa limite (100 Mo par fichier). LFS aurait ajouté un risque inutile : une récupération du rendu qui ne suit pas LFS ne trouverait que des pointeurs texte à la place des modèles. Si un modèle approche 50 Mo, on regarde d'abord la quantification (E-41) avant de revenir sur ce choix.
 
-Mesuré le 12/11/2026 (E-36) : `model.onnx.data` pèse 395 296 octets pour driver1 et 782 352 octets pour driver2, `model.onnx` moins de 3 Ko. Le plus gros fichier de tout l'historique est une carte du simulateur de 4,2 Mo. Aucun fichier n'a d'attribut LFS (pas de `.gitattributes`). Les checkpoints intermédiaires et les runs restent hors Git : `runs/` (ignoré), archives de la station sous `/home/leo/runs/crashlearn/` et W&B hors ligne.
+Mesuré le 12/11/2026 (E-36) : `model.onnx.data` pèse 395 296 octets pour driver1 et 782 352 octets pour driver2, `model.onnx` moins de 3 Ko. Le plus gros fichier de l'historique est une carte du simulateur de 4,2 Mo. Aucun fichier n'a d'attribut LFS (pas de `.gitattributes`). Checkpoints et runs restent hors Git : `runs/` (ignoré), archives de la station sous `/home/leo/runs/crashlearn/` et W&B.
 
 ## Provenance et restauration des modèles (E-36)
 
-`scripts/check_deliverables.py` vérifie chaque `submission/driver*/` sans dépendance à installer. Il lit les hashes dans `export.json` et dans les manifests, il n'en fixe aucun. Il échoue avec un message clair si :
+`scripts/check_deliverables.py` vérifie chaque `submission/driver*/` sans dépendance à installer ni accès à W&B. Il lit les hashes dans `export.json` et dans les manifests, il n'en fixe aucun. Il échoue si :
 
 - un fichier livré manque, est un pointeur LFS ou diffère de son hash dans `export.json` ;
 - l'export n'est pas propre (`dirty` différent de `false`) ;
 - le modèle source, ou un modèle dont il dérive ou part, n'a pas de manifest sous `docs/results/*/manifests/` avec commit, configuration et seed ;
-- aucun fichier de résultats sous `docs/results/` ne nomme le modèle source.
+- aucun `docs/results/<campagne>/README.md` ne cite le modèle source (hash complet ou ses 12 premiers caractères), à côté d'un `SHA256SUMS` qui nomme la version de l'artefact W&B de ses résultats ([résultats bruts](experiments.md#résultats-bruts)).
 
-Un nouvel export doit donc versionner son manifest et ses résultats. Le job Pytest de la CI lance ce contrôle.
+Un nouvel export versionne donc son manifest, et le README et le `SHA256SUMS` de sa campagne. Le job Pytest de la CI lance ce contrôle. Pour vérifier aussi les courses, `scripts/results_artifact.py fetch` télécharge l'artefact et le compare à `SHA256SUMS`.
 
 ```bash
 python scripts/check_deliverables.py          # --git : chaque commit doit exister dans le clone

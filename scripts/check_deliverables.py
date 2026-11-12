@@ -3,9 +3,11 @@
 For each submission/driver*/, the files must match the hashes in export.json and must not
 be Git LFS pointers. The source model in export.json must lead, through the run manifests
 under docs/results/*/manifests/, to a commit, a training configuration and a seed, and each
-model it was derived or initialized from must have its own manifest. At least one result
-file under docs/results/ must name the delivered model. Hashes are read from these files,
-never written here: a new export only needs its manifest and its results committed.
+model it was derived or initialized from must have its own manifest. The raw results are
+in W&B (docs/experiments.md, "Résultats bruts"): at least one docs/results/<campaign>/README.md
+must cite the delivered model (full SHA-256 or its first 12 characters), next to a SHA256SUMS
+that names the artifact version holding its results. Hashes are read from these files, never
+written here: a new export only needs its manifest, README and SHA256SUMS committed.
 
 Standard library only, so it runs on a fresh clone before any install:
 
@@ -24,33 +26,38 @@ ROOT = Path(__file__).resolve().parents[1]
 DELIVERED_FILES = ("agent.py", "model.onnx", "model.onnx.data")
 LFS_POINTER = b"version https://git-lfs.github.com/spec/"
 COMMIT = re.compile(r"[0-9a-f]{7,40}")
+ARTIFACT = re.compile(r"# [\w.-]+/[\w.-]+/[\w.-]+:v\d+")  # first line of SHA256SUMS
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def strings(value) -> set[str]:
-    """Every string value in a JSON document, at any depth."""
-    if isinstance(value, str):
-        return {value}
-    if isinstance(value, dict):
-        value = list(value.values())
-    if isinstance(value, list):
-        return set().union(*map(strings, value)) if value else set()
-    return set()
-
-
-def load_results(root: Path) -> tuple[dict[str, tuple[Path, dict]], dict[Path, set[str]]]:
-    """Manifests by model hash, and the string values of every other result file."""
-    manifests, results = {}, {}
-    for path in sorted((root / "docs" / "results").rglob("*.json")):
+def load_manifests(root: Path) -> dict[str, tuple[Path, dict]]:
+    """Run manifests by model hash."""
+    manifests = {}
+    for path in sorted((root / "docs" / "results").rglob("manifests/*.json")):
         document = json.loads(path.read_text())
-        if path.parent.name != "manifests":
-            results[path] = strings(document)
-        elif "model_sha256" in document:  # an interrupted attempt has no model
+        if "model_sha256" in document:  # an interrupted attempt has no model
             manifests.setdefault(document["model_sha256"], (path, document))
-    return manifests, results
+    return manifests
+
+
+def results_links(model: str, root: Path) -> tuple[list[str], list[str]]:
+    """Campaigns whose README cites the model, with the artifact named by their SHA256SUMS;
+    and the citing campaigns whose SHA256SUMS names no artifact version."""
+    links, unlinked = [], []
+    for readme in sorted((root / "docs" / "results").glob("*/README.md")):
+        if model[:12] not in readme.read_text():
+            continue
+        sums = readme.parent / "SHA256SUMS"
+        header, *entries = (sums.read_text() if sums.is_file() else "").splitlines() or [""]
+        campaign = readme.parent.relative_to(root)
+        if ARTIFACT.fullmatch(header) and entries:
+            links.append(f"{campaign} ({header.removeprefix('# ')})")
+        else:
+            unlinked.append(str(campaign))
+    return links, unlinked
 
 
 def check_lineage(model: str, manifests: dict, root: Path, errors: list, lines: list) -> None:
@@ -85,7 +92,7 @@ def check_lineage(model: str, manifests: dict, root: Path, errors: list, lines: 
         model = parent
 
 
-def check_driver(driver: Path, manifests: dict, results: dict, root: Path) -> list[str]:
+def check_driver(driver: Path, manifests: dict, root: Path) -> list[str]:
     """Errors for one delivered driver; prints its provenance on the way."""
     name = driver.relative_to(root)
     record_path = driver / "export.json"
@@ -115,11 +122,11 @@ def check_driver(driver: Path, manifests: dict, results: dict, root: Path) -> li
     _, manifest = manifests.get(model, (None, {}))
     if manifest and manifest.get("run_id") != record.get("source_run_id"):
         errors.append(f"{name}: source_run_id differs from the run_id of its manifest")
-    named_by = sorted(
-        str(path.relative_to(root)) for path, found in results.items() if model in found
-    )
-    if not named_by:
-        errors.append(f"{name}: no result file under docs/results/ names model {model[:12]}")
+    links, unlinked = results_links(model, root)
+    if unlinked and not links:
+        errors += [f"{c}/SHA256SUMS: names no artifact version for {model[:12]}" for c in unlinked]
+    elif not links:
+        errors.append(f"{name}: no docs/results/*/README.md cites model {model[:12]}")
 
     sizes = ", ".join(
         f"{file} {(driver / file).stat().st_size} B"
@@ -128,7 +135,7 @@ def check_driver(driver: Path, manifests: dict, results: dict, root: Path) -> li
     )
     lines.append(f"{name}: export commit {str(record.get('commit'))[:12]}; {sizes}")
     check_lineage(model, manifests, root, errors, lines)
-    lines.extend(f"  results: {path}" for path in named_by)
+    lines.extend(f"  results: {link}" for link in links)
     print("\n".join(lines))
     return errors
 
@@ -150,10 +157,10 @@ def check(root: Path, git: bool = False) -> list[str]:
     drivers = sorted(p for p in (root / "submission").glob("driver*") if p.is_dir())
     if not drivers:
         return ["no submission/driver*/ folder"]
-    manifests, results = load_results(root)
+    manifests = load_manifests(root)
     errors = []
     for driver in drivers:
-        errors += check_driver(driver, manifests, results, root)
+        errors += check_driver(driver, manifests, root)
     if git:
         exported = [d for d in drivers if (d / "export.json").is_file()]
         errors += missing_commits(root, manifests, exported)

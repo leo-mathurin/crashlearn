@@ -57,7 +57,7 @@ sa version et l'empreinte de chaque fichier ([récupération](../../experiments.
 |---|---|
 | Entraînement source, plafond 5 m/s, départs diversifiés | [cap5-random-h1-seed0-2m](manifests/cap5-random-h1-seed0-2m.json) |
 | Ablation, 5 m/s, 118/120 (`confirmation-5mps-120.json`) | [cap5-progress-blind](manifests/cap5-progress-blind.json) |
-| Livrable, 4,75 m/s, `4956e2a9…` | [cap4.75-progress-blind](manifests/cap4.75-progress-blind.json) |
+| Livrable, 4,75 m/s, `4956e2a9006f` | [cap4.75-progress-blind](manifests/cap4.75-progress-blind.json) |
 
 La preuve de livraison (`submission-proof.json`) relie le modèle aux courses :
 vérificateur officiel valide, écart ONNX/PyTorch de 4,77 × 10⁻⁷ sur 256 entrées.
