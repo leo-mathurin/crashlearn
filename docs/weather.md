@@ -43,7 +43,7 @@ partie des conditions du tournoi et ne sont pas simulées.
 | Bruit pondéré par le temps (déciles 10, 50, 90) | 0,01 ; 0,05 ; 0,09 |
 
 Les plages d'entraînement sont celles du tournoi. Rien n'indique qu'il faut les élargir :
-les échecs restants se concentrent sur Montreal ([résultats](results/e-23/README.md)).
+les échecs d'E-23 se concentraient sur Montreal, et la borne de vitesse d'E-49 les règle.
 
 ## Évaluation
 
@@ -57,6 +57,13 @@ les échecs restants se concentrent sur Montreal ([résultats](results/e-23/READ
 | `strict_margin` | officielle, marge de sortie de 0,50 m | officiel |
 
 Chaque course `changing_weather` enregistre ses segments (`weather_segments`).
+
+## Vitesse selon la friction (E-49)
+
+L'agent livré de driver1 borne sa vitesse à 4,75 × √μ m/s, μ étant `friction_current`
+(1 si absent). La vitesse de virage maximale varie comme √μ ; l'exposant 0,5 est retenu sur
+280 cas de sélection, puis confirmé sur 800 courses météo neuves, toutes finies
+([résultats](results/e-49/README.md)).
 
 ## Friction en entrée
 
