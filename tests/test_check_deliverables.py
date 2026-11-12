@@ -97,3 +97,26 @@ def test_dirty_export_is_reported(repo):
     assert check_deliverables.check(repo) == [
         "submission/driver2: export.json does not record a clean export (dirty is not false)"
     ]
+
+
+def test_missing_file_is_reported_with_the_other_drivers_checked(repo):
+    (repo / "submission/driver1/model.onnx").unlink()
+    (repo / "submission/driver2/model.onnx.data").write_bytes(b"")
+    assert check_deliverables.check(repo) == [
+        "submission/driver1/model.onnx: missing",
+        "submission/driver2/model.onnx.data: SHA-256 differs from export.json",
+    ]
+
+
+def test_derivation_without_source_is_reported(repo):
+    path = next(
+        p
+        for p in (repo / "docs/results").rglob("manifests/*.json")
+        if json.loads(p.read_text()).get("model_sha256") == source_model(repo)
+    )
+    manifest = json.loads(path.read_text())
+    del manifest["derivation"]["source_model_sha256"]
+    path.write_text(json.dumps(manifest))
+    assert check_deliverables.check(repo) == [
+        f"{path.relative_to(repo)}: no derivation.source_model_sha256"
+    ]

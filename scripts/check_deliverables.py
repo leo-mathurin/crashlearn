@@ -73,8 +73,16 @@ def check_lineage(model: str, manifests: dict, root: Path, errors: list, lines: 
             f"  {model[:12]}  {path.relative_to(root)}  commit {str(manifest.get('commit'))[:12]}"
             f"  seed {manifest.get('train_seed')}  {made_by}"
         )
-        initialization = manifest.get("initialization") or {}
-        model = derivation.get("source_model_sha256") or initialization.get("checkpoint_sha256")
+        if manifest.get("derivation"):
+            parent, field = derivation.get("source_model_sha256"), "derivation.source_model_sha256"
+        elif manifest.get("initialization"):
+            parent = manifest["initialization"].get("checkpoint_sha256")
+            field = "initialization.checkpoint_sha256"
+        else:
+            return
+        if not parent:
+            errors.append(f"{path.relative_to(root)}: no {field}")
+        model = parent
 
 
 def check_driver(driver: Path, manifests: dict, results: dict, root: Path) -> list[str]:
@@ -113,7 +121,11 @@ def check_driver(driver: Path, manifests: dict, results: dict, root: Path) -> li
     if not named_by:
         errors.append(f"{name}: no result file under docs/results/ names model {model[:12]}")
 
-    sizes = ", ".join(f"{file} {(driver / file).stat().st_size} B" for file in DELIVERED_FILES)
+    sizes = ", ".join(
+        f"{file} {(driver / file).stat().st_size} B"
+        for file in DELIVERED_FILES
+        if (driver / file).is_file()
+    )
     lines.append(f"{name}: export commit {str(record.get('commit'))[:12]}; {sizes}")
     check_lineage(model, manifests, root, errors, lines)
     lines.extend(f"  results: {path}" for path in named_by)
