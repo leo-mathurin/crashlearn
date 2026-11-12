@@ -18,7 +18,6 @@ export async function openReplay(page: Page, name: string): Promise<void> {
 
 /** Sends keys, then waits until the frame loop has drawn their effect. */
 export async function press(page: Page, ...keys: string[]): Promise<void> {
-  // oxlint-disable-next-line no-await-in-loop -- the keys are sent one after the other
   for (const key of keys) await page.keyboard.press(key);
   await page.evaluate(
     () =>

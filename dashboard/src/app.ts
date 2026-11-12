@@ -1,18 +1,23 @@
 /** The dashboard: opens a replay, builds its scene and runs the frame loop. */
 import * as THREE from "three/webgpu";
 
-import { Playback, type Pose, samplePose, SPEEDS } from "./replay/playback";
+import { lastActivePose, Playback, type Pose, samplePose, SPEEDS } from "./replay/playback";
 import { parseReplay, type Replay, ReplayError } from "./replay/replay";
-import { AerialCamera } from "./scene/aerialCamera";
-import { CAR_LENGTH_M, CarView } from "./scene/cars";
+import { type CarValues, type Outcome, orderAt, outcomes } from "./replay/standings";
+import { AerialCamera, type Insets } from "./scene/aerialCamera";
+import { CAR_LENGTH_M, carColor, CarView } from "./scene/cars";
+import { buildDnfMarker } from "./scene/dnfMarker";
+import { LidarView } from "./scene/lidar";
 import { Stage } from "./scene/stage";
 import { buildFallbackGround, buildTrackView, type TrackView } from "./scene/trackView";
 import { loadTrackAssets, MapNotFoundError } from "./track/assets";
 import { type Bounds, boundsOf } from "./track/track";
 import { h, icon, ICONS, setText } from "./ui/dom";
+import { SceneLabels } from "./ui/labels";
+import { Leaderboard } from "./ui/leaderboard";
 import { Library } from "./ui/library";
-import { CarMarkers } from "./ui/markers";
 import { PerfMeter, type PerfSummary } from "./ui/perf";
+import { Telemetry } from "./ui/telemetry";
 import { Timeline } from "./ui/timeline";
 
 interface Session {
@@ -20,13 +25,20 @@ interface Session {
   playback: Playback;
   track: TrackView;
   cars: CarView[];
+  /** How the race of each car ended. */
+  outcomes: Outcome[];
+  /** Ground mark at the last pose of each car that ended in DNF, or null. */
+  dnfMarkers: (THREE.Group | null)[];
+  /** Null when the replay has no LiDAR ranges. */
+  lidar: LidarView | null;
   /** False when the map of the replay was not found: the circuit is not drawn. */
   mapAvailable: boolean;
 }
 
-/** Height of the HUD bars over the scene: the circuit is framed between them. */
-const HUD_TOP_PX = 70;
-const HUD_BOTTOM_PX = 84;
+/** Space that the HUD covers on each side: the circuit is framed in what is left. */
+const HUD_INSETS: Insets = { top: 70, bottom: 84, left: 330, right: 330 };
+/** Below this width the side panels are over the scene: the circuit uses the full width. */
+const SIDE_PANELS_MIN_WIDTH_PX = 1100;
 
 /** State that the browser tests read through `window.dashboard`. */
 export interface DashboardState {
@@ -38,6 +50,8 @@ export interface DashboardState {
   mapAvailable: boolean;
   carCount: number;
   visibleCars: number[];
+  /** Position on screen of each car in simulator metres, or null for an inactive car. */
+  carPositions: ({ x: number; y: number } | null)[];
   time: number;
   frame: number;
   frameCount: number;
@@ -45,6 +59,15 @@ export interface DashboardState {
   ended: boolean;
   speed: number;
   limitVisible: boolean;
+  lidarVisible: boolean;
+  /** Voiture sélectionnée: the car whose telemetry and LiDAR are shown. */
+  selectedCar: number;
+  /** Cars from first to last at the playhead. */
+  order: number[];
+  /** Values of the selected car at the playhead. */
+  telemetry: CarValues | null;
+  /** Cars whose DNF marker is shown. */
+  dnfMarkers: number[];
   /** Centre of the view in simulator metres, and its scale. */
   view: { x: number; y: number; pixelsPerMetre: number };
   triangles: number;
@@ -76,13 +99,17 @@ export class App {
   private phase: DashboardState["phase"] = "library";
   private lastError: string | null = null;
   private limitVisible = true;
+  private lidarVisible = true;
+  private selectedCar = 0;
   private lastFrameAt = 0;
   private benchmarking = false;
   private width = 1;
   private height = 1;
 
   private readonly aerial: AerialCamera;
-  private readonly markers: CarMarkers;
+  private readonly labels: SceneLabels;
+  private readonly leaderboard: Leaderboard;
+  private readonly telemetry = new Telemetry();
   private readonly perf = new PerfMeter();
   private readonly timeline: Timeline;
   private readonly library: Library;
@@ -95,6 +122,7 @@ export class App {
   private readonly loading = h("div", { class: "panel loading", hidden: true });
   private readonly dropHint = h("div", { class: "drop-hint", hidden: true }, "Déposez le replay");
   private readonly limitSwitch: HTMLButtonElement;
+  private readonly lidarSwitch: HTMLButtonElement;
   private readonly bottom: HTMLElement;
 
   private constructor(
@@ -104,7 +132,8 @@ export class App {
     markerLayer: HTMLElement,
   ) {
     this.aerial = new AerialCamera(canvas);
-    this.markers = new CarMarkers(markerLayer);
+    this.labels = new SceneLabels(markerLayer, (car) => this.selectCar(car));
+    this.leaderboard = new Leaderboard((car) => this.selectCar(car));
     this.timeline = new Timeline({
       onToggle: () => this.session?.playback.toggle(),
       onSeek: (time) => this.session?.playback.seek(time),
@@ -117,24 +146,20 @@ export class App {
       onPickFile: (file) => void this.openFile(file),
       onClose: () => this.library.hide(),
     });
-    this.limitSwitch = h(
-      "button",
-      {
-        class: "switch",
-        type: "button",
-        role: "switch",
-        title: "Limite de DNF : bord de piste + 1 m (L)",
-        onclick: () => this.setLimitVisible(!this.limitVisible),
-      },
-      h("span", { class: "switch-dot" }),
+    this.limitSwitch = toggleSwitch(
       "Limite de DNF",
+      "Limite de DNF : bord de piste + 1 m (L)",
+      () => this.setLimitVisible(!this.limitVisible),
+    );
+    this.lidarSwitch = toggleSwitch("LiDAR", "LiDAR de la voiture sélectionnée (I)", () =>
+      this.setLidarVisible(!this.lidarVisible),
     );
     this.bottom = h("div", { class: "hud-bottom", hidden: true }, this.timeline.element);
 
     hud.append(
       h(
         "div",
-        { class: "hud-top" },
+        { class: "hud-column left" },
         h(
           "div",
           { class: "panel brand" },
@@ -152,13 +177,20 @@ export class App {
             "Ouvrir",
           ),
         ),
+        this.leaderboard.element,
+      ),
+      h(
+        "div",
+        { class: "hud-column right" },
         h(
           "div",
           { class: "panel view-options" },
           h("span", { class: "camera-name", title: "Caméra" }, "Aérienne"),
           this.limitSwitch,
+          this.lidarSwitch,
           h("span", { class: "badge", title: "Moteur de rendu" }, stage.backend),
         ),
+        this.telemetry.element,
       ),
       this.notices,
       this.perf.element,
@@ -168,6 +200,7 @@ export class App {
       this.dropHint,
     );
     this.setLimitVisible(true);
+    this.setLidarVisible(true);
     this.bindWindow();
   }
 
@@ -198,6 +231,11 @@ export class App {
       visibleCars: session
         ? session.cars.filter((car) => car.group.visible).map((car) => car.car)
         : [],
+      carPositions: session
+        ? session.cars.map((car) =>
+            car.group.visible ? { x: car.group.position.x, y: car.group.position.y } : null,
+          )
+        : [],
       time: session?.playback.time ?? 0,
       frame: session?.playback.frame ?? 0,
       frameCount: session?.replay.frameCount ?? 0,
@@ -205,6 +243,13 @@ export class App {
       ended: session?.playback.ended ?? false,
       speed: session?.playback.speed ?? 1,
       limitVisible: this.limitVisible,
+      lidarVisible: this.lidarVisible && Boolean(session?.lidar?.group.visible),
+      selectedCar: this.selectedCar,
+      order: session ? orderAt(session.replay, session.playback.frame) : [],
+      telemetry: session ? this.telemetry.values(session.playback.time) : null,
+      dnfMarkers: session
+        ? session.dnfMarkers.flatMap((marker, car) => (marker?.visible ? [car] : []))
+        : [],
       view: {
         x: this.aerial.target.x,
         y: -this.aerial.target.z,
@@ -296,13 +341,50 @@ export class App {
 
     this.closeSession();
     const cars = Array.from({ length: replay.carCount }, (_, car) => new CarView(car));
+    const results = outcomes(replay);
+    const dnfMarkers = results.map((outcome, car) => {
+      if (outcome.status !== "dnf" || !lastActivePose(replay, car, this.pose)) return null;
+      return buildDnfMarker(this.pose.x, this.pose.y);
+    });
+    const lidar = replay.lidar ? new LidarView(replay.beamCount) : null;
     this.stage.simRoot.add(track.group, ...cars.map((car) => car.group));
-    this.session = { replay, playback: new Playback(replay), track, cars, mapAvailable };
+    for (const object of [...dnfMarkers, lidar?.group]) {
+      if (object) this.stage.simRoot.add(object);
+    }
+    this.session = {
+      replay,
+      playback: new Playback(replay),
+      track,
+      cars,
+      outcomes: results,
+      dnfMarkers,
+      lidar,
+      mapAvailable,
+    };
     track.limit.visible = this.limitVisible;
+    if (!replay.lidar) notices.push("Ce replay n'a pas de mesures LiDAR.");
 
-    this.markers.setCars(replay.carCount);
+    this.labels.setCars(replay.teamNames);
+    this.leaderboard.setReplay(replay);
+    this.telemetry.setReplay(replay);
+    this.selectCar(0);
+    this.lidarSwitch.disabled = lidar === null;
     this.timeline.setReplay(replay.duration, replay.frameCount);
-    this.aerial.fit(track.bounds, HUD_TOP_PX, HUD_BOTTOM_PX);
+    this.timeline.setEvents(
+      results.flatMap((outcome, car) =>
+        outcome.status === "active"
+          ? []
+          : [
+              {
+                time: outcome.frame * replay.simDt,
+                color: carColor(car),
+                label: `${replay.teamNames[car]} : ${outcome.status === "dnf" ? "DNF" : "arrivée"}`,
+              },
+            ],
+      ),
+    );
+    const wide = this.width >= SIDE_PANELS_MIN_WIDTH_PX;
+    this.aerial.fit(track.bounds, wide ? HUD_INSETS : { ...HUD_INSETS, left: 0, right: 0 });
     this.perf.reset();
 
     setText(this.title, name.replace(/\.npz$/, ""));
@@ -327,9 +409,30 @@ export class App {
     const session = this.session;
     if (!session) return;
     this.stage.simRoot.remove(session.track.group, ...session.cars.map((car) => car.group));
+    for (const marker of session.dnfMarkers) {
+      if (marker) this.stage.simRoot.remove(marker);
+    }
+    if (session.lidar) {
+      this.stage.simRoot.remove(session.lidar.group);
+      session.lidar.dispose();
+    }
     session.track.dispose();
     for (const car of session.cars) car.dispose();
     this.session = null;
+  }
+
+  /** Makes `car` the Voiture sélectionnée: its telemetry and its LiDAR are shown. */
+  selectCar(car: number): void {
+    if (!this.session || car < 0 || car >= this.session.replay.carCount) return;
+    this.selectedCar = car;
+    this.labels.setSelected(car);
+    this.leaderboard.setSelected(car);
+    this.telemetry.setCar(car);
+  }
+
+  private setLidarVisible(visible: boolean): void {
+    this.lidarVisible = visible;
+    this.lidarSwitch.setAttribute("aria-checked", String(visible));
   }
 
   private setLimitVisible(visible: boolean): void {
@@ -363,43 +466,72 @@ export class App {
   /** Updates the scene for `interval` milliseconds of wall-clock time and renders it. */
   private draw(interval: number): void {
     const session = this.session;
-    if (session) {
-      const { playback, replay, cars } = session;
-      // A long pause of the tab must not jump the race forward.
-      playback.advance(Math.min(interval, 100) / 1000);
-      const carPixels = CAR_LENGTH_M * this.aerial.pixelsPerMetre;
-      for (const car of cars) {
-        const active = samplePose(replay, playback.time, car.car, this.pose);
-        car.group.visible = active;
-        if (active) {
-          car.setPose(this.pose.x, this.pose.y, this.pose.heading);
-          const steering = replay.steering?.[playback.frame * replay.carCount + car.car];
-          car.setSteering(steering ?? 0);
-        }
-        // Simulator (x, y) is (x, -z) in Three.js world axes.
-        this.scratch.set(this.pose.x, 0.08, -this.pose.y);
-        this.markers.place(
-          car.car,
-          active,
-          this.scratch,
-          this.aerial.camera,
-          this.width,
-          this.height,
-          carPixels,
-        );
-      }
-      this.timeline.update({
-        time: playback.time,
-        frame: playback.frame,
-        playing: playback.playing,
-        ended: playback.ended,
-        speed: playback.speed,
-      });
-    }
+    // A long pause of the tab must not jump the race forward.
+    session?.playback.advance(Math.min(interval, 100) / 1000);
+    if (session) this.placeCars(session);
 
     this.aerial.update();
+    const camera = this.aerial.camera;
+    camera.updateMatrixWorld();
+    if (session) this.updateHud(session, camera);
+
     this.stage.fitShadow(this.aerial.target, this.aerial.viewRadius);
-    this.stage.render(this.aerial.camera);
+    this.stage.render(camera);
+  }
+
+  /** Moves the cars, the LiDAR and the DNF marks to the playhead. */
+  private placeCars(session: Session): void {
+    const { playback, replay, cars, lidar, dnfMarkers, outcomes: results } = session;
+    const frame = playback.frame;
+    for (const car of cars) {
+      const active = samplePose(replay, playback.time, car.car, this.pose);
+      car.group.visible = active;
+      if (!active) continue;
+      car.setPose(this.pose.x, this.pose.y, this.pose.heading);
+      car.setSteering(replay.steering?.[frame * replay.carCount + car.car] ?? 0);
+      if (lidar && car.car === this.selectedCar) {
+        lidar.update(replay, frame, playback.time / replay.simDt - frame, car.car, this.pose);
+      }
+    }
+    if (lidar) {
+      lidar.group.visible = this.lidarVisible && (cars[this.selectedCar]?.group.visible ?? false);
+    }
+    dnfMarkers.forEach((marker, car) => {
+      // The mark appears at the frame where the simulator declares the DNF.
+      if (marker) marker.visible = frame >= (results[car]?.frame ?? Infinity);
+    });
+  }
+
+  /** Updates the screen labels and the panels for the playhead and the camera. */
+  private updateHud(session: Session, camera: THREE.Camera): void {
+    const { playback, cars, dnfMarkers } = session;
+    const carPixels = CAR_LENGTH_M * this.aerial.pixelsPerMetre;
+    for (const car of cars) {
+      // Simulator (x, y, z) is (x, z, -y) in Three.js world axes.
+      this.scratch.set(car.group.position.x, 0.08, -car.group.position.y);
+      this.labels.placeCar(
+        car.car,
+        car.group.visible,
+        this.scratch,
+        camera,
+        this.width,
+        this.height,
+        carPixels,
+      );
+      const marker = dnfMarkers[car.car];
+      if (!marker) continue;
+      this.scratch.set(marker.position.x, 0.08, -marker.position.y);
+      this.labels.placeDnf(car.car, marker.visible, this.scratch, camera, this.width, this.height);
+    }
+    this.leaderboard.update(playback.frame);
+    this.telemetry.update(playback.time);
+    this.timeline.update({
+      time: playback.time,
+      frame: playback.frame,
+      playing: playback.playing,
+      ended: playback.ended,
+      speed: playback.speed,
+    });
   }
 
   /**
@@ -447,6 +579,11 @@ export class App {
         ArrowUp: () => this.shiftSpeed(1),
         ArrowDown: () => this.shiftSpeed(-1),
         l: () => this.setLimitVisible(!this.limitVisible),
+        i: () => this.setLidarVisible(!this.lidarVisible),
+        "1": () => this.selectCar(0),
+        "2": () => this.selectCar(1),
+        "3": () => this.selectCar(2),
+        "4": () => this.selectCar(3),
         r: () => this.aerial.reset(),
         o: () => this.library.show(this.session !== null),
         p: () => this.perf.toggle(),
@@ -483,4 +620,13 @@ export class App {
     const index = SPEEDS.indexOf(playback.speed as (typeof SPEEDS)[number]);
     playback.speed = SPEEDS[Math.min(Math.max(index + direction, 0), SPEEDS.length - 1)] ?? 1;
   }
+}
+
+function toggleSwitch(label: string, title: string, onToggle: () => void): HTMLButtonElement {
+  return h(
+    "button",
+    { class: "switch", type: "button", role: "switch", title, onclick: onToggle },
+    h("span", { class: "switch-dot" }),
+    label,
+  );
 }

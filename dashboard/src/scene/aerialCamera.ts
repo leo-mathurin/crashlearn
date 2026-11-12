@@ -11,6 +11,15 @@ const HEIGHT_M = 200;
 /** The closest zoom shows this many metres from the top to the bottom of the screen. */
 const MIN_VIEW_HEIGHT_M = 2.5;
 
+export interface Insets {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+const NO_INSETS: Insets = { top: 0, bottom: 0, left: 0, right: 0 };
+
 export class AerialCamera {
   readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, HEIGHT_M * 2);
   private readonly controls: MapControls;
@@ -58,20 +67,23 @@ export class AerialCamera {
 
   /**
    * Frames an area given in simulator metres, and makes it the view that `reset` returns to.
-   * `insetTop` and `insetBottom` are the pixels that the HUD covers at the top and the bottom.
+   * `insets` are the pixels that the HUD covers on each side of the screen.
    */
-  fit(bounds: Bounds, insetTop = 0, insetBottom = 0): void {
+  fit(bounds: Bounds, insets: Insets = NO_INSETS): void {
     const width = bounds.maxX - bounds.minX;
     const height = bounds.maxY - bounds.minY;
     const margin = 1.06;
     const viewportWidth = this.viewportHeight * this.aspect;
-    const free = Math.max(this.viewportHeight - insetTop - insetBottom, this.viewportHeight / 2);
-    const metresPerPixel = Math.max(height / free, width / viewportWidth) * margin;
+    const freeHeight = Math.max(this.viewportHeight - insets.top - insets.bottom, 100);
+    const freeWidth = Math.max(viewportWidth - insets.left - insets.right, 100);
+    const metresPerPixel = Math.max(height / freeHeight, width / freeWidth) * margin;
     this.fitHalfHeight = (metresPerPixel * this.viewportHeight) / 2;
     // The free area is not centred on the screen: move the view centre by the difference.
+    const centerX =
+      (bounds.minX + bounds.maxX) / 2 + ((insets.right - insets.left) / 2) * metresPerPixel;
     const centerY =
-      (bounds.minY + bounds.maxY) / 2 - ((insetBottom - insetTop) / 2) * metresPerPixel;
-    this.home.set((bounds.minX + bounds.maxX) / 2, 0, -centerY);
+      (bounds.minY + bounds.maxY) / 2 - ((insets.bottom - insets.top) / 2) * metresPerPixel;
+    this.home.set(centerX, 0, -centerY);
     this.controls.minZoom = 0.6;
     this.controls.maxZoom = (this.fitHalfHeight * 2) / MIN_VIEW_HEIGHT_M;
     this.reset();

@@ -31,6 +31,8 @@ const ASPHALT_TILE_M = 2.4;
 const GRASS_TILE_M = 11;
 const CONCRETE_TILE_M = 1.2;
 
+/** The walls stand on the track edge: the paint starts this far inside, clear of them. */
+const PAINT_INSET_M = 0.1;
 const EDGE_LINE_WIDTH_M = 0.07;
 const KERB_WIDTH_M = 0.22;
 const KERB_STRIPE_M = 0.45;
@@ -207,7 +209,7 @@ function buildPaint(line: Centerline): THREE.Mesh {
   const red = new THREE.Color(0xc22a25);
   const bend = curvature(line);
   for (const side of ["left", "right"] as const) {
-    const edge = edgeLine(line, side, 0);
+    const edge = edgeLine(line, side, -PAINT_INSET_M);
     // The paint is inside the track: to the right of travel on the left edge, and the reverse.
     const inward = side === "left" ? -1 : 1;
     walkEdge(edge, (ax, ay, bx, by, nx, ny, arc, index) => {

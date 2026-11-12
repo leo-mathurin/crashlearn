@@ -144,7 +144,7 @@ test("opens a replay of an old recorder that only has poses and statuses", async
   const ready = await state(page);
   expect(ready.carCount).toBe(2);
   expect(ready.map).toBeNull();
-  await expect(page.getByRole("status")).toContainText("ne nomme pas sa carte");
+  await expect(page.getByRole("status").first()).toContainText("ne nomme pas sa carte");
 });
 
 test("reports a replay that the server does not have", async ({ page }) => {

@@ -56,7 +56,20 @@ Tout ce qui est sur la piste vient des données du simulateur. Rien n'est invent
 | Limite de DNF, tirets rouges | bord de piste + 1 m (`_OFFTRACK_MARGIN_M`), avec le calcul de `_is_off_track`                                                                         |
 | Voitures                     | poses enregistrées, à la taille de la boîte de collision : 0,58 × 0,31 m                                                                              |
 
+| LiDAR de la Voiture sélectionnée | les 100 distances enregistrées, avec les angles du simulateur (`_LIDAR_SCAN_FOV`). Un point marque chaque rayon qui a touché un mur ; un rayon à 15 m n'a rien touché |
+| Marqueur « DNF » | dernière pose d'une voiture en abandon, à partir de la frame où le simulateur déclare le DNF. Pas de marqueur pour une arrivée |
+
 Une Voiture inactive (statut DNF ou arrivée) est masquée : le simulateur la retire de la piste. Entre deux frames (20 Hz), la pose est interpolée pour un mouvement fluide ; les valeurs affichées sont celles de la frame enregistrée.
+
+Entre deux frames, le bout de chaque rayon LiDAR glisse en ligne droite de son point à la frame précédente à son point à la frame suivante. En pause sur une frame, ce sont exactement les distances enregistrées.
+
+## Classement et télémétrie
+
+- **Classement** : ordre du simulateur (`ranks`), nom, couleur, tour et progression du tour. Une voiture inactive affiche « Arrivée » ou « DNF » avec le temps simulé de sa fin de course. À la dernière frame, c'est le classement final. Les marques de couleur sur la timeline donnent ces mêmes instants.
+- **Télémétrie de la Voiture sélectionnée** : vitesse mesurée et vitesse cible, braquage mesuré et braquage demandé (le trait blanc de chaque jauge est la consigne du pilote), tour, adhérence de la piste, et courbe des deux vitesses sur 6 s avant et après la tête de lecture.
+- **Données absentes** : un ancien replay peut ne pas avoir `ranks`, `lidar`, `velocity` ou `actions`. La valeur est alors notée « indisponible », jamais remplacée par zéro. Sans `ranks`, l'ordre est celui de `viz_replay.py` : arrivées, puis voitures actives par distance, puis DNF.
+
+Le recorder ne garde ni le nombre de tours visé ni la raison d'un DNF, et il coupe les noms à 10 caractères : le dashboard affiche ce que le fichier contient. Ces enrichissements sont le sujet de E-35.
 
 Si la carte du replay est introuvable, les voitures sont affichées sur une grille neutre, avec un avertissement. Si le fichier n'est pas un replay valide, la page dit pourquoi et reste utilisable.
 
@@ -73,10 +86,10 @@ Si la carte du replay est introuvable, les voitures sont affichées sur une gril
 
 ```
 server.ts            serveur local : page, /api/replays, /api/maps
-src/replay/          décodage NPZ, validation, horloge de lecture
+src/replay/          décodage NPZ, validation, horloge de lecture, classement et valeurs par voiture
 src/track/           données de piste : centerline, limite de DNF, murs (sans Three.js, testé)
-src/scene/           rendu : renderer, lumières, circuit, voitures, caméra
-src/ui/              HUD : timeline, choix du replay, pastilles, mesures
+src/scene/           rendu : renderer, lumières, circuit, voitures, LiDAR, marqueur DNF, caméra
+src/ui/              HUD : timeline, classement, télémétrie, étiquettes, choix du replay, mesures
 tests/               tests unitaires (bun test)
 e2e/                 tests navigateur, Chromium et Firefox (Playwright)
 ```
