@@ -14,7 +14,7 @@ export default defineConfig({
   reporter: [["list"]],
   // Each page builds a 3D scene, with software rendering on a machine that has no GPU.
   workers: 4,
-  timeout: 60_000,
+  timeout: 120_000,
   expect: { timeout: 15_000 },
   use: { baseURL: `http://localhost:${PORT}`, viewport: { width: 1280, height: 800 } },
   webServer: {
