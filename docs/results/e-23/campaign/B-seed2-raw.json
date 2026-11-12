@@ -1,0 +1,4685 @@
+{
+ "metadata": {
+  "driver": "ppo-h1",
+  "train_seed": 2,
+  "history_depth": 1,
+  "model_sha256": "89985e919a416e87236296fd85b0bb155d14309fc9dde582ea4629eb76a324c1",
+  "budget_timesteps": 2000000,
+  "training_config": {
+   "n_steps": 2048,
+   "batch_size": 512,
+   "n_epochs": 10,
+   "learning_rate": 0.0003,
+   "gamma": 0.99,
+   "gae_lambda": 0.95,
+   "clip_range": 0.2,
+   "policy_kwargs": {
+    "net_arch": [
+     256,
+     256
+    ],
+    "log_std_init": -1.0
+   },
+   "n_envs": 15,
+   "device": "cuda",
+   "fixed_map_workers": true,
+   "max_speed": 5.0,
+   "random_start": true,
+   "weather": {
+    "friction": [
+     0.7,
+     1.0
+    ],
+    "lidar_noise": [
+     0.001,
+     0.1
+    ],
+    "segment_s": [
+     5.0,
+     40.0
+    ],
+    "nominal_share": 0.25
+   },
+   "friction_feature": true
+  },
+  "initialization": {
+   "checkpoint": "/home/leo/runs/crashlearn/e19-20261110/cap5-random-h1-seed0/model.zip",
+   "checkpoint_sha256": "f283194ea0334cfbde14c0f4925698d5226b335b89533c39dd1e3b940fc359aa",
+   "source_timesteps": 2027520,
+   "optimizer_restored": false
+  },
+  "derivation": null,
+  "commit": "a28cf7c0d2409d93f77ec5a4166cb58bc40bd026",
+  "dirty": false,
+  "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
+  "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
+  "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
+  "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
+  "reward_version": "v1",
+  "created_utc": "2026-11-12T00:55:19+00:00",
+  "max_steps": 8000,
+  "vehicle_collision_steps": 0
+ },
+ "races": [
+  {
+   "split": "train",
+   "map": "Austin",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    82.75,
+    82.45,
+    82.65
+   ],
+   "total_time_s": 247.85,
+   "decisions": 4957,
+   "wall_collision_steps": 0,
+   "distance_m": 1231.0,
+   "credited_minus_driven_m": 32.25,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00386,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1372.67,
+   "trajectory_sha256": "1eb926f4cd5b4061f5ab93d9209991832a5c6182ffa65a918e1a220bd07eac81"
+  },
+  {
+   "split": "train",
+   "map": "Austin",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    82.7,
+    82.5,
+    82.75
+   ],
+   "total_time_s": 247.95,
+   "decisions": 4959,
+   "wall_collision_steps": 0,
+   "distance_m": 1231.14,
+   "credited_minus_driven_m": 32.13,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00381,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1372.7,
+   "trajectory_sha256": "5ef3addfbed047ebbadbbe435e52246a2984cc7ea9f1ab7b6e5c17ff17d4f6c4"
+  },
+  {
+   "split": "train",
+   "map": "Austin",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0,
+   "lap_times_s": [
+    82.75,
+    82.4,
+    82.65
+   ],
+   "total_time_s": 247.8,
+   "decisions": 4956,
+   "wall_collision_steps": 0,
+   "distance_m": 1230.75,
+   "credited_minus_driven_m": 32.38,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.0036,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1372.57,
+   "trajectory_sha256": "24ceb554820f08807e01a50d004cd17e46f352217a256b99bb17a921a40384fa"
+  },
+  {
+   "split": "train",
+   "map": "BrandsHatch",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    69.55,
+    69.15,
+    69.15
+   ],
+   "total_time_s": 207.85,
+   "decisions": 4157,
+   "wall_collision_steps": 0,
+   "distance_m": 1037.58,
+   "credited_minus_driven_m": 31.49,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00179,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1178.73,
+   "trajectory_sha256": "921eee99a8d3ffd07f1bdaf9ee2124bf3a7ebca32556168ff304af7a09976ff2"
+  },
+  {
+   "split": "train",
+   "map": "BrandsHatch",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    69.55,
+    69.15,
+    69.15
+   ],
+   "total_time_s": 207.85,
+   "decisions": 4157,
+   "wall_collision_steps": 0,
+   "distance_m": 1037.58,
+   "credited_minus_driven_m": 31.49,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00161,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1178.74,
+   "trajectory_sha256": "ae5955fff1d8226f3857dc9383cbcbe3b96295c094fa83c28bc45145dbfec485"
+  },
+  {
+   "split": "train",
+   "map": "BrandsHatch",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    69.55,
+    69.15,
+    69.15
+   ],
+   "total_time_s": 207.85,
+   "decisions": 4157,
+   "wall_collision_steps": 0,
+   "distance_m": 1037.58,
+   "credited_minus_driven_m": 31.45,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00177,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1178.68,
+   "trajectory_sha256": "70195256adb010d8a025f3a9927bce1f26b50d2daf3e5576ce5c6621687c5a29"
+  },
+  {
+   "split": "train",
+   "map": "Budapest",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0,
+   "lap_times_s": [
+    77.95,
+    77.5,
+    77.5
+   ],
+   "total_time_s": 232.95,
+   "decisions": 4659,
+   "wall_collision_steps": 0,
+   "distance_m": 1163.08,
+   "credited_minus_driven_m": 44.69,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00253,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1317.34,
+   "trajectory_sha256": "afc7286c050ce79c2f4bd135a6ff5ab3507f249a42be55267bd62d6643fcf771"
+  },
+  {
+   "split": "train",
+   "map": "Budapest",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    77.9,
+    77.55,
+    77.5
+   ],
+   "total_time_s": 232.95,
+   "decisions": 4659,
+   "wall_collision_steps": 0,
+   "distance_m": 1163.08,
+   "credited_minus_driven_m": 44.77,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00245,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1317.43,
+   "trajectory_sha256": "811f2be5407239771c6ded85b1a1c7ee42137c001b6cfc1f881fd8b3dcb78c77"
+  },
+  {
+   "split": "train",
+   "map": "Budapest",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    77.95,
+    77.5,
+    77.5
+   ],
+   "total_time_s": 232.95,
+   "decisions": 4659,
+   "wall_collision_steps": 0,
+   "distance_m": 1163.08,
+   "credited_minus_driven_m": 44.86,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00259,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1317.5,
+   "trajectory_sha256": "499c376e8092b5b4f5a53272ad0cec2f5460a453f06782bc986dac94d414ce32"
+  },
+  {
+   "split": "train",
+   "map": "Catalunya",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    80.85,
+    80.5,
+    80.45
+   ],
+   "total_time_s": 241.8,
+   "decisions": 4836,
+   "wall_collision_steps": 0,
+   "distance_m": 1206.23,
+   "credited_minus_driven_m": 44.05,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00204,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1359.88,
+   "trajectory_sha256": "946dcc05c1821148347e2ad30147ec82d8ee1d8d3447001401a238d5afebfaf0"
+  },
+  {
+   "split": "train",
+   "map": "Catalunya",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    80.85,
+    80.45,
+    80.45
+   ],
+   "total_time_s": 241.75,
+   "decisions": 4835,
+   "wall_collision_steps": 0,
+   "distance_m": 1206.29,
+   "credited_minus_driven_m": 43.98,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.0019,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1359.89,
+   "trajectory_sha256": "cfbebb5dcbb0c0ef6270506dc539f6ae6fc782f417ac15ed4e54ddf9089333b0"
+  },
+  {
+   "split": "train",
+   "map": "Catalunya",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    80.9,
+    80.45,
+    80.5
+   ],
+   "total_time_s": 241.85,
+   "decisions": 4837,
+   "wall_collision_steps": 0,
+   "distance_m": 1206.7,
+   "credited_minus_driven_m": 43.76,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00189,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1360.08,
+   "trajectory_sha256": "0343498b6a7f2dd8286e4c9357a8eb4e871ef0e77283a76b9835c7423daffffe"
+  },
+  {
+   "split": "train",
+   "map": "Hockenheim",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    70.75,
+    70.45,
+    70.4
+   ],
+   "total_time_s": 211.6,
+   "decisions": 4232,
+   "wall_collision_steps": 0,
+   "distance_m": 1055.85,
+   "credited_minus_driven_m": 23.69,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00191,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1189.17,
+   "trajectory_sha256": "7045c771e088ff949c474ce9e71b6a06d65e73d07487331619f2f9b5d6231a32"
+  },
+  {
+   "split": "train",
+   "map": "Hockenheim",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    70.7,
+    70.45,
+    70.45
+   ],
+   "total_time_s": 211.6,
+   "decisions": 4232,
+   "wall_collision_steps": 0,
+   "distance_m": 1055.86,
+   "credited_minus_driven_m": 23.79,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00196,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1189.28,
+   "trajectory_sha256": "928484ed899f3051096a84f2a999699d624463a222e9907df6cb0b690b182809"
+  },
+  {
+   "split": "train",
+   "map": "Hockenheim",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    70.75,
+    70.4,
+    70.5
+   ],
+   "total_time_s": 211.65,
+   "decisions": 4233,
+   "wall_collision_steps": 0,
+   "distance_m": 1056.01,
+   "credited_minus_driven_m": 23.73,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00213,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1189.36,
+   "trajectory_sha256": "d25670ec0c2b3c153a1b9e38ab65b236a82c51d58087601fa38ada43e3bde4c4"
+  },
+  {
+   "split": "train",
+   "map": "IMS",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    58.7,
+    58.45,
+    58.55
+   ],
+   "total_time_s": 175.7,
+   "decisions": 3514,
+   "wall_collision_steps": 0,
+   "distance_m": 876.83,
+   "credited_minus_driven_m": 2.59,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00012,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 989.21,
+   "trajectory_sha256": "498600ddd61519446d7fde35d571c66936c0e8e69741b27320b3dc4a696c5b4d"
+  },
+  {
+   "split": "train",
+   "map": "IMS",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    58.7,
+    58.45,
+    58.55
+   ],
+   "total_time_s": 175.7,
+   "decisions": 3514,
+   "wall_collision_steps": 0,
+   "distance_m": 876.83,
+   "credited_minus_driven_m": 2.65,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00013,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 989.27,
+   "trajectory_sha256": "cddf22c4efc68a64f8dba019e00c111e11cb4806b3d2112d92958fd1905898fe"
+  },
+  {
+   "split": "train",
+   "map": "IMS",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0008,
+   "lap_times_s": [
+    58.7,
+    58.45,
+    58.55
+   ],
+   "total_time_s": 175.7,
+   "decisions": 3514,
+   "wall_collision_steps": 0,
+   "distance_m": 876.83,
+   "credited_minus_driven_m": 2.68,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00013,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 989.31,
+   "trajectory_sha256": "c399adb3eaff046cae5d3fb83f467c7dab14a90ccac9a83641c9b6a6fe61def9"
+  },
+  {
+   "split": "train",
+   "map": "Melbourne",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    93.1,
+    92.7,
+    92.7
+   ],
+   "total_time_s": 278.5,
+   "decisions": 5570,
+   "wall_collision_steps": 0,
+   "distance_m": 1390.16,
+   "credited_minus_driven_m": 32.79,
+   "progress_jump_steps": 2,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00139,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1532.59,
+   "trajectory_sha256": "468c4b7b752546c44944afc950d7525bf2246206166e5b9b8d39027b56fb1144"
+  },
+  {
+   "split": "train",
+   "map": "Melbourne",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    93.1,
+    92.7,
+    92.7
+   ],
+   "total_time_s": 278.5,
+   "decisions": 5570,
+   "wall_collision_steps": 0,
+   "distance_m": 1390.15,
+   "credited_minus_driven_m": 32.79,
+   "progress_jump_steps": 2,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00136,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1532.59,
+   "trajectory_sha256": "a3a19e53988d15d7ead257f0f7973e2dc05dd3eae4df999e4349b5617647d44b"
+  },
+  {
+   "split": "train",
+   "map": "Melbourne",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    93.05,
+    92.7,
+    92.7
+   ],
+   "total_time_s": 278.45,
+   "decisions": 5569,
+   "wall_collision_steps": 0,
+   "distance_m": 1389.94,
+   "credited_minus_driven_m": 32.94,
+   "progress_jump_steps": 3,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.0015,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1532.52,
+   "trajectory_sha256": "abd8682bcbc30cf2011d0ccaf75bcc045097f15cce71c18a4449fcb63d61d588"
+  },
+  {
+   "split": "train",
+   "map": "MexicoCity",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    69.8,
+    69.4,
+    69.5
+   ],
+   "total_time_s": 208.7,
+   "decisions": 4174,
+   "wall_collision_steps": 0,
+   "distance_m": 1040.21,
+   "credited_minus_driven_m": 29.85,
+   "progress_jump_steps": 1,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00326,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1179.59,
+   "trajectory_sha256": "8a9cd1ccb29d637a9f5f830640ce02b3c0c94469b10a48aa188977a9ef5ee488"
+  },
+  {
+   "split": "train",
+   "map": "MexicoCity",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    69.8,
+    69.4,
+    69.4
+   ],
+   "total_time_s": 208.6,
+   "decisions": 4172,
+   "wall_collision_steps": 0,
+   "distance_m": 1039.89,
+   "credited_minus_driven_m": 30.16,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00329,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1179.58,
+   "trajectory_sha256": "774d5363860ad5f81610a6a1356ef3f675fd627f225d9617e44d2f28d8a65f51"
+  },
+  {
+   "split": "train",
+   "map": "MexicoCity",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    69.75,
+    69.45,
+    69.5
+   ],
+   "total_time_s": 208.7,
+   "decisions": 4174,
+   "wall_collision_steps": 0,
+   "distance_m": 1040.22,
+   "credited_minus_driven_m": 29.92,
+   "progress_jump_steps": 1,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00337,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1179.66,
+   "trajectory_sha256": "f5184ffc92137a27c77ae00c752b0d191836294697dee7f2db678ebd87da7265"
+  },
+  {
+   "split": "train",
+   "map": "Monza",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    88.4,
+    88.1,
+    88.0
+   ],
+   "total_time_s": 264.5,
+   "decisions": 5290,
+   "wall_collision_steps": 0,
+   "distance_m": 1319.36,
+   "credited_minus_driven_m": 18.95,
+   "progress_jump_steps": 1,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00137,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1447.97,
+   "trajectory_sha256": "87c4ed39e73d985deb5009f5bd8c473f9676f50b779b53bd24d8de336f9f939b"
+  },
+  {
+   "split": "train",
+   "map": "Monza",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    88.4,
+    88.1,
+    88.0
+   ],
+   "total_time_s": 264.5,
+   "decisions": 5290,
+   "wall_collision_steps": 0,
+   "distance_m": 1319.33,
+   "credited_minus_driven_m": 18.95,
+   "progress_jump_steps": 1,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.0014,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1447.93,
+   "trajectory_sha256": "cc8bfab2718b19ecc78ec6c9a7d88c573a1a4651a47e2fad016c8f54ea3320d4"
+  },
+  {
+   "split": "train",
+   "map": "Monza",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    88.4,
+    88.05,
+    88.05
+   ],
+   "total_time_s": 264.5,
+   "decisions": 5290,
+   "wall_collision_steps": 0,
+   "distance_m": 1319.38,
+   "credited_minus_driven_m": 18.99,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00129,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1448.04,
+   "trajectory_sha256": "d86a1dab05179a732a29cbfe0e8b6c863a893d5ab7dc5d865bbcf2850d4f2644"
+  },
+  {
+   "split": "train",
+   "map": "Nuerburgring",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    86.8,
+    86.5,
+    86.5
+   ],
+   "total_time_s": 259.8,
+   "decisions": 5196,
+   "wall_collision_steps": 0,
+   "distance_m": 1297.24,
+   "credited_minus_driven_m": 41.14,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00174,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1447.99,
+   "trajectory_sha256": "bc6015372de7c4e2a731b4594a0aaf37f844f9217c981755970cc2b64c0e118d"
+  },
+  {
+   "split": "train",
+   "map": "Nuerburgring",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    86.85,
+    86.5,
+    86.5
+   ],
+   "total_time_s": 259.85,
+   "decisions": 5197,
+   "wall_collision_steps": 0,
+   "distance_m": 1297.33,
+   "credited_minus_driven_m": 41.11,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00169,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1448.06,
+   "trajectory_sha256": "d3d89393cb3f2277529809c6b12482ee58170c3ee00861da62300bbf7daef33a"
+  },
+  {
+   "split": "train",
+   "map": "Nuerburgring",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    86.85,
+    86.45,
+    86.55
+   ],
+   "total_time_s": 259.85,
+   "decisions": 5197,
+   "wall_collision_steps": 0,
+   "distance_m": 1297.45,
+   "credited_minus_driven_m": 41.06,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.0019,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1448.11,
+   "trajectory_sha256": "8b7132fe3962849a8ee2ab91ae847c736ce7eaca1eb6005a05f853164bdac189"
+  },
+  {
+   "split": "train",
+   "map": "Sakhir",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    86.95,
+    86.6,
+    86.75
+   ],
+   "total_time_s": 260.3,
+   "decisions": 5206,
+   "wall_collision_steps": 0,
+   "distance_m": 1297.13,
+   "credited_minus_driven_m": 28.67,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00251,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1435.33,
+   "trajectory_sha256": "a35f2c7d303b5830fe9232bf7bb5aad8c8c5d7a1a7e373f5e43a253e11dc50bc"
+  },
+  {
+   "split": "train",
+   "map": "Sakhir",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    86.95,
+    86.65,
+    86.65
+   ],
+   "total_time_s": 260.25,
+   "decisions": 5205,
+   "wall_collision_steps": 0,
+   "distance_m": 1297.28,
+   "credited_minus_driven_m": 28.57,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00233,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1435.41,
+   "trajectory_sha256": "53849a5fd0e7d258f369b6c511a7b85695a963c2af3200d938f9b931dceb1af3"
+  },
+  {
+   "split": "train",
+   "map": "Sakhir",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    86.95,
+    86.6,
+    86.75
+   ],
+   "total_time_s": 260.3,
+   "decisions": 5206,
+   "wall_collision_steps": 0,
+   "distance_m": 1297.16,
+   "credited_minus_driven_m": 28.63,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00234,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1435.35,
+   "trajectory_sha256": "87f5734cf3671a5b3e6ddec7e8f0315175de32229fbd2ccf3293fd107f52d8fc"
+  },
+  {
+   "split": "train",
+   "map": "SaoPaulo",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    67.2,
+    67.0,
+    67.15
+   ],
+   "total_time_s": 201.35,
+   "decisions": 4027,
+   "wall_collision_steps": 0,
+   "distance_m": 1005.03,
+   "credited_minus_driven_m": 29.08,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00251,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1143.71,
+   "trajectory_sha256": "64a074472c898c5c98f151eb1b7d49edf8c48c48ac22766ec64c1d25c3f1e053"
+  },
+  {
+   "split": "train",
+   "map": "SaoPaulo",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    67.25,
+    66.95,
+    67.15
+   ],
+   "total_time_s": 201.35,
+   "decisions": 4027,
+   "wall_collision_steps": 0,
+   "distance_m": 1004.94,
+   "credited_minus_driven_m": 29.14,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00258,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1143.67,
+   "trajectory_sha256": "ee61e07a738f4ede58bb5df2124ee931f3b144a3b0df57a6501a8d8765f496d8"
+  },
+  {
+   "split": "train",
+   "map": "SaoPaulo",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0007,
+   "lap_times_s": [
+    67.25,
+    67.0,
+    67.2
+   ],
+   "total_time_s": 201.45,
+   "decisions": 4029,
+   "wall_collision_steps": 0,
+   "distance_m": 1005.32,
+   "credited_minus_driven_m": 28.93,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00269,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1143.83,
+   "trajectory_sha256": "006905d8eb3cc1ed2d45ea8b1a68e3c280537a86dbc64b42dc4278201465f8bb"
+  },
+  {
+   "split": "train",
+   "map": "Sepang",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    94.7,
+    94.4,
+    94.4
+   ],
+   "total_time_s": 283.5,
+   "decisions": 5670,
+   "wall_collision_steps": 0,
+   "distance_m": 1414.46,
+   "credited_minus_driven_m": 46.59,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00171,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1570.66,
+   "trajectory_sha256": "3e1f5a15c8381487e02284d7178adb9fba5eda45060cd8971bb0ee226ad3e667"
+  },
+  {
+   "split": "train",
+   "map": "Sepang",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    94.75,
+    94.4,
+    94.35
+   ],
+   "total_time_s": 283.5,
+   "decisions": 5670,
+   "wall_collision_steps": 0,
+   "distance_m": 1414.31,
+   "credited_minus_driven_m": 46.65,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.0018,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1570.56,
+   "trajectory_sha256": "e9142c4e9a3f3eaa820a25e5a6de599ff7763d2320b549b6768964c69ecb1f96"
+  },
+  {
+   "split": "train",
+   "map": "Sepang",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    94.7,
+    94.4,
+    94.4
+   ],
+   "total_time_s": 283.5,
+   "decisions": 5670,
+   "wall_collision_steps": 0,
+   "distance_m": 1414.3,
+   "credited_minus_driven_m": 46.84,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.0018,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1570.74,
+   "trajectory_sha256": "fcfec9353151468e3e294a4ff44edff6ede96aba8e722e4e878d3b70362c2d16"
+  },
+  {
+   "split": "train",
+   "map": "Silverstone",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    89.85,
+    89.45,
+    89.45
+   ],
+   "total_time_s": 268.75,
+   "decisions": 5375,
+   "wall_collision_steps": 0,
+   "distance_m": 1341.31,
+   "credited_minus_driven_m": 32.53,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00136,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1483.5,
+   "trajectory_sha256": "8f185facc26991c199be11937e3a6a4179529af071e9c58fb5775f5e871bbce9"
+  },
+  {
+   "split": "train",
+   "map": "Silverstone",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    89.85,
+    89.5,
+    89.5
+   ],
+   "total_time_s": 268.85,
+   "decisions": 5377,
+   "wall_collision_steps": 0,
+   "distance_m": 1341.54,
+   "credited_minus_driven_m": 32.37,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00159,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1483.54,
+   "trajectory_sha256": "9be54da6d0049a519ea757aeb76f057127b865982fc9665dfdfd707f7f37bec4"
+  },
+  {
+   "split": "train",
+   "map": "Silverstone",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    89.85,
+    89.5,
+    89.5
+   ],
+   "total_time_s": 268.85,
+   "decisions": 5377,
+   "wall_collision_steps": 0,
+   "distance_m": 1341.46,
+   "credited_minus_driven_m": 32.35,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00156,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1483.44,
+   "trajectory_sha256": "53ae692422eb369fe091277ae71cbb91ac78ead4f63bab4456a2821a7dbe0a46"
+  },
+  {
+   "split": "train",
+   "map": "Zandvoort",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    75.8,
+    75.4,
+    75.45
+   ],
+   "total_time_s": 226.65,
+   "decisions": 4533,
+   "wall_collision_steps": 0,
+   "distance_m": 1131.12,
+   "credited_minus_driven_m": 32.91,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00256,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1273.59,
+   "trajectory_sha256": "3d178c1ff78f6e1db0a7eb695cb1780ff476160b4886aee56a2ae980a10dd9d6"
+  },
+  {
+   "split": "train",
+   "map": "Zandvoort",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    75.75,
+    75.4,
+    75.45
+   ],
+   "total_time_s": 226.6,
+   "decisions": 4532,
+   "wall_collision_steps": 0,
+   "distance_m": 1130.97,
+   "credited_minus_driven_m": 33.04,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00278,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1273.56,
+   "trajectory_sha256": "ad7a098240ed399f983097ab1e4c1c41b82a0a395375665216418029bd6f5694"
+  },
+  {
+   "split": "train",
+   "map": "Zandvoort",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0,
+   "lap_times_s": [
+    75.75,
+    75.45,
+    75.4
+   ],
+   "total_time_s": 226.6,
+   "decisions": 4532,
+   "wall_collision_steps": 0,
+   "distance_m": 1130.89,
+   "credited_minus_driven_m": 32.96,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00263,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1273.41,
+   "trajectory_sha256": "802c1de3f6983deca74bca080c4db833a7eb11a0dfea0348f1187aca1e4c5b05"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    58.25,
+    57.3,
+    57.35
+   ],
+   "total_time_s": 172.9,
+   "decisions": 3458,
+   "wall_collision_steps": 7,
+   "distance_m": 848.04,
+   "credited_minus_driven_m": 7.25,
+   "progress_jump_steps": 0,
+   "idle_steps": 5,
+   "reverse_steps": 8,
+   "action_change_per_step": 0.00419,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 962.4,
+   "trajectory_sha256": "5f19c3f9d337222f566e6d3ab2bd7a05caaf06e15323b6b7898cf9c41b7cdcfd"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    57.9,
+    57.3,
+    57.45
+   ],
+   "total_time_s": 172.65,
+   "decisions": 3453,
+   "wall_collision_steps": 3,
+   "distance_m": 848.46,
+   "credited_minus_driven_m": 6.72,
+   "progress_jump_steps": 0,
+   "idle_steps": 3,
+   "reverse_steps": 6,
+   "action_change_per_step": 0.00417,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 962.89,
+   "trajectory_sha256": "9514d7b71556388caeb77f0656b56444f81e7e96b8f4295b1c7bdf7eecc55d5c"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 0,
+   "progress_laps": 0.8969,
+   "lap_times_s": [],
+   "total_time_s": null,
+   "decisions": 1232,
+   "wall_collision_steps": 145,
+   "distance_m": 254.75,
+   "credited_minus_driven_m": 0.9,
+   "progress_jump_steps": 0,
+   "idle_steps": 139,
+   "reverse_steps": 18,
+   "action_change_per_step": 0.00297,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 1232,
+   "total_reward": 35.38,
+   "trajectory_sha256": "1adf2b70edb1a1471602a638c12495b3a5eb49179b20bdcdee369aad5b968ca8"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    91.2,
+    90.9,
+    90.9
+   ],
+   "total_time_s": 273.0,
+   "decisions": 5460,
+   "wall_collision_steps": 0,
+   "distance_m": 1361.85,
+   "credited_minus_driven_m": 29.69,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00172,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.15,
+   "trajectory_sha256": "a2df01d25ac2978794d58ff2d00adf7b6ca4eedeca5dd82111603a1defb8d16e"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    91.25,
+    90.85,
+    90.9
+   ],
+   "total_time_s": 273.0,
+   "decisions": 5460,
+   "wall_collision_steps": 0,
+   "distance_m": 1361.87,
+   "credited_minus_driven_m": 29.72,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00175,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.2,
+   "trajectory_sha256": "0398bbecd381e70e0c61041e585173833f89fb27f95e28863427e3348ab3b896"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    91.25,
+    90.85,
+    90.95
+   ],
+   "total_time_s": 273.05,
+   "decisions": 5461,
+   "wall_collision_steps": 0,
+   "distance_m": 1361.79,
+   "credited_minus_driven_m": 29.75,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00174,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.14,
+   "trajectory_sha256": "cd10151ac6a5f8456370797e22ea33db3af62eaa9f4f1ad9e6bb42d020dfd8f3"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    67.8,
+    67.45,
+    67.45
+   ],
+   "total_time_s": 202.7,
+   "decisions": 4054,
+   "wall_collision_steps": 0,
+   "distance_m": 1010.84,
+   "credited_minus_driven_m": 19.34,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00161,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.85,
+   "trajectory_sha256": "83f8f477666e27009ac68c9f6916f79487809ee33f68bb39796b7bc781268250"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    67.8,
+    67.45,
+    67.45
+   ],
+   "total_time_s": 202.7,
+   "decisions": 4054,
+   "wall_collision_steps": 0,
+   "distance_m": 1010.76,
+   "credited_minus_driven_m": 19.34,
+   "progress_jump_steps": 1,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00147,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.78,
+   "trajectory_sha256": "c2502a4a31d8c0b3626e8420e095c9d8d16d761826c93533e9a4f0fea9b66972"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    67.8,
+    67.45,
+    67.45
+   ],
+   "total_time_s": 202.7,
+   "decisions": 4054,
+   "wall_collision_steps": 0,
+   "distance_m": 1010.84,
+   "credited_minus_driven_m": 19.29,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00152,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.81,
+   "trajectory_sha256": "eaa11d46663bb9d58e07148ed7cd090f0131f9b7f01243370700c17409653dd1"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "nominal",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2774,
+   "lap_times_s": [
+    78.7,
+    78.7
+   ],
+   "total_time_s": null,
+   "decisions": 3776,
+   "wall_collision_steps": 121,
+   "distance_m": 888.35,
+   "credited_minus_driven_m": 18.14,
+   "progress_jump_steps": 0,
+   "idle_steps": 145,
+   "reverse_steps": 15,
+   "action_change_per_step": 0.00451,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3776,
+   "total_reward": 726.55,
+   "trajectory_sha256": "14f228348bd4dd5f701a33d436fff8ea53c2f4753e5cec27d2f3984bf772f1c3"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "nominal",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2774,
+   "lap_times_s": [
+    78.75,
+    78.8
+   ],
+   "total_time_s": null,
+   "decisions": 3778,
+   "wall_collision_steps": 124,
+   "distance_m": 888.33,
+   "credited_minus_driven_m": 18.16,
+   "progress_jump_steps": 0,
+   "idle_steps": 137,
+   "reverse_steps": 18,
+   "action_change_per_step": 0.00449,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3778,
+   "total_reward": 726.75,
+   "trajectory_sha256": "396e47d0e73d8544b2e0c9fda88f142fbe82b37d0d7e0ae009ba24c13ff7cbf8"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "nominal",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2776,
+   "lap_times_s": [
+    78.7,
+    78.7
+   ],
+   "total_time_s": null,
+   "decisions": 3777,
+   "wall_collision_steps": 68,
+   "distance_m": 888.24,
+   "credited_minus_driven_m": 18.32,
+   "progress_jump_steps": 0,
+   "idle_steps": 143,
+   "reverse_steps": 8,
+   "action_change_per_step": 0.00441,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3777,
+   "total_reward": 726.83,
+   "trajectory_sha256": "618b737f42b9f2bb1d1973a34ae9b73225ebd7624ec302212d0057ce189175d2"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "low_friction",
+   "seed": 0,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 0,
+   "progress_laps": 0.9009,
+   "lap_times_s": [],
+   "total_time_s": null,
+   "decisions": 1339,
+   "wall_collision_steps": 159,
+   "distance_m": 258.98,
+   "credited_minus_driven_m": -2.18,
+   "progress_jump_steps": 0,
+   "idle_steps": 125,
+   "reverse_steps": 59,
+   "action_change_per_step": 0.00334,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 1339,
+   "total_reward": 28.31,
+   "trajectory_sha256": "2237e4155f62ad9cc3b76c8ae25aa33b3fc7eb63dd357cebb9d965bad84e12d3"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "low_friction",
+   "seed": 1,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    61.25,
+    59.05,
+    58.8
+   ],
+   "total_time_s": 179.1,
+   "decisions": 3582,
+   "wall_collision_steps": 20,
+   "distance_m": 854.93,
+   "credited_minus_driven_m": 0.38,
+   "progress_jump_steps": 0,
+   "idle_steps": 16,
+   "reverse_steps": 35,
+   "action_change_per_step": 0.00418,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 955.01,
+   "trajectory_sha256": "eaec5a105488396fac5b0789f10791bde3344bda0553c5bf804180858a49bea5"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "low_friction",
+   "seed": 2,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    61.35,
+    58.8,
+    59.5
+   ],
+   "total_time_s": 179.65,
+   "decisions": 3593,
+   "wall_collision_steps": 27,
+   "distance_m": 854.58,
+   "credited_minus_driven_m": 0.66,
+   "progress_jump_steps": 0,
+   "idle_steps": 22,
+   "reverse_steps": 31,
+   "action_change_per_step": 0.00433,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 955.13,
+   "trajectory_sha256": "062634ae47ac002fc3956d63f9da91ae57c0678d65159ad47fce40460839a35f"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "low_friction",
+   "seed": 0,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    91.7,
+    91.35,
+    91.35
+   ],
+   "total_time_s": 274.4,
+   "decisions": 5488,
+   "wall_collision_steps": 0,
+   "distance_m": 1367.77,
+   "credited_minus_driven_m": 23.72,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00195,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.08,
+   "trajectory_sha256": "700ce6ad5c06a30b577a6d73915802692e7a3f3a23d4d3f517b9c46b7d098b0b"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "low_friction",
+   "seed": 1,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    91.65,
+    91.3,
+    91.35
+   ],
+   "total_time_s": 274.3,
+   "decisions": 5486,
+   "wall_collision_steps": 0,
+   "distance_m": 1367.41,
+   "credited_minus_driven_m": 24.06,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00202,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.05,
+   "trajectory_sha256": "1166d703425f2b759b1c32b863b0a72bda6ba9c1456a757a2588c82c1a6eecbc"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "low_friction",
+   "seed": 2,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    91.65,
+    91.4,
+    91.35
+   ],
+   "total_time_s": 274.4,
+   "decisions": 5488,
+   "wall_collision_steps": 0,
+   "distance_m": 1367.7,
+   "credited_minus_driven_m": 23.83,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.002,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.12,
+   "trajectory_sha256": "34e8f0d78aabdb008ed9c1cbdf58237556692f3264545c19c88e44bad8fc0cba"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "low_friction",
+   "seed": 0,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    68.1,
+    67.85,
+    67.75
+   ],
+   "total_time_s": 203.7,
+   "decisions": 4074,
+   "wall_collision_steps": 0,
+   "distance_m": 1015.53,
+   "credited_minus_driven_m": 14.65,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00189,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.82,
+   "trajectory_sha256": "979fb937157dad5523af3ab39159f78c72dc5c463d572666d45e17754d6abc44"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "low_friction",
+   "seed": 1,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    68.1,
+    67.85,
+    67.75
+   ],
+   "total_time_s": 203.7,
+   "decisions": 4074,
+   "wall_collision_steps": 0,
+   "distance_m": 1015.62,
+   "credited_minus_driven_m": 14.52,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00196,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.78,
+   "trajectory_sha256": "5ef2169a0e8a81b9bbb7057e643c4f1fe1e53ea11b91ebed3acb69054a9ee3bc"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "low_friction",
+   "seed": 2,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    68.15,
+    67.75,
+    67.75
+   ],
+   "total_time_s": 203.65,
+   "decisions": 4073,
+   "wall_collision_steps": 0,
+   "distance_m": 1015.38,
+   "credited_minus_driven_m": 14.63,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00205,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.64,
+   "trajectory_sha256": "8d2201321bf9c48a6449773f247d3f441cbe551c7d23a94a597ba186d68f2b2a"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "low_friction",
+   "seed": 0,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2773,
+   "lap_times_s": [
+    80.2,
+    79.75
+   ],
+   "total_time_s": null,
+   "decisions": 3829,
+   "wall_collision_steps": 65,
+   "distance_m": 893.6,
+   "credited_minus_driven_m": 12.85,
+   "progress_jump_steps": 0,
+   "idle_steps": 145,
+   "reverse_steps": 16,
+   "action_change_per_step": 0.00537,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3829,
+   "total_reward": 724.94,
+   "trajectory_sha256": "751bded8062a33ee26dddaa9b0563aa5387d75ea83a3bc2d40d94c7d4449ab0a"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "low_friction",
+   "seed": 1,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2774,
+   "lap_times_s": [
+    79.75,
+    84.2
+   ],
+   "total_time_s": null,
+   "decisions": 3909,
+   "wall_collision_steps": 112,
+   "distance_m": 894.82,
+   "credited_minus_driven_m": 11.64,
+   "progress_jump_steps": 0,
+   "idle_steps": 171,
+   "reverse_steps": 31,
+   "action_change_per_step": 0.00481,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3909,
+   "total_reward": 716.79,
+   "trajectory_sha256": "fee20fe0f5da6d4b4830631f9b2b61d561a40bf389cea7636316c5ecb4ea6f41"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "low_friction",
+   "seed": 2,
+   "friction": 0.7,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    79.75,
+    79.7,
+    82.85
+   ],
+   "total_time_s": 242.3,
+   "decisions": 4846,
+   "wall_collision_steps": 18,
+   "distance_m": 1179.03,
+   "credited_minus_driven_m": 15.2,
+   "progress_jump_steps": 0,
+   "idle_steps": 13,
+   "reverse_steps": 22,
+   "action_change_per_step": 0.00503,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1297.15,
+   "trajectory_sha256": "fea119bbdd75d22514864e0abe28b1acd32336c6d0debf107658ca7be0c545ac"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "lidar_noise",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0008,
+   "lap_times_s": [
+    58.05,
+    57.25,
+    57.5
+   ],
+   "total_time_s": 172.8,
+   "decisions": 3456,
+   "wall_collision_steps": 3,
+   "distance_m": 849.0,
+   "credited_minus_driven_m": 6.37,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 6,
+   "action_change_per_step": 0.0041,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 963.08,
+   "trajectory_sha256": "03197459511c82d12fc7e5addd62abbbc71e71e57ccdd9c62a13d586f81065ce"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "lidar_noise",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    57.7,
+    57.45,
+    57.25
+   ],
+   "total_time_s": 172.4,
+   "decisions": 3448,
+   "wall_collision_steps": 3,
+   "distance_m": 848.23,
+   "credited_minus_driven_m": 6.93,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 6,
+   "action_change_per_step": 0.00398,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 962.89,
+   "trajectory_sha256": "8a8e112523e2f8e58b166c23aae91ef3a288d05fb22ebdb93c4788c4fa275c3f"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "lidar_noise",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    59.75,
+    57.35,
+    57.75
+   ],
+   "total_time_s": 174.85,
+   "decisions": 3497,
+   "wall_collision_steps": 16,
+   "distance_m": 848.93,
+   "credited_minus_driven_m": 6.33,
+   "progress_jump_steps": 0,
+   "idle_steps": 11,
+   "reverse_steps": 17,
+   "action_change_per_step": 0.00417,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 959.67,
+   "trajectory_sha256": "059ae0b8b68bb7c15b291715ba29e7789e0cf69a5ab88ddb42aef66c5e0d5b4e"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "lidar_noise",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    91.25,
+    90.9,
+    90.9
+   ],
+   "total_time_s": 273.05,
+   "decisions": 5461,
+   "wall_collision_steps": 0,
+   "distance_m": 1361.88,
+   "credited_minus_driven_m": 29.69,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00181,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.18,
+   "trajectory_sha256": "c0d252d5cf7916422b7c4fe3a3350f188396a3bc3d0593f066f32882eb3a8ec3"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "lidar_noise",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0,
+   "lap_times_s": [
+    91.25,
+    90.9,
+    90.85
+   ],
+   "total_time_s": 273.0,
+   "decisions": 5460,
+   "wall_collision_steps": 0,
+   "distance_m": 1361.85,
+   "credited_minus_driven_m": 29.55,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00187,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.0,
+   "trajectory_sha256": "86e5fc9651787b9f57191650458c0c21156ad17c4ba13e1c567c7c950a488395"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "lidar_noise",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0,
+   "lap_times_s": [
+    91.25,
+    90.85,
+    90.9
+   ],
+   "total_time_s": 273.0,
+   "decisions": 5460,
+   "wall_collision_steps": 0,
+   "distance_m": 1361.94,
+   "credited_minus_driven_m": 29.48,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00184,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.02,
+   "trajectory_sha256": "fec313dd58cf351994707f99a587ec24c8b936e01eec86dfa9b46200e37e0c53"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "lidar_noise",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    67.75,
+    67.45,
+    67.45
+   ],
+   "total_time_s": 202.65,
+   "decisions": 4053,
+   "wall_collision_steps": 0,
+   "distance_m": 1010.77,
+   "credited_minus_driven_m": 19.32,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00133,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.78,
+   "trajectory_sha256": "3aaf5d70641ea07a4d33df770786b0cabb9fc5e76312145c1865b5bb997e7fcf"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "lidar_noise",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    67.75,
+    67.45,
+    67.45
+   ],
+   "total_time_s": 202.65,
+   "decisions": 4053,
+   "wall_collision_steps": 0,
+   "distance_m": 1010.73,
+   "credited_minus_driven_m": 19.43,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00151,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.84,
+   "trajectory_sha256": "3c201ef70a1e86c3819c315a7edf51d9cfdaf05d261c655e9951ad5d35f2b5b6"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "lidar_noise",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    67.8,
+    67.35,
+    67.45
+   ],
+   "total_time_s": 202.6,
+   "decisions": 4052,
+   "wall_collision_steps": 0,
+   "distance_m": 1010.49,
+   "credited_minus_driven_m": 19.56,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00157,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.72,
+   "trajectory_sha256": "ce3eb101c6bd9f9119a72724af4d4c983cbfbf3a48b75eb7e30557774987269f"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "lidar_noise",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2778,
+   "lap_times_s": [
+    78.75,
+    79.15
+   ],
+   "total_time_s": null,
+   "decisions": 3786,
+   "wall_collision_steps": 72,
+   "distance_m": 888.81,
+   "credited_minus_driven_m": 17.81,
+   "progress_jump_steps": 0,
+   "idle_steps": 151,
+   "reverse_steps": 7,
+   "action_change_per_step": 0.00471,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3786,
+   "total_reward": 726.37,
+   "trajectory_sha256": "175f75d176a036140a7b6089503daaab909fb8fa2ad11d14fa7915d5928577a3"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "lidar_noise",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2774,
+   "lap_times_s": [
+    78.8,
+    78.8
+   ],
+   "total_time_s": null,
+   "decisions": 3779,
+   "wall_collision_steps": 111,
+   "distance_m": 888.55,
+   "credited_minus_driven_m": 17.94,
+   "progress_jump_steps": 0,
+   "idle_steps": 124,
+   "reverse_steps": 23,
+   "action_change_per_step": 0.005,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3779,
+   "total_reward": 726.61,
+   "trajectory_sha256": "c5e0f448cbcb9cd67f3d17ce40f231e5e1e936651608d21c18accd5ec6819c4b"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "lidar_noise",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2777,
+   "lap_times_s": [
+    78.7,
+    78.8
+   ],
+   "total_time_s": null,
+   "decisions": 3779,
+   "wall_collision_steps": 79,
+   "distance_m": 888.31,
+   "credited_minus_driven_m": 18.29,
+   "progress_jump_steps": 0,
+   "idle_steps": 145,
+   "reverse_steps": 6,
+   "action_change_per_step": 0.00487,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3779,
+   "total_reward": 726.73,
+   "trajectory_sha256": "b9870015e7da08d8b9260cdf0178467af6437668cafe7ae7f7b9a7bd34c98da0"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "heavy_rain",
+   "seed": 0,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 0,
+   "progress_laps": 0.9,
+   "lap_times_s": [],
+   "total_time_s": null,
+   "decisions": 1289,
+   "wall_collision_steps": 161,
+   "distance_m": 257.93,
+   "credited_minus_driven_m": -1.4,
+   "progress_jump_steps": 0,
+   "idle_steps": 142,
+   "reverse_steps": 34,
+   "action_change_per_step": 0.00391,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 1289,
+   "total_reward": 32.63,
+   "trajectory_sha256": "1c558d7031b04aac039363a21d056a7ee433de821ae0a67e325a04098aa67835"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "heavy_rain",
+   "seed": 1,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    59.9,
+    59.35,
+    67.35
+   ],
+   "total_time_s": 186.6,
+   "decisions": 3732,
+   "wall_collision_steps": 102,
+   "distance_m": 855.73,
+   "credited_minus_driven_m": -0.48,
+   "progress_jump_steps": 0,
+   "idle_steps": 71,
+   "reverse_steps": 64,
+   "action_change_per_step": 0.00416,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 940.53,
+   "trajectory_sha256": "c03bdf96d80575734eb748ebef8879b4dd2c9826310a7a68843755d9375fd73d"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "heavy_rain",
+   "seed": 2,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 0,
+   "progress_laps": 0.6238,
+   "lap_times_s": [],
+   "total_time_s": null,
+   "decisions": 937,
+   "wall_collision_steps": 144,
+   "distance_m": 178.28,
+   "credited_minus_driven_m": -0.48,
+   "progress_jump_steps": 0,
+   "idle_steps": 128,
+   "reverse_steps": 26,
+   "action_change_per_step": 0.00428,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 937,
+   "total_reward": -43.77,
+   "trajectory_sha256": "25df9404b58db4ab094485077b1ca23ee08c882deca2b8399847c838bbb9d7f0"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "heavy_rain",
+   "seed": 0,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    91.7,
+    91.3,
+    91.35
+   ],
+   "total_time_s": 274.35,
+   "decisions": 5487,
+   "wall_collision_steps": 0,
+   "distance_m": 1367.49,
+   "credited_minus_driven_m": 24.0,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00223,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.05,
+   "trajectory_sha256": "e63a00361446d100ac981f7e8ee5330b170132005bfe7f2aa04ce3bc5b8c623e"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "heavy_rain",
+   "seed": 1,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    91.6,
+    91.35,
+    91.35
+   ],
+   "total_time_s": 274.3,
+   "decisions": 5486,
+   "wall_collision_steps": 0,
+   "distance_m": 1367.48,
+   "credited_minus_driven_m": 23.97,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00214,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.02,
+   "trajectory_sha256": "44eaedf5f96b46f0ed94da3b156d5733735d1e32a1fd81660d330d8202d14f3b"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "heavy_rain",
+   "seed": 2,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    91.75,
+    91.35,
+    91.45
+   ],
+   "total_time_s": 274.55,
+   "decisions": 5491,
+   "wall_collision_steps": 0,
+   "distance_m": 1368.45,
+   "credited_minus_driven_m": 23.2,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00219,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.21,
+   "trajectory_sha256": "26d3d4d349d537138e34d0036dd5f8a1a3dab826f2d286b84079873f4ce26f5b"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "heavy_rain",
+   "seed": 0,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    68.1,
+    67.8,
+    67.75
+   ],
+   "total_time_s": 203.65,
+   "decisions": 4073,
+   "wall_collision_steps": 0,
+   "distance_m": 1015.35,
+   "credited_minus_driven_m": 14.71,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00192,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.71,
+   "trajectory_sha256": "5498683ce7cf022d6ea381389b296d2511f202a007c6ed36cc0f88a771824c13"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "heavy_rain",
+   "seed": 1,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0007,
+   "lap_times_s": [
+    68.1,
+    67.85,
+    67.8
+   ],
+   "total_time_s": 203.75,
+   "decisions": 4075,
+   "wall_collision_steps": 0,
+   "distance_m": 1015.8,
+   "credited_minus_driven_m": 14.4,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00233,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.81,
+   "trajectory_sha256": "4973540e36334a36bfbd0cd7f15d3086b356149d055b10b24bb87edbc7950662"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "heavy_rain",
+   "seed": 2,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0002,
+   "lap_times_s": [
+    68.15,
+    67.8,
+    67.75
+   ],
+   "total_time_s": 203.7,
+   "decisions": 4074,
+   "wall_collision_steps": 0,
+   "distance_m": 1015.47,
+   "credited_minus_driven_m": 14.58,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00218,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.67,
+   "trajectory_sha256": "100d20280d71d53e79c8c81fafaaeecf10f94cf6ed5e2b9e9b6bcb3fa4f079df"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "heavy_rain",
+   "seed": 0,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2773,
+   "lap_times_s": [
+    80.7,
+    80.25
+   ],
+   "total_time_s": null,
+   "decisions": 3848,
+   "wall_collision_steps": 65,
+   "distance_m": 893.82,
+   "credited_minus_driven_m": 12.61,
+   "progress_jump_steps": 0,
+   "idle_steps": 152,
+   "reverse_steps": 24,
+   "action_change_per_step": 0.0051,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3848,
+   "total_reward": 723.04,
+   "trajectory_sha256": "12ed923340fe723447a4c4e1448afde6471f3cb3af3ace42861f3767d27c8e7f"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "heavy_rain",
+   "seed": 1,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.7049,
+   "lap_times_s": [
+    79.8,
+    79.65
+   ],
+   "total_time_s": null,
+   "decisions": 4542,
+   "wall_collision_steps": 182,
+   "distance_m": 1064.97,
+   "credited_minus_driven_m": 11.67,
+   "progress_jump_steps": 0,
+   "idle_steps": 177,
+   "reverse_steps": 17,
+   "action_change_per_step": 0.00481,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 4542,
+   "total_reward": 893.41,
+   "trajectory_sha256": "9348eaa356bdf889e15ac16587617a7b35d1dfe8e014f66e0d14614fffa6aa02"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "heavy_rain",
+   "seed": 2,
+   "friction": 0.7,
+   "lidar_noise": 0.1,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2776,
+   "lap_times_s": [
+    80.2,
+    81.6
+   ],
+   "total_time_s": null,
+   "decisions": 3866,
+   "wall_collision_steps": 107,
+   "distance_m": 894.75,
+   "credited_minus_driven_m": 11.82,
+   "progress_jump_steps": 0,
+   "idle_steps": 119,
+   "reverse_steps": 45,
+   "action_change_per_step": 0.00493,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3866,
+   "total_reward": 721.39,
+   "trajectory_sha256": "3b8002810dad9ec99aceebb80e99ad7442063dd8f0a012ce37bdca9e540182f8"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "changing_weather",
+   "seed": 0,
+   "friction": 0.9410415220416813,
+   "lidar_noise": 0.06685149971736774,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.8534021873380073,
+     "lidar_noise": 0.04007045658011373
+    },
+    {
+     "start_step": 101,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.04007045658011373
+    },
+    {
+     "start_step": 525,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.053042842088848983
+    },
+    {
+     "start_step": 1196,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.06542171948335637
+    },
+    {
+     "start_step": 1849,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.019156183534661187
+    },
+    {
+     "start_step": 2418,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.06685149971736774
+    },
+    {
+     "start_step": 2543,
+     "friction": 0.9410415220416813,
+     "lidar_noise": 0.06685149971736774
+    },
+    {
+     "start_step": 3254,
+     "friction": 0.9410415220416813,
+     "lidar_noise": 0.012206783273438809
+    },
+    {
+     "start_step": 3957,
+     "friction": 0.8880837120679446,
+     "lidar_noise": 0.09175027347355548
+    },
+    {
+     "start_step": 4262,
+     "friction": 0.7098567632478305,
+     "lidar_noise": 0.09175027347355548
+    },
+    {
+     "start_step": 4695,
+     "friction": 0.893931786827526,
+     "lidar_noise": 0.005917887363080097
+    },
+    {
+     "start_step": 5337,
+     "friction": 0.893931786827526,
+     "lidar_noise": 0.020491622920607997
+    },
+    {
+     "start_step": 5459,
+     "friction": 0.755860849394477,
+     "lidar_noise": 0.015619872193215228
+    },
+    {
+     "start_step": 6231,
+     "friction": 0.7182490717291035,
+     "lidar_noise": 0.015619872193215228
+    },
+    {
+     "start_step": 6625,
+     "friction": 0.7182490717291035,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 6969,
+     "friction": 0.9985012191203684,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 7591,
+     "friction": 0.866460214101612,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 7720,
+     "friction": 0.8017545521765128,
+     "lidar_noise": 0.06480653740045525
+    }
+   ],
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.4618,
+   "lap_times_s": [
+    58.05,
+    57.35
+   ],
+   "total_time_s": null,
+   "decisions": 3024,
+   "wall_collision_steps": 143,
+   "distance_m": 696.16,
+   "credited_minus_driven_m": 5.57,
+   "progress_jump_steps": 0,
+   "idle_steps": 127,
+   "reverse_steps": 25,
+   "action_change_per_step": 0.0042,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3024,
+   "total_reward": 520.87,
+   "trajectory_sha256": "ce13ec5f7d907b427183fafc62261a315ec8e574b94083a1c8ee5088d37dcf84"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "changing_weather",
+   "seed": 1,
+   "friction": 0.7448494202388238,
+   "lidar_noise": 0.0027541507742145726,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.9981167786426306,
+     "lidar_noise": 0.055244298941349294
+    },
+    {
+     "start_step": 276,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.055244298941349294
+    },
+    {
+     "start_step": 869,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.05336919495758162
+    },
+    {
+     "start_step": 1229,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.0027541507742145726
+    },
+    {
+     "start_step": 1754,
+     "friction": 0.971981993581492,
+     "lidar_noise": 0.0027541507742145726
+    },
+    {
+     "start_step": 1904,
+     "friction": 0.8591342711547691,
+     "lidar_noise": 0.04603998074249554
+    },
+    {
+     "start_step": 2542,
+     "friction": 0.7702328547004597,
+     "lidar_noise": 0.04603998074249554
+    },
+    {
+     "start_step": 3114,
+     "friction": 0.7702328547004597,
+     "lidar_noise": 0.0713882307709137
+    },
+    {
+     "start_step": 3580,
+     "friction": 0.7982849650221754,
+     "lidar_noise": 0.09575856852398112
+    },
+    {
+     "start_step": 4088,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.02939545531353136
+    },
+    {
+     "start_step": 4587,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.012943006776007838
+    },
+    {
+     "start_step": 4916,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.04966832883580827
+    },
+    {
+     "start_step": 5521,
+     "friction": 0.9208319649614566,
+     "lidar_noise": 0.04966832883580827
+    },
+    {
+     "start_step": 5903,
+     "friction": 0.9790195509571464,
+     "lidar_noise": 0.02460075314331561
+    },
+    {
+     "start_step": 6331,
+     "friction": 0.9014510778385525,
+     "lidar_noise": 0.08702872349000491
+    },
+    {
+     "start_step": 6988,
+     "friction": 0.9780437572803831,
+     "lidar_noise": 0.07086392082543147
+    },
+    {
+     "start_step": 7698,
+     "friction": 0.7541976302823261,
+     "lidar_noise": 0.0419209661975575
+    }
+   ],
+   "status": "DNF",
+   "laps_completed": 0,
+   "progress_laps": 0.897,
+   "lap_times_s": [],
+   "total_time_s": null,
+   "decisions": 1243,
+   "wall_collision_steps": 32,
+   "distance_m": 255.08,
+   "credited_minus_driven_m": 0.6,
+   "progress_jump_steps": 0,
+   "idle_steps": 171,
+   "reverse_steps": 12,
+   "action_change_per_step": 0.00307,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 1243,
+   "total_reward": 35.1,
+   "trajectory_sha256": "6b458d98d7802c997d04c177e85a6e0d17e3de066d5f7d016127382dd5390789"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "changing_weather",
+   "seed": 2,
+   "friction": 0.8647902738502184,
+   "lidar_noise": 0.031615609509748774,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.9390009690486751,
+     "lidar_noise": 0.04030339900536559
+    },
+    {
+     "start_step": 208,
+     "friction": 0.7431610926276351,
+     "lidar_noise": 0.04030339900536559
+    },
+    {
+     "start_step": 786,
+     "friction": 0.976420911934021,
+     "lidar_noise": 0.010407957632727088
+    },
+    {
+     "start_step": 1222,
+     "friction": 0.9950544494986509,
+     "lidar_noise": 0.0939747910068613
+    },
+    {
+     "start_step": 1555,
+     "friction": 0.9950544494986509,
+     "lidar_noise": 0.07762399230184093
+    },
+    {
+     "start_step": 2012,
+     "friction": 0.7286490569542143,
+     "lidar_noise": 0.07762399230184093
+    },
+    {
+     "start_step": 2224,
+     "friction": 0.7286490569542143,
+     "lidar_noise": 0.013642034522167067
+    },
+    {
+     "start_step": 2433,
+     "friction": 0.9640823251961124,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 2721,
+     "friction": 0.7546370141566219,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 3160,
+     "friction": 0.8647902738502184,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 3666,
+     "friction": 0.7010767910684536,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 4280,
+     "friction": 0.7751361011086884,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 4402,
+     "friction": 0.7751361011086884,
+     "lidar_noise": 0.09884987005033273
+    },
+    {
+     "start_step": 4900,
+     "friction": 0.910946117179429,
+     "lidar_noise": 0.08213776107140451
+    },
+    {
+     "start_step": 5360,
+     "friction": 0.7121465064160518,
+     "lidar_noise": 0.025669941449366983
+    },
+    {
+     "start_step": 5540,
+     "friction": 0.7121465064160518,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6025,
+     "friction": 0.7016577621917609,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6431,
+     "friction": 0.8923769672112709,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6682,
+     "friction": 0.8923769672112709,
+     "lidar_noise": 0.058763821031050066
+    },
+    {
+     "start_step": 7020,
+     "friction": 0.8549626201117341,
+     "lidar_noise": 0.06862077402366
+    },
+    {
+     "start_step": 7419,
+     "friction": 0.9384831745979839,
+     "lidar_noise": 0.06862077402366
+    },
+    {
+     "start_step": 7926,
+     "friction": 0.9857576123692863,
+     "lidar_noise": 0.007633634391329857
+    }
+   ],
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    58.7,
+    57.75,
+    58.35
+   ],
+   "total_time_s": 174.8,
+   "decisions": 3496,
+   "wall_collision_steps": 12,
+   "distance_m": 850.74,
+   "credited_minus_driven_m": 4.57,
+   "progress_jump_steps": 0,
+   "idle_steps": 10,
+   "reverse_steps": 11,
+   "action_change_per_step": 0.00412,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 961.22,
+   "trajectory_sha256": "71eb44a2e9185b1498acbb790b94421c3b4db9b2aaab4c58344230ef5c26c0be"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "changing_weather",
+   "seed": 0,
+   "friction": 0.755860849394477,
+   "lidar_noise": 0.015619872193215228,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.8534021873380073,
+     "lidar_noise": 0.04007045658011373
+    },
+    {
+     "start_step": 101,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.04007045658011373
+    },
+    {
+     "start_step": 525,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.053042842088848983
+    },
+    {
+     "start_step": 1196,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.06542171948335637
+    },
+    {
+     "start_step": 1849,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.019156183534661187
+    },
+    {
+     "start_step": 2418,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.06685149971736774
+    },
+    {
+     "start_step": 2543,
+     "friction": 0.9410415220416813,
+     "lidar_noise": 0.06685149971736774
+    },
+    {
+     "start_step": 3254,
+     "friction": 0.9410415220416813,
+     "lidar_noise": 0.012206783273438809
+    },
+    {
+     "start_step": 3957,
+     "friction": 0.8880837120679446,
+     "lidar_noise": 0.09175027347355548
+    },
+    {
+     "start_step": 4262,
+     "friction": 0.7098567632478305,
+     "lidar_noise": 0.09175027347355548
+    },
+    {
+     "start_step": 4695,
+     "friction": 0.893931786827526,
+     "lidar_noise": 0.005917887363080097
+    },
+    {
+     "start_step": 5337,
+     "friction": 0.893931786827526,
+     "lidar_noise": 0.020491622920607997
+    },
+    {
+     "start_step": 5459,
+     "friction": 0.755860849394477,
+     "lidar_noise": 0.015619872193215228
+    },
+    {
+     "start_step": 6231,
+     "friction": 0.7182490717291035,
+     "lidar_noise": 0.015619872193215228
+    },
+    {
+     "start_step": 6625,
+     "friction": 0.7182490717291035,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 6969,
+     "friction": 0.9985012191203684,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 7591,
+     "friction": 0.866460214101612,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 7720,
+     "friction": 0.8017545521765128,
+     "lidar_noise": 0.06480653740045525
+    }
+   ],
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    91.25,
+    90.9,
+    91.1
+   ],
+   "total_time_s": 273.25,
+   "decisions": 5465,
+   "wall_collision_steps": 0,
+   "distance_m": 1362.89,
+   "credited_minus_driven_m": 28.69,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00181,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.18,
+   "trajectory_sha256": "7015891f384d4bdede9cf3c0929a1c54838053b5abb875c5ba47bc3047031157"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "changing_weather",
+   "seed": 1,
+   "friction": 0.7721255178821778,
+   "lidar_noise": 0.04966832883580827,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.9981167786426306,
+     "lidar_noise": 0.055244298941349294
+    },
+    {
+     "start_step": 276,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.055244298941349294
+    },
+    {
+     "start_step": 869,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.05336919495758162
+    },
+    {
+     "start_step": 1229,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.0027541507742145726
+    },
+    {
+     "start_step": 1754,
+     "friction": 0.971981993581492,
+     "lidar_noise": 0.0027541507742145726
+    },
+    {
+     "start_step": 1904,
+     "friction": 0.8591342711547691,
+     "lidar_noise": 0.04603998074249554
+    },
+    {
+     "start_step": 2542,
+     "friction": 0.7702328547004597,
+     "lidar_noise": 0.04603998074249554
+    },
+    {
+     "start_step": 3114,
+     "friction": 0.7702328547004597,
+     "lidar_noise": 0.0713882307709137
+    },
+    {
+     "start_step": 3580,
+     "friction": 0.7982849650221754,
+     "lidar_noise": 0.09575856852398112
+    },
+    {
+     "start_step": 4088,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.02939545531353136
+    },
+    {
+     "start_step": 4587,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.012943006776007838
+    },
+    {
+     "start_step": 4916,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.04966832883580827
+    },
+    {
+     "start_step": 5521,
+     "friction": 0.9208319649614566,
+     "lidar_noise": 0.04966832883580827
+    },
+    {
+     "start_step": 5903,
+     "friction": 0.9790195509571464,
+     "lidar_noise": 0.02460075314331561
+    },
+    {
+     "start_step": 6331,
+     "friction": 0.9014510778385525,
+     "lidar_noise": 0.08702872349000491
+    },
+    {
+     "start_step": 6988,
+     "friction": 0.9780437572803831,
+     "lidar_noise": 0.07086392082543147
+    },
+    {
+     "start_step": 7698,
+     "friction": 0.7541976302823261,
+     "lidar_noise": 0.0419209661975575
+    }
+   ],
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    91.5,
+    91.15,
+    91.2
+   ],
+   "total_time_s": 273.85,
+   "decisions": 5477,
+   "wall_collision_steps": 0,
+   "distance_m": 1365.54,
+   "credited_minus_driven_m": 25.9,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00202,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.02,
+   "trajectory_sha256": "e08f9a9a7228e54831acfdeeeb2af14b6dea5214ea2fef16280e1e74acce224c"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "changing_weather",
+   "seed": 2,
+   "friction": 0.7121465064160518,
+   "lidar_noise": 0.025669941449366983,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.9390009690486751,
+     "lidar_noise": 0.04030339900536559
+    },
+    {
+     "start_step": 208,
+     "friction": 0.7431610926276351,
+     "lidar_noise": 0.04030339900536559
+    },
+    {
+     "start_step": 786,
+     "friction": 0.976420911934021,
+     "lidar_noise": 0.010407957632727088
+    },
+    {
+     "start_step": 1222,
+     "friction": 0.9950544494986509,
+     "lidar_noise": 0.0939747910068613
+    },
+    {
+     "start_step": 1555,
+     "friction": 0.9950544494986509,
+     "lidar_noise": 0.07762399230184093
+    },
+    {
+     "start_step": 2012,
+     "friction": 0.7286490569542143,
+     "lidar_noise": 0.07762399230184093
+    },
+    {
+     "start_step": 2224,
+     "friction": 0.7286490569542143,
+     "lidar_noise": 0.013642034522167067
+    },
+    {
+     "start_step": 2433,
+     "friction": 0.9640823251961124,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 2721,
+     "friction": 0.7546370141566219,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 3160,
+     "friction": 0.8647902738502184,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 3666,
+     "friction": 0.7010767910684536,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 4280,
+     "friction": 0.7751361011086884,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 4402,
+     "friction": 0.7751361011086884,
+     "lidar_noise": 0.09884987005033273
+    },
+    {
+     "start_step": 4900,
+     "friction": 0.910946117179429,
+     "lidar_noise": 0.08213776107140451
+    },
+    {
+     "start_step": 5360,
+     "friction": 0.7121465064160518,
+     "lidar_noise": 0.025669941449366983
+    },
+    {
+     "start_step": 5540,
+     "friction": 0.7121465064160518,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6025,
+     "friction": 0.7016577621917609,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6431,
+     "friction": 0.8923769672112709,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6682,
+     "friction": 0.8923769672112709,
+     "lidar_noise": 0.058763821031050066
+    },
+    {
+     "start_step": 7020,
+     "friction": 0.8549626201117341,
+     "lidar_noise": 0.06862077402366
+    },
+    {
+     "start_step": 7419,
+     "friction": 0.9384831745979839,
+     "lidar_noise": 0.06862077402366
+    },
+    {
+     "start_step": 7926,
+     "friction": 0.9857576123692863,
+     "lidar_noise": 0.007633634391329857
+    }
+   ],
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0,
+   "lap_times_s": [
+    91.3,
+    91.05,
+    91.15
+   ],
+   "total_time_s": 273.5,
+   "decisions": 5470,
+   "wall_collision_steps": 0,
+   "distance_m": 1363.82,
+   "credited_minus_driven_m": 27.6,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00191,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1501.01,
+   "trajectory_sha256": "4170dbb0a3f70ddae4a5620e167c53254ca2f94ce2c5e79da0ef8c639feadb57"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "changing_weather",
+   "seed": 0,
+   "friction": 0.8880837120679446,
+   "lidar_noise": 0.09175027347355548,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.8534021873380073,
+     "lidar_noise": 0.04007045658011373
+    },
+    {
+     "start_step": 101,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.04007045658011373
+    },
+    {
+     "start_step": 525,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.053042842088848983
+    },
+    {
+     "start_step": 1196,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.06542171948335637
+    },
+    {
+     "start_step": 1849,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.019156183534661187
+    },
+    {
+     "start_step": 2418,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.06685149971736774
+    },
+    {
+     "start_step": 2543,
+     "friction": 0.9410415220416813,
+     "lidar_noise": 0.06685149971736774
+    },
+    {
+     "start_step": 3254,
+     "friction": 0.9410415220416813,
+     "lidar_noise": 0.012206783273438809
+    },
+    {
+     "start_step": 3957,
+     "friction": 0.8880837120679446,
+     "lidar_noise": 0.09175027347355548
+    },
+    {
+     "start_step": 4262,
+     "friction": 0.7098567632478305,
+     "lidar_noise": 0.09175027347355548
+    },
+    {
+     "start_step": 4695,
+     "friction": 0.893931786827526,
+     "lidar_noise": 0.005917887363080097
+    },
+    {
+     "start_step": 5337,
+     "friction": 0.893931786827526,
+     "lidar_noise": 0.020491622920607997
+    },
+    {
+     "start_step": 5459,
+     "friction": 0.755860849394477,
+     "lidar_noise": 0.015619872193215228
+    },
+    {
+     "start_step": 6231,
+     "friction": 0.7182490717291035,
+     "lidar_noise": 0.015619872193215228
+    },
+    {
+     "start_step": 6625,
+     "friction": 0.7182490717291035,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 6969,
+     "friction": 0.9985012191203684,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 7591,
+     "friction": 0.866460214101612,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 7720,
+     "friction": 0.8017545521765128,
+     "lidar_noise": 0.06480653740045525
+    }
+   ],
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0,
+   "lap_times_s": [
+    67.8,
+    67.45,
+    67.45
+   ],
+   "total_time_s": 202.7,
+   "decisions": 4054,
+   "wall_collision_steps": 0,
+   "distance_m": 1010.98,
+   "credited_minus_driven_m": 18.99,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00156,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.65,
+   "trajectory_sha256": "f7bacce76c907c6f084897ccc18234ebea44b7c9c108be0b2ed4e33275060713"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "changing_weather",
+   "seed": 1,
+   "friction": 0.7982849650221754,
+   "lidar_noise": 0.09575856852398112,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.9981167786426306,
+     "lidar_noise": 0.055244298941349294
+    },
+    {
+     "start_step": 276,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.055244298941349294
+    },
+    {
+     "start_step": 869,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.05336919495758162
+    },
+    {
+     "start_step": 1229,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.0027541507742145726
+    },
+    {
+     "start_step": 1754,
+     "friction": 0.971981993581492,
+     "lidar_noise": 0.0027541507742145726
+    },
+    {
+     "start_step": 1904,
+     "friction": 0.8591342711547691,
+     "lidar_noise": 0.04603998074249554
+    },
+    {
+     "start_step": 2542,
+     "friction": 0.7702328547004597,
+     "lidar_noise": 0.04603998074249554
+    },
+    {
+     "start_step": 3114,
+     "friction": 0.7702328547004597,
+     "lidar_noise": 0.0713882307709137
+    },
+    {
+     "start_step": 3580,
+     "friction": 0.7982849650221754,
+     "lidar_noise": 0.09575856852398112
+    },
+    {
+     "start_step": 4088,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.02939545531353136
+    },
+    {
+     "start_step": 4587,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.012943006776007838
+    },
+    {
+     "start_step": 4916,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.04966832883580827
+    },
+    {
+     "start_step": 5521,
+     "friction": 0.9208319649614566,
+     "lidar_noise": 0.04966832883580827
+    },
+    {
+     "start_step": 5903,
+     "friction": 0.9790195509571464,
+     "lidar_noise": 0.02460075314331561
+    },
+    {
+     "start_step": 6331,
+     "friction": 0.9014510778385525,
+     "lidar_noise": 0.08702872349000491
+    },
+    {
+     "start_step": 6988,
+     "friction": 0.9780437572803831,
+     "lidar_noise": 0.07086392082543147
+    },
+    {
+     "start_step": 7698,
+     "friction": 0.7541976302823261,
+     "lidar_noise": 0.0419209661975575
+    }
+   ],
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    68.0,
+    67.6,
+    67.65
+   ],
+   "total_time_s": 203.25,
+   "decisions": 4065,
+   "wall_collision_steps": 0,
+   "distance_m": 1013.54,
+   "credited_minus_driven_m": 16.47,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00159,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.68,
+   "trajectory_sha256": "a9f4fb0c12d47b5e097435957273bad7eebcb5517948e129170e45bf57a2f77d"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "changing_weather",
+   "seed": 2,
+   "friction": 0.7010767910684536,
+   "lidar_noise": 0.031615609509748774,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.9390009690486751,
+     "lidar_noise": 0.04030339900536559
+    },
+    {
+     "start_step": 208,
+     "friction": 0.7431610926276351,
+     "lidar_noise": 0.04030339900536559
+    },
+    {
+     "start_step": 786,
+     "friction": 0.976420911934021,
+     "lidar_noise": 0.010407957632727088
+    },
+    {
+     "start_step": 1222,
+     "friction": 0.9950544494986509,
+     "lidar_noise": 0.0939747910068613
+    },
+    {
+     "start_step": 1555,
+     "friction": 0.9950544494986509,
+     "lidar_noise": 0.07762399230184093
+    },
+    {
+     "start_step": 2012,
+     "friction": 0.7286490569542143,
+     "lidar_noise": 0.07762399230184093
+    },
+    {
+     "start_step": 2224,
+     "friction": 0.7286490569542143,
+     "lidar_noise": 0.013642034522167067
+    },
+    {
+     "start_step": 2433,
+     "friction": 0.9640823251961124,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 2721,
+     "friction": 0.7546370141566219,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 3160,
+     "friction": 0.8647902738502184,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 3666,
+     "friction": 0.7010767910684536,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 4280,
+     "friction": 0.7751361011086884,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 4402,
+     "friction": 0.7751361011086884,
+     "lidar_noise": 0.09884987005033273
+    },
+    {
+     "start_step": 4900,
+     "friction": 0.910946117179429,
+     "lidar_noise": 0.08213776107140451
+    },
+    {
+     "start_step": 5360,
+     "friction": 0.7121465064160518,
+     "lidar_noise": 0.025669941449366983
+    },
+    {
+     "start_step": 5540,
+     "friction": 0.7121465064160518,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6025,
+     "friction": 0.7016577621917609,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6431,
+     "friction": 0.8923769672112709,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6682,
+     "friction": 0.8923769672112709,
+     "lidar_noise": 0.058763821031050066
+    },
+    {
+     "start_step": 7020,
+     "friction": 0.8549626201117341,
+     "lidar_noise": 0.06862077402366
+    },
+    {
+     "start_step": 7419,
+     "friction": 0.9384831745979839,
+     "lidar_noise": 0.06862077402366
+    },
+    {
+     "start_step": 7926,
+     "friction": 0.9857576123692863,
+     "lidar_noise": 0.007633634391329857
+    }
+   ],
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    67.95,
+    67.5,
+    67.7
+   ],
+   "total_time_s": 203.15,
+   "decisions": 4063,
+   "wall_collision_steps": 0,
+   "distance_m": 1013.08,
+   "credited_minus_driven_m": 17.09,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.0018,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": null,
+   "total_reward": 1139.83,
+   "trajectory_sha256": "297e0cdb5002efe4e0f582818c9080c2095c9b622fa4a5f441bfa6c72dbed8e3"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "changing_weather",
+   "seed": 0,
+   "friction": 0.9410415220416813,
+   "lidar_noise": 0.012206783273438809,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.8534021873380073,
+     "lidar_noise": 0.04007045658011373
+    },
+    {
+     "start_step": 101,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.04007045658011373
+    },
+    {
+     "start_step": 525,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.053042842088848983
+    },
+    {
+     "start_step": 1196,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.06542171948335637
+    },
+    {
+     "start_step": 1849,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.019156183534661187
+    },
+    {
+     "start_step": 2418,
+     "friction": 0.9842444207820294,
+     "lidar_noise": 0.06685149971736774
+    },
+    {
+     "start_step": 2543,
+     "friction": 0.9410415220416813,
+     "lidar_noise": 0.06685149971736774
+    },
+    {
+     "start_step": 3254,
+     "friction": 0.9410415220416813,
+     "lidar_noise": 0.012206783273438809
+    },
+    {
+     "start_step": 3957,
+     "friction": 0.8880837120679446,
+     "lidar_noise": 0.09175027347355548
+    },
+    {
+     "start_step": 4262,
+     "friction": 0.7098567632478305,
+     "lidar_noise": 0.09175027347355548
+    },
+    {
+     "start_step": 4695,
+     "friction": 0.893931786827526,
+     "lidar_noise": 0.005917887363080097
+    },
+    {
+     "start_step": 5337,
+     "friction": 0.893931786827526,
+     "lidar_noise": 0.020491622920607997
+    },
+    {
+     "start_step": 5459,
+     "friction": 0.755860849394477,
+     "lidar_noise": 0.015619872193215228
+    },
+    {
+     "start_step": 6231,
+     "friction": 0.7182490717291035,
+     "lidar_noise": 0.015619872193215228
+    },
+    {
+     "start_step": 6625,
+     "friction": 0.7182490717291035,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 6969,
+     "friction": 0.9985012191203684,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 7591,
+     "friction": 0.866460214101612,
+     "lidar_noise": 0.02929319941466948
+    },
+    {
+     "start_step": 7720,
+     "friction": 0.8017545521765128,
+     "lidar_noise": 0.06480653740045525
+    }
+   ],
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2775,
+   "lap_times_s": [
+    78.9,
+    78.85
+   ],
+   "total_time_s": null,
+   "decisions": 3782,
+   "wall_collision_steps": 74,
+   "distance_m": 889.06,
+   "credited_minus_driven_m": 17.45,
+   "progress_jump_steps": 0,
+   "idle_steps": 135,
+   "reverse_steps": 12,
+   "action_change_per_step": 0.00485,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3782,
+   "total_reward": 726.84,
+   "trajectory_sha256": "3cb7c91164f2ee7c566ba41506e7974f93ec89e43b873cacafe687eb186fcac7"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "changing_weather",
+   "seed": 1,
+   "friction": 0.7982849650221754,
+   "lidar_noise": 0.09575856852398112,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.9981167786426306,
+     "lidar_noise": 0.055244298941349294
+    },
+    {
+     "start_step": 276,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.055244298941349294
+    },
+    {
+     "start_step": 869,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.05336919495758162
+    },
+    {
+     "start_step": 1229,
+     "friction": 0.7448494202388238,
+     "lidar_noise": 0.0027541507742145726
+    },
+    {
+     "start_step": 1754,
+     "friction": 0.971981993581492,
+     "lidar_noise": 0.0027541507742145726
+    },
+    {
+     "start_step": 1904,
+     "friction": 0.8591342711547691,
+     "lidar_noise": 0.04603998074249554
+    },
+    {
+     "start_step": 2542,
+     "friction": 0.7702328547004597,
+     "lidar_noise": 0.04603998074249554
+    },
+    {
+     "start_step": 3114,
+     "friction": 0.7702328547004597,
+     "lidar_noise": 0.0713882307709137
+    },
+    {
+     "start_step": 3580,
+     "friction": 0.7982849650221754,
+     "lidar_noise": 0.09575856852398112
+    },
+    {
+     "start_step": 4088,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.02939545531353136
+    },
+    {
+     "start_step": 4587,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.012943006776007838
+    },
+    {
+     "start_step": 4916,
+     "friction": 0.7721255178821778,
+     "lidar_noise": 0.04966832883580827
+    },
+    {
+     "start_step": 5521,
+     "friction": 0.9208319649614566,
+     "lidar_noise": 0.04966832883580827
+    },
+    {
+     "start_step": 5903,
+     "friction": 0.9790195509571464,
+     "lidar_noise": 0.02460075314331561
+    },
+    {
+     "start_step": 6331,
+     "friction": 0.9014510778385525,
+     "lidar_noise": 0.08702872349000491
+    },
+    {
+     "start_step": 6988,
+     "friction": 0.9780437572803831,
+     "lidar_noise": 0.07086392082543147
+    },
+    {
+     "start_step": 7698,
+     "friction": 0.7541976302823261,
+     "lidar_noise": 0.0419209661975575
+    }
+   ],
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2774,
+   "lap_times_s": [
+    79.65,
+    79.0
+   ],
+   "total_time_s": null,
+   "decisions": 3802,
+   "wall_collision_steps": 112,
+   "distance_m": 892.84,
+   "credited_minus_driven_m": 13.65,
+   "progress_jump_steps": 0,
+   "idle_steps": 89,
+   "reverse_steps": 43,
+   "action_change_per_step": 0.00483,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3802,
+   "total_reward": 726.12,
+   "trajectory_sha256": "e1f9208bcae284ad1f823e837695a4360d9e0e9b43d312b10c6182f214050f11"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "changing_weather",
+   "seed": 2,
+   "friction": 0.7010767910684536,
+   "lidar_noise": 0.031615609509748774,
+   "weather_segments": [
+    {
+     "start_step": 0,
+     "friction": 0.9390009690486751,
+     "lidar_noise": 0.04030339900536559
+    },
+    {
+     "start_step": 208,
+     "friction": 0.7431610926276351,
+     "lidar_noise": 0.04030339900536559
+    },
+    {
+     "start_step": 786,
+     "friction": 0.976420911934021,
+     "lidar_noise": 0.010407957632727088
+    },
+    {
+     "start_step": 1222,
+     "friction": 0.9950544494986509,
+     "lidar_noise": 0.0939747910068613
+    },
+    {
+     "start_step": 1555,
+     "friction": 0.9950544494986509,
+     "lidar_noise": 0.07762399230184093
+    },
+    {
+     "start_step": 2012,
+     "friction": 0.7286490569542143,
+     "lidar_noise": 0.07762399230184093
+    },
+    {
+     "start_step": 2224,
+     "friction": 0.7286490569542143,
+     "lidar_noise": 0.013642034522167067
+    },
+    {
+     "start_step": 2433,
+     "friction": 0.9640823251961124,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 2721,
+     "friction": 0.7546370141566219,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 3160,
+     "friction": 0.8647902738502184,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 3666,
+     "friction": 0.7010767910684536,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 4280,
+     "friction": 0.7751361011086884,
+     "lidar_noise": 0.031615609509748774
+    },
+    {
+     "start_step": 4402,
+     "friction": 0.7751361011086884,
+     "lidar_noise": 0.09884987005033273
+    },
+    {
+     "start_step": 4900,
+     "friction": 0.910946117179429,
+     "lidar_noise": 0.08213776107140451
+    },
+    {
+     "start_step": 5360,
+     "friction": 0.7121465064160518,
+     "lidar_noise": 0.025669941449366983
+    },
+    {
+     "start_step": 5540,
+     "friction": 0.7121465064160518,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6025,
+     "friction": 0.7016577621917609,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6431,
+     "friction": 0.8923769672112709,
+     "lidar_noise": 0.0822275625012602
+    },
+    {
+     "start_step": 6682,
+     "friction": 0.8923769672112709,
+     "lidar_noise": 0.058763821031050066
+    },
+    {
+     "start_step": 7020,
+     "friction": 0.8549626201117341,
+     "lidar_noise": 0.06862077402366
+    },
+    {
+     "start_step": 7419,
+     "friction": 0.9384831745979839,
+     "lidar_noise": 0.06862077402366
+    },
+    {
+     "start_step": 7926,
+     "friction": 0.9857576123692863,
+     "lidar_noise": 0.007633634391329857
+    }
+   ],
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2784,
+   "lap_times_s": [
+    78.9,
+    79.6
+   ],
+   "total_time_s": null,
+   "decisions": 3800,
+   "wall_collision_steps": 107,
+   "distance_m": 890.86,
+   "credited_minus_driven_m": 15.99,
+   "progress_jump_steps": 0,
+   "idle_steps": 118,
+   "reverse_steps": 29,
+   "action_change_per_step": 0.00462,
+   "offtrack_margin_m": 1.0,
+   "dnf_step": 3800,
+   "total_reward": 726.4,
+   "trajectory_sha256": "6b0b5a32c52d92f191adbf66731dcbff7489523fd4244508e9161e0e4c29ad53"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "strict_margin",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    58.25,
+    57.3,
+    57.35
+   ],
+   "total_time_s": 172.9,
+   "decisions": 3458,
+   "wall_collision_steps": 7,
+   "distance_m": 848.04,
+   "credited_minus_driven_m": 7.25,
+   "progress_jump_steps": 0,
+   "idle_steps": 5,
+   "reverse_steps": 8,
+   "action_change_per_step": 0.00419,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": null,
+   "total_reward": 962.4,
+   "trajectory_sha256": "5f19c3f9d337222f566e6d3ab2bd7a05caaf06e15323b6b7898cf9c41b7cdcfd"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "strict_margin",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0001,
+   "lap_times_s": [
+    57.9,
+    57.3,
+    57.45
+   ],
+   "total_time_s": 172.65,
+   "decisions": 3453,
+   "wall_collision_steps": 3,
+   "distance_m": 848.46,
+   "credited_minus_driven_m": 6.72,
+   "progress_jump_steps": 0,
+   "idle_steps": 3,
+   "reverse_steps": 6,
+   "action_change_per_step": 0.00417,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": null,
+   "total_reward": 962.89,
+   "trajectory_sha256": "9514d7b71556388caeb77f0656b56444f81e7e96b8f4295b1c7bdf7eecc55d5c"
+  },
+  {
+   "split": "validation",
+   "map": "Montreal",
+   "condition": "strict_margin",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 0,
+   "progress_laps": 0.8969,
+   "lap_times_s": [],
+   "total_time_s": null,
+   "decisions": 1232,
+   "wall_collision_steps": 145,
+   "distance_m": 254.75,
+   "credited_minus_driven_m": 0.9,
+   "progress_jump_steps": 0,
+   "idle_steps": 139,
+   "reverse_steps": 18,
+   "action_change_per_step": 0.00297,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": 1232,
+   "total_reward": 35.38,
+   "trajectory_sha256": "1adf2b70edb1a1471602a638c12495b3a5eb49179b20bdcdee369aad5b968ca8"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "strict_margin",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    91.2,
+    90.9,
+    90.9
+   ],
+   "total_time_s": 273.0,
+   "decisions": 5460,
+   "wall_collision_steps": 0,
+   "distance_m": 1361.85,
+   "credited_minus_driven_m": 29.69,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00172,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": null,
+   "total_reward": 1501.15,
+   "trajectory_sha256": "a2df01d25ac2978794d58ff2d00adf7b6ca4eedeca5dd82111603a1defb8d16e"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "strict_margin",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    91.25,
+    90.85,
+    90.9
+   ],
+   "total_time_s": 273.0,
+   "decisions": 5460,
+   "wall_collision_steps": 0,
+   "distance_m": 1361.87,
+   "credited_minus_driven_m": 29.72,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00175,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": null,
+   "total_reward": 1501.2,
+   "trajectory_sha256": "0398bbecd381e70e0c61041e585173833f89fb27f95e28863427e3348ab3b896"
+  },
+  {
+   "split": "validation",
+   "map": "Sochi",
+   "condition": "strict_margin",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0003,
+   "lap_times_s": [
+    91.25,
+    90.85,
+    90.95
+   ],
+   "total_time_s": 273.05,
+   "decisions": 5461,
+   "wall_collision_steps": 0,
+   "distance_m": 1361.79,
+   "credited_minus_driven_m": 29.75,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00174,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": null,
+   "total_reward": 1501.14,
+   "trajectory_sha256": "cd10151ac6a5f8456370797e22ea33db3af62eaa9f4f1ad9e6bb42d020dfd8f3"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "strict_margin",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0006,
+   "lap_times_s": [
+    67.8,
+    67.45,
+    67.45
+   ],
+   "total_time_s": 202.7,
+   "decisions": 4054,
+   "wall_collision_steps": 0,
+   "distance_m": 1010.84,
+   "credited_minus_driven_m": 19.34,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00161,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": null,
+   "total_reward": 1139.85,
+   "trajectory_sha256": "83f8f477666e27009ac68c9f6916f79487809ee33f68bb39796b7bc781268250"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "strict_margin",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0004,
+   "lap_times_s": [
+    67.8,
+    67.45,
+    67.45
+   ],
+   "total_time_s": 202.7,
+   "decisions": 4054,
+   "wall_collision_steps": 0,
+   "distance_m": 1010.76,
+   "credited_minus_driven_m": 19.34,
+   "progress_jump_steps": 1,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00147,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": null,
+   "total_reward": 1139.78,
+   "trajectory_sha256": "c2502a4a31d8c0b3626e8420e095c9d8d16d761826c93533e9a4f0fea9b66972"
+  },
+  {
+   "split": "validation",
+   "map": "Spielberg",
+   "condition": "strict_margin",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "FINISHED",
+   "laps_completed": 3,
+   "progress_laps": 3.0005,
+   "lap_times_s": [
+    67.8,
+    67.45,
+    67.45
+   ],
+   "total_time_s": 202.7,
+   "decisions": 4054,
+   "wall_collision_steps": 0,
+   "distance_m": 1010.84,
+   "credited_minus_driven_m": 19.29,
+   "progress_jump_steps": 0,
+   "idle_steps": 1,
+   "reverse_steps": 0,
+   "action_change_per_step": 0.00152,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": null,
+   "total_reward": 1139.81,
+   "trajectory_sha256": "eaa11d46663bb9d58e07148ed7cd090f0131f9b7f01243370700c17409653dd1"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "strict_margin",
+   "seed": 0,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2774,
+   "lap_times_s": [
+    78.7,
+    78.7
+   ],
+   "total_time_s": null,
+   "decisions": 3776,
+   "wall_collision_steps": 121,
+   "distance_m": 888.35,
+   "credited_minus_driven_m": 18.14,
+   "progress_jump_steps": 0,
+   "idle_steps": 145,
+   "reverse_steps": 15,
+   "action_change_per_step": 0.00451,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": 3776,
+   "total_reward": 726.55,
+   "trajectory_sha256": "14f228348bd4dd5f701a33d436fff8ea53c2f4753e5cec27d2f3984bf772f1c3"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "strict_margin",
+   "seed": 1,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2774,
+   "lap_times_s": [
+    78.75,
+    78.8
+   ],
+   "total_time_s": null,
+   "decisions": 3778,
+   "wall_collision_steps": 124,
+   "distance_m": 888.33,
+   "credited_minus_driven_m": 18.16,
+   "progress_jump_steps": 0,
+   "idle_steps": 137,
+   "reverse_steps": 18,
+   "action_change_per_step": 0.00449,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": 3778,
+   "total_reward": 726.75,
+   "trajectory_sha256": "396e47d0e73d8544b2e0c9fda88f142fbe82b37d0d7e0ae009ba24c13ff7cbf8"
+  },
+  {
+   "split": "validation",
+   "map": "YasMarina",
+   "condition": "strict_margin",
+   "seed": 2,
+   "friction": null,
+   "lidar_noise": null,
+   "weather_segments": null,
+   "status": "DNF",
+   "laps_completed": 2,
+   "progress_laps": 2.2776,
+   "lap_times_s": [
+    78.7,
+    78.7
+   ],
+   "total_time_s": null,
+   "decisions": 3777,
+   "wall_collision_steps": 68,
+   "distance_m": 888.24,
+   "credited_minus_driven_m": 18.32,
+   "progress_jump_steps": 0,
+   "idle_steps": 143,
+   "reverse_steps": 8,
+   "action_change_per_step": 0.00441,
+   "offtrack_margin_m": 0.5,
+   "dnf_step": 3777,
+   "total_reward": 726.83,
+   "trajectory_sha256": "618b737f42b9f2bb1d1973a34ae9b73225ebd7624ec302212d0057ce189175d2"
+  }
+ ]
+}

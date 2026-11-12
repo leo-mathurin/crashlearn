@@ -1,5 +1,10 @@
 # driver1 : 400/400 courses finies en validation nominale
 
+> **Remplacé le 2026-11-12 (E-23).** Le livrable actuel est réentraîné sous météo
+> changeante : 400/400 en nominal et 262/280 courses météo neuves, contre 218/280 pour le
+> modèle décrit ici ([résultats](../e-23/README.md)). Cette page reste la trace du modèle
+> précédent.
+
 Le pilote réactif livré dans `submission/driver1` termine **400/400 courses
 nouvelles** sur Montreal, Sochi, Spielberg et YasMarina, après 132/132 cas de
 sélection. Trois tours, départ officiel, conditions nominales, 8000 décisions au
@@ -59,7 +64,7 @@ des entraînements indépendants : le taux décrit ces quatre cartes en nominal.
 | Entraînement source, plafond 5 m/s, départs diversifiés | [cap5-random-h1-seed0-2m](manifests/cap5-random-h1-seed0-2m.json) |
 | Ablation, 5 m/s, 118/120 ([courses](confirmation-5mps-120.json)) | [cap5-progress-blind](manifests/cap5-progress-blind.json) |
 | Livrable, 4,75 m/s, `4956e2a9…` | [cap4.75-progress-blind](manifests/cap4.75-progress-blind.json) |
-| Livrable actuel, poids adversaires à zéro, mêmes courses seul en piste | [driver1](../opponent-weights/manifests/driver1.json) ([preuves](../opponent-weights/README.md)) |
+| Poids adversaires à zéro, mêmes courses seul en piste (remplacé par E-23) | [driver1](../opponent-weights/manifests/driver1.json) ([preuves](../opponent-weights/README.md)) |
 
 La [preuve de livraison](submission-proof.json) relie le modèle aux courses :
 vérificateur officiel valide, écart ONNX/PyTorch de 4,77 × 10⁻⁷ sur 256 entrées.

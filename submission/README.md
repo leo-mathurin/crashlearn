@@ -3,7 +3,8 @@
 `driver1` est le PPO réactif ; `driver2` est le PPO avec quatre observations.
 Chaque dossier contient un agent autonome, son modèle opset 17 et de vrais poids externes.
 Les modèles et les prétraitements sont identifiés dans `export.json`. Résultats et
-provenance : [driver1](../docs/results/driver1/README.md),
+provenance : [driver1, météo changeante](../docs/results/e-23/README.md) (modèle
+précédent : [driver1](../docs/results/driver1/README.md)),
 [driver2 et la campagne E-18](../docs/results/e-18/README.md).
 
 Les fichiers générés `agent.py` ont été formatés avec Ruff après export, puis leur hash
