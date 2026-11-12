@@ -202,7 +202,7 @@ Candidat livrable : chaque seed de A passe par la chaîne de driver1 (progressio
 
 ## 2026-11-12 · [Livraison] driver1 réentraîné sous météo changeante
 
-E-23 : selon le protocole figé, A seed 2 dérivé (progression masquée, plafond 4,75 m/s, poids adversaires à zéro) remplace driver1. Il finit 400/400 en nominal dans l'image du tournoi et 262/280 courses météo neuves, contre 218/280 pour l'ancien ; le gain vient de Montreal. `friction_current` n'entre pas dans les features : B ne gagne que 5 courses météo sur 108 face à A, sous le seuil de 10, et perd en nominal. Limite : C, sans météo, fait aussi bien que A en brut ; la part de la météo dans le gain n'est pas isolée. Pourquoi : la météo du tournoi change en pleine course, et l'ancien driver1 échouait à Montreal sous faible adhérence. Résultats : `docs/results/e-23/README.md`.
+E-23, selon le protocole figé : A seed 2 dérivé remplace driver1. Il finit 400/400 en nominal dans l'image du tournoi et 262/280 courses météo neuves, contre 218/280 pour l'ancien ; le gain vient de Montreal. `friction_current` reste hors des features : B ne gagne que 5 courses météo sur 108 face à A, sous le seuil de 10, et perd en nominal. Limite : brut, C (sans météo) finit plus de courses météo que A, 74 contre 61 sur 108 ; la part de la météo dans le gain n'est pas isolée. Pourquoi : la météo du tournoi change en pleine course, et l'ancien driver1 échouait à Montreal sous faible adhérence. Résultats : `docs/results/e-23/README.md`.
 
 ## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
 
