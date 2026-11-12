@@ -3,6 +3,8 @@
  * local folder and the map assets of the vendored simulator. No remote service is necessary.
  *
  *   bun server.ts [--port 5173] [--replays ../replays] [--maps ../vendor/simulation/maps] [--dev]
+ *
+ * It listens on this machine only (127.0.0.1): the replays are not offered to the network.
  */
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -60,6 +62,7 @@ async function serveFile(path: string, type: string): Promise<Response> {
 }
 
 const server = Bun.serve({
+  hostname: "127.0.0.1",
   port: Number(values.port),
   development: values.dev,
   routes: {
