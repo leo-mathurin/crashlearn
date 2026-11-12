@@ -181,3 +181,7 @@ E-19 : aucun plafond de vitesse seul ne fait finir les quatre circuits de valida
 ## 2026-11-10 · [Livraison] driver1 à 400/400 avec un plafond d'inférence de 4,75 m/s
 
 La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas de sélection, et 400 courses nouvelles, seeds 200 à 299, sont fixées avant la confirmation. Un plafond global de 4,75 m/s corrige les deux DNF, sans réglage par circuit et avec les mêmes poids appris. Le candidat figé finit 400/400. Coût : médiane de 236,17 à 247,57 s sur 118 courses communes. Faible adhérence et forte pluie restent à 6/12 (E-23). Preuves : `docs/results/driver1/README.md`.
+
+## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
+
+Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
