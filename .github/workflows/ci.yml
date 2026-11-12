@@ -82,6 +82,21 @@ jobs:
         run: uv export --frozen --no-hashes --no-emit-project --all-groups -o constraints.txt
       - name: Build the tournament CPU image
         run: docker build -t crashlearn-sim:ci -f vendor/simulation/Dockerfile vendor/simulation
+      - name: Check the submission like the tournament
+        # Official checker on each driver, then four drivers in one process from /tmp (missing
+        # drivers are copies of existing ones), then the official Grand Prix check on them.
+        run: |
+          docker run --rm -v "$PWD:/workspace:ro" -w /tmp -e NUMBA_CACHE_DIR=/tmp/numba \
+            crashlearn-sim:ci sh -c '
+              set -e
+              for driver in /workspace/submission/driver*/; do
+                python /workspace/vendor/simulation/verify_submission.py --submission "$driver"
+              done
+              python /workspace/scripts/check_shared_process.py \
+                --submission /workspace/submission --grand-prix-copy /tmp/grand-prix
+              python /workspace/vendor/simulation/verify_submission.py \
+                --submission /tmp/grand-prix --grandprix
+            '
       - name: Train, resume and verify an exported agent on CPU
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \

@@ -185,3 +185,12 @@ La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas 
 ## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
 
 Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
+
+## 2026-11-12 · [Livraison] Soumission contrôlée dans un processus partagé
+
+E-27 : `scripts/check_shared_process.py` charge les quatre pilotes dans un seul processus, comme au tournoi, puis lance trois courses de 600 décisions à quatre voitures sur Austin. La CI l'exécute dans l'image CPU du tournoi, avec `verify_submission.py` sur chaque pilote et en mode Grand Prix. Pourquoi : le vérificateur officiel charge chaque pilote seul et ne contrôle que la présence de `model.onnx.data`. Un état global partagé, une mémoire commune aux voitures ou des poids lus hors du fichier passeraient sans erreur. Détail des contrôles : `submission/README.md`.
+
+- **driver3 et driver4 manquants** : remplacés par des copies de `driver1` et `driver2`, et la sortie l'indique.
+- **Hashes lus dans `export.json`** : jamais écrits dans le code, car les poids vont changer (mise à zéro des entrées adversaires, E-28).
+- **Pas de mesure avec adversaires** : ces courses testent le chargement et la mémoire, pas la conduite à plusieurs. Le format des courses finales est inconnu.
+- **Preuve** : le contrôle échoue sur un `model.onnx.data` absent, un import de `yaml` dans `Agent()`, un état global partagé et une mémoire commune à toutes les voitures. Il passe sur la livraison actuelle en 20 s.
