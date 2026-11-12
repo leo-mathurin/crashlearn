@@ -1,0 +1,6 @@
+{
+  "samples": 4096,
+  "history_depth": 4,
+  "max_abs_new_vs_old_alone": 0.0,
+  "max_abs_old_with_vs_without_opponents": 0.2463001012802124
+}

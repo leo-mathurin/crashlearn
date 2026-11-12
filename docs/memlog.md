@@ -182,6 +182,9 @@ E-19 : aucun plafond de vitesse seul ne fait finir les quatre circuits de valida
 
 La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas de sélection, et 400 courses nouvelles, seeds 200 à 299, sont fixées avant la confirmation. Un plafond global de 4,75 m/s corrige les deux DNF, sans réglage par circuit et avec les mêmes poids appris. Le candidat figé finit 400/400. Coût : médiane de 236,17 à 247,57 s sur 118 courses communes. Faible adhérence et forte pluie restent à 6/12 (E-23). Preuves : `docs/results/driver1/README.md`.
 
+## 2026-11-12 · [Livraison] Poids adversaires des pilotes solo à zéro
+
+Préparation de E-28 : les poids d'entrée des colonnes adversaires (105 à 125 de chaque frame) n'avaient jamais été entraînés et décalaient les actions jusqu'à 0,25 avec des voitures adverses. Une dérivation sans interaction les met à zéro dans driver1 et driver2. Seul en piste, rien ne change : 40 courses de driver1 et 20 de driver2 sont identiques, les résultats publiés restent valables. Pourquoi : la course commune doit montrer les pilotes tels qu'ils ont appris, pas un bruit d'initialisation. Preuves : `docs/results/opponent-weights/README.md`.
 ## 2026-11-12 · [Évaluation] Protocole E-23 figé avant les résultats
 
 La météo du tournoi change en pleine course (sujet v1.3.0) : friction dans [0,7 ; 1,0] et bruit LiDAR dans [0,001 ; 0,1], ensemble ou séparément. Le wrapper applique un calendrier de segments constants de 5 à 40 s, tiré par seed. Conditions d'évaluation : `low_friction` et `heavy_rain` passent de 0,5 à 0,7, et `changing_weather` tire son calendrier de la seed de course, par un flux que l'entraînement n'utilise jamais. Les anciens fichiers de résultats gardent leurs valeurs, enregistrées course par course.
