@@ -16,4 +16,6 @@ uv run python scripts/map_exploits.py contacts --output docs/results/e-47/contac
 uv run python scripts/map_exploits.py scenarios --shortcuts docs/results/e-47/shortcuts.json
 ```
 
+Les fichiers commités ont été écrits sous `runs/e-47-clean/` sur un arbre propre (commit `4a59688`), puis copiés ici : le script refuse d'écraser un résultat existant. Les scénarios ont ensuite été générés depuis la copie de `docs/results/e-47/shortcuts.json`.
+
 Durée sur la station (4 processus) : environ 5 min pour les raccourcis, 1 min pour les contacts, 1 min pour les scénarios.

@@ -1,15 +1,15 @@
 {
  "metadata": {
-  "commit": "1b6c150bc6bee6136d2022e56529ef8e5a08b9ea",
-  "dirty": true,
+  "commit": "4a59688e0723b54215128b6ad992aa95a7ddd667",
+  "dirty": false,
   "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
   "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
   "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
   "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
   "reward_version": "v1",
-  "created_utc": "2026-11-12T00:31:15+00:00",
-  "exploits_sha256": "709af1570c8ba14f83e7a7fe617ca049f736ffb0c926c39aaaa06872c96bdcef",
-  "command": "scripts/map_exploits.py --workers 4 shortcuts --output docs/results/e-47/shortcuts.json",
+  "created_utc": "2026-11-12T00:47:25+00:00",
+  "exploits_sha256": "b173d79149c752150385629e32beccbc26cbd3fe5de43884dda940f00973081d",
+  "command": "scripts/map_exploits.py --workers 4 shortcuts --output runs/e-47-clean/shortcuts.json",
   "args": {
    "workers": 4,
    "maps": [
@@ -42,7 +42,7 @@
     0.5
    ],
    "limit": 4,
-   "output": "docs/results/e-47/shortcuts.json"
+   "output": "runs/e-47-clean/shortcuts.json"
   }
  },
  "sites": [
