@@ -181,3 +181,12 @@ E-19 : aucun plafond de vitesse seul ne fait finir les quatre circuits de valida
 ## 2026-11-10 · [Livraison] driver1 à 400/400 avec un plafond d'inférence de 4,75 m/s
 
 La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas de sélection, et 400 courses nouvelles, seeds 200 à 299, sont fixées avant la confirmation. Un plafond global de 4,75 m/s corrige les deux DNF, sans réglage par circuit et avec les mêmes poids appris. Le candidat figé finit 400/400. Coût : médiane de 236,17 à 247,57 s sur 118 courses communes. Faible adhérence et forte pluie restent à 6/12 (E-23). Preuves : `docs/results/driver1/README.md`.
+
+## 2026-11-12 · [Livraison] Soumission contrôlée dans un processus partagé
+
+E-27 : `scripts/check_shared_process.py` charge quatre dossiers de pilote dans un seul processus, depuis un cwd vide, dans l'image CPU du tournoi. Il refuse tout import hors NumPy, ONNX Runtime et bibliothèque standard pendant le chargement. Il exécute le dry-run officiel, puis trois courses de 600 décisions à quatre voitures sur Austin. La CI lance aussi `verify_submission.py --submission` sur chaque pilote et `--grandprix` sur les quatre dossiers. Pourquoi : le vérificateur officiel charge chaque pilote seul et ne contrôle `model.onnx.data` que par sa présence. Un état global partagé, une mémoire non séparée par voiture ou des poids lus hors du fichier passeraient sans erreur.
+
+- **Copies en attendant driver3 et driver4** : `driver3` copie `driver1` et `driver4` copie `driver2`, et la sortie l'indique. Le même `agent.py` est donc chargé deux fois.
+- **Lecture de `model.onnx` sans le paquet `onnx`** : un petit lecteur protobuf suffit pour les références externes. Les hashes viennent de `export.json`, jamais du code, car les poids vont changer (mise à zéro des entrées adversaires).
+- **Pas de mesure avec adversaires** : les courses testent le chargement et la mémoire, pas la conduite ensemble. Le format des courses finales est inconnu, deux de nos voitures ne se croiseront peut-être jamais.
+- **Preuve** : le contrôle échoue sur un `model.onnx.data` absent, sur un import de `yaml` dans `Agent()`, sur un état global non séparé et sur une mémoire commune à toutes les voitures. Il passe sur la livraison actuelle en 20 s.

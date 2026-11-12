@@ -23,3 +23,32 @@ exactement comme seul en piste.
 uv run python vendor/simulation/verify_submission.py --submission submission/driver1
 uv run python vendor/simulation/verify_submission.py --submission submission/driver2
 ```
+
+## Contrôle en processus partagé (E-27)
+
+Au tournoi, tous les `agent.py` sont importés dans un seul processus Python, depuis le cwd
+du harnais. `scripts/check_shared_process.py` reproduit cette situation dans l'image CPU du
+tournoi. Il charge `driver1` à `driver4` avec le loader officiel, dry-run compris, depuis
+un cwd vide. Pendant le chargement, seuls NumPy, ONNX Runtime et la bibliothèque standard
+sont importables. Il lance ensuite de vraies courses à quatre voitures et vérifie :
+
+- `model.onnx.data` : présent, conforme au hash de `export.json`, seule source des poids
+  externes de `model.onnx`, sans lecture hors du fichier ;
+- les observations et `info` de course : même schéma que le dry-run, unités dans les bornes
+  de `get_space_info()` ;
+- les actions : floats Python finis, vitesse en m/s et braquage en rad dans les bornes ;
+- la mémoire : chaque instance rejouée seule refait exactement ses actions, et une seule
+  instance qui conduit les quatre voitures garde une mémoire par voiture. Le même
+  `agent.py` est chargé deux fois, une fois sous le même nom de module.
+
+Tant que `driver3` et `driver4` n'existent pas, ce sont des copies de `driver1` et
+`driver2`, et la sortie le dit. Ces courses testent le chargement et le partage du
+processus, pas la course entre nos pilotes : le format des courses finales est inconnu.
+La CI (job « Training and ONNX ») lance aussi `verify_submission.py --submission` sur
+chaque pilote et `--grandprix` sur les quatre dossiers contrôlés.
+
+```bash
+docker run --rm -v "$PWD:/workspace:ro" -w /tmp -e NUMBA_CACHE_DIR=/tmp/numba \
+  crashlearn-sim:20260918 python /workspace/scripts/check_shared_process.py \
+  --submission /workspace/submission
+```
