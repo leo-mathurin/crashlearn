@@ -59,7 +59,9 @@ def copy_policy(source, model) -> None:
             rows, columns = value.shape
             if target[name].shape != (rows, columns + 1):
                 raise ValueError("initialization checkpoint has a different observation shape")
-            state[name] = torch.cat([value, torch.zeros(rows, 1, dtype=value.dtype)], dim=1)
+            state[name] = torch.cat(
+                [value, torch.zeros(rows, 1, dtype=value.dtype, device=value.device)], dim=1
+            )
     model.policy.load_state_dict(state)
 
 
