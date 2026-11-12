@@ -308,6 +308,86 @@ code {
   }
 }
 
+/* Camera choice and follow menu */
+
+.follow {
+  position: relative;
+}
+
+.follow-button {
+  border-left: 3px solid var(--car);
+  white-space: nowrap;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 210px;
+  padding: 6px;
+  background: var(--panel-solid);
+  /* The menu grows from its button, at the top right. */
+  transform-origin: top right;
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.menu button[aria-checked="true"] {
+  background: rgb(255 255 255 / 0.1);
+  font-weight: 600;
+}
+
+.menu-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .menu button:hover {
+    background: rgb(255 255 255 / 0.08);
+  }
+}
+
+/* Mini-map */
+
+.minimap {
+  position: absolute;
+  right: 12px;
+  bottom: 84px;
+  padding: 5px;
+  line-height: 0;
+}
+
+.minimap-canvas {
+  width: 208px;
+  height: 208px;
+  border-radius: 10px;
+}
+
 /* Notices */
 
 .notices {
@@ -1015,7 +1095,7 @@ code {
 .perf {
   position: absolute;
   bottom: 84px;
-  right: 12px;
+  left: 12px;
   padding: 6px 10px;
   font: 11px/1.4 var(--mono);
   color: var(--muted);
@@ -1038,9 +1118,32 @@ code {
 }
 
 @media (max-width: 760px) {
+  .minimap-canvas {
+    width: 120px;
+    height: 120px;
+  }
+
+  .minimap {
+    bottom: 124px;
+  }
+
   .hud-column.right {
-    top: auto;
-    bottom: 110px;
+    top: 64px;
+    right: auto;
+    left: 12px;
+    align-items: flex-start;
+  }
+
+  .hud-column.left {
+    top: 12px;
+  }
+
+  .leaderboard {
+    display: none;
+  }
+
+  .view-options {
+    flex-wrap: wrap;
   }
 
   .telemetry {

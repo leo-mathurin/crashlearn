@@ -12,7 +12,7 @@ import { WALL_HEIGHT_M } from "./trackView";
 /** The beams are drawn at half the wall height: they end on the face of a wall. */
 const BEAM_Z = WALL_HEIGHT_M / 2;
 const AREA_Z = 0.022;
-const HIT_RADIUS_M = 0.035;
+const HIT_RADIUS_M = 0.022;
 
 export class LidarView {
   readonly group = new THREE.Group();

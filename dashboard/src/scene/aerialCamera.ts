@@ -59,6 +59,11 @@ export class AerialCamera {
     return Math.hypot(halfHeight, halfHeight * this.aspect);
   }
 
+  /** Half of the view height on the ground, in metres. */
+  get halfHeight(): number {
+    return this.fitHalfHeight / this.camera.zoom;
+  }
+
   get pixelsPerMetre(): number {
     return this.viewportHeight / ((this.fitHalfHeight * 2) / this.camera.zoom);
   }

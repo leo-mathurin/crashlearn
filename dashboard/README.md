@@ -63,6 +63,21 @@ Une Voiture inactive (statut DNF ou arrivée) est masquée : le simulateur la re
 
 Entre deux frames, le bout de chaque rayon LiDAR glisse en ligne droite de son point à la frame précédente à son point à la frame suivante. En pause sur une frame, ce sont exactement les distances enregistrées.
 
+## Caméras et Mini-carte
+
+Une seule caméra est à l'écran à la fois. Changer de caméra ne change pas la position de lecture.
+
+| Caméra    | Vue                                                                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Aérienne  | orthographique, nord en haut ; c'est la caméra à l'ouverture                                                                                            |
+| Libre     | perspective en orbite autour d'un point du sol. À la première utilisation, elle cadre ce que montrait la caméra précédente, puis elle garde sa position |
+| Poursuite | derrière la Voiture suivie, tournée vers l'avant                                                                                                        |
+
+- **Voiture suivie** : c'est la Voiture sélectionnée par défaut. Le menu « Suivre » choisit une autre voiture : elle est alors déliée, et la sélection peut changer sans déplacer la caméra. « Voiture sélectionnée » les lie de nouveau.
+- **Voiture suivie inactive** : quand elle devient inactive, la caméra reste 2 s sur place (temps réel), puis suit la voiture active la mieux classée. Si les deux voitures sont liées, la Voiture sélectionnée change avec elle. Une voiture déjà inactive que l'on choisit garde la caméra : on peut regarder l'endroit de son DNF.
+- **Transitions** : un clic fait glisser la vue d'une caméra à l'autre en 0,65 s. Au clavier, le changement est immédiat. Avec « réduire les animations » dans le système, il l'est toujours.
+- **Mini-carte** : toujours visible, affichage seul. Le circuit est une image de la scène 3D prise d'en haut, avec le rendu de la caméra Aérienne ; elle est refaite quand la limite de DNF change. Par-dessus : un point par voiture active (cerclé de blanc pour la Voiture sélectionnée), une croix rouge par marqueur DNF, et un cercle à l'endroit que regarde la caméra.
+
 ## Classement et télémétrie
 
 - **Classement** : ordre du simulateur (`ranks`), nom, couleur, tour et progression du tour. Une voiture inactive affiche « Arrivée » ou « DNF » avec le temps simulé de sa fin de course. À la dernière frame, c'est le classement final. Les marques de couleur sur la timeline donnent ces mêmes instants.
@@ -86,10 +101,10 @@ Si la carte du replay est introuvable, les voitures sont affichées sur une gril
 
 ```
 server.ts            serveur local : page, /api/replays, /api/maps
-src/replay/          décodage NPZ, validation, horloge de lecture, classement et valeurs par voiture
+src/replay/          décodage NPZ, validation, horloge de lecture, classement, valeurs par voiture, Voiture suivie
 src/track/           données de piste : centerline, limite de DNF, murs (sans Three.js, testé)
-src/scene/           rendu : renderer, lumières, circuit, voitures, LiDAR, marqueur DNF, caméra
-src/ui/              HUD : timeline, classement, télémétrie, étiquettes, choix du replay, mesures
+src/scene/           rendu : renderer, lumières, circuit, voitures, LiDAR, marqueur DNF, caméras
+src/ui/              HUD : timeline, classement, télémétrie, caméras, Mini-carte, étiquettes, choix du replay, mesures
 tests/               tests unitaires (bun test)
 e2e/                 tests navigateur, Chromium et Firefox (Playwright)
 ```
