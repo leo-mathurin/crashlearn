@@ -4,8 +4,6 @@ import { type Outcome, orderAt, outcomes, valuesAt } from "../replay/standings";
 import { carColor } from "../scene/cars";
 import { formatTime, h, setText } from "./dom";
 
-const ROW_HEIGHT_PX = 44;
-
 export const UNAVAILABLE = "indisponible";
 
 interface Row {
@@ -53,7 +51,7 @@ export class Leaderboard {
       );
       return { element, position, detail, place: -1 };
     });
-    this.list.style.height = `${this.rows.length * ROW_HEIGHT_PX}px`;
+    this.list.style.setProperty("--rows", String(this.rows.length));
     this.list.replaceChildren(...this.rows.map((row) => row.element));
     this.element.hidden = false;
   }
@@ -75,7 +73,7 @@ export class Leaderboard {
       if (!row) return;
       if (row.place !== place) {
         row.place = place;
-        row.element.style.transform = `translateY(${place * ROW_HEIGHT_PX}px)`;
+        row.element.style.setProperty("--place", String(place));
         setText(row.position, String(place + 1));
       }
       const values = valuesAt(replay, frame, car);

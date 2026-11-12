@@ -7,6 +7,7 @@ import {
   lastActivePose,
   Playback,
   type Pose,
+  sampleChannel,
   samplePose,
   SPEEDS,
 } from "./replay/playback";
@@ -19,6 +20,7 @@ import { buildDecor, type Decor } from "./scene/decor";
 import { buildDnfMarker } from "./scene/dnfMarker";
 import { LidarView } from "./scene/lidar";
 import { Stage } from "./scene/stage";
+import { asphalt, concrete, grass } from "./scene/textures";
 import { buildFallbackGround, buildTrackView, type TrackView } from "./scene/trackView";
 import { loadTrackAssets, MapNotFoundError } from "./track/assets";
 import { type DecorLayout, layoutDecor } from "./track/decorLayout";
@@ -52,10 +54,20 @@ interface Session {
   mapAvailable: boolean;
 }
 
-/** Space that the HUD covers on each side: the circuit is framed in what is left. */
-const HUD_INSETS: Insets = { top: 70, bottom: 84, left: 330, right: 330 };
+/** Margin between the circuit and the HUD panels around it, in pixels. */
+const HUD_MARGIN_PX = 14;
 /** Below this width the side panels are over the scene: the circuit uses the full width. */
 const SIDE_PANELS_MIN_WIDTH_PX = 1100;
+
+/**
+ * Frame time above which the scene is drawn with fewer pixels, and the steps of resolution. A
+ * frame of 24 ms is 42 frames per second: under that, motion is not fluid any more.
+ */
+const SLOW_FRAME_MS = 24;
+const RESOLUTION_STEPS = [1, 0.8, 0.65, 0.5] as const;
+/** Frames in one measurement of the frame time, and slow measurements before a step down. */
+const PACE_WINDOW = 45;
+const SLOW_WINDOWS = 2;
 
 /** State that the browser tests read through `window.dashboard`. */
 export interface DashboardState {
@@ -86,6 +98,8 @@ export interface DashboardState {
   followedCar: number;
   /** True while the followed car is the selected car. */
   followLinked: boolean;
+  /** Share of the full resolution that the scene is drawn at. */
+  resolutionScale: number;
   /** True during the move from one camera to another. */
   cameraMoving: boolean;
   /** Position of the camera in simulator metres (z up). */
@@ -101,6 +115,8 @@ export interface DashboardState {
   triangles: number;
   error: string | null;
   perf: PerfSummary;
+  /** Time of each step of the last opening of a replay, in milliseconds. */
+  loadMs: Record<string, number>;
 }
 
 function trajectoryBounds(replay: Replay): Bounds {
@@ -126,6 +142,15 @@ export class App {
   private session: Session | null = null;
   private phase: DashboardState["phase"] = "library";
   private lastError: string | null = null;
+  private loadMs: Record<string, number> = {};
+  private loadMark = 0;
+  /** Number of the last replay opening: an older one that ends late is dropped. */
+  private loadId = 0;
+  /** True while the GPU programs of a new scene build: nothing is rendered. */
+  private preparing = 0;
+  private paceSum = 0;
+  private paceCount = 0;
+  private slowWindows = 0;
   private limitVisible = true;
   private lidarVisible = true;
   private decorVisible = readPreference(DECOR_PREFERENCE, true);
@@ -162,6 +187,7 @@ export class App {
   private readonly lidarSwitch: HTMLButtonElement;
   private readonly decorSwitch: HTMLButtonElement;
   private readonly bottom: HTMLElement;
+  private readonly top: HTMLElement;
 
   private constructor(
     private readonly stage: Stage,
@@ -195,7 +221,7 @@ export class App {
       "Limite de DNF : bord de piste + 1 m (L)",
       () => this.setLimitVisible(!this.limitVisible),
     );
-    this.decorSwitch = toggleSwitch("Décor", "Décor : arbres, tribunes, portique, ciel (D)", () =>
+    this.decorSwitch = toggleSwitch("Décor", "Décor : arbres, tribunes, portique, ciel (G)", () =>
       this.setDecorVisible(!this.decorVisible),
     );
     this.decorSwitch.setAttribute("aria-checked", String(this.decorVisible));
@@ -204,47 +230,46 @@ export class App {
     );
     this.bottom = h("div", { class: "hud-bottom", hidden: true }, this.timeline.element);
 
+    this.top = h(
+      "div",
+      { class: "hud-top" },
+      h(
+        "div",
+        { class: "panel brand" },
+        h("span", { class: "brand-mark" }, "Crash & Learn"),
+        h("div", { class: "brand-replay" }, this.title, this.subtitle),
+        h(
+          "button",
+          {
+            class: "button",
+            type: "button",
+            title: "Ouvrir un replay (O)",
+            onclick: () => this.library.show(this.session !== null),
+          },
+          icon(ICONS.folder, 14),
+          "Ouvrir",
+        ),
+      ),
+      h(
+        "div",
+        { class: "panel view-options" },
+        this.cameraSwitch.element,
+        this.followMenu.element,
+        this.limitSwitch,
+        this.lidarSwitch,
+        this.decorSwitch,
+        h("span", { class: "badge", title: "Moteur de rendu" }, stage.backend),
+      ),
+    );
     hud.append(
-      h(
-        "div",
-        { class: "hud-column left" },
-        h(
-          "div",
-          { class: "panel brand" },
-          h("span", { class: "brand-mark" }, "Crash & Learn"),
-          h("div", { class: "brand-replay" }, this.title, this.subtitle),
-          h(
-            "button",
-            {
-              class: "button",
-              type: "button",
-              title: "Ouvrir un replay (O)",
-              onclick: () => this.library.show(this.session !== null),
-            },
-            icon(ICONS.folder, 14),
-            "Ouvrir",
-          ),
-        ),
-        this.leaderboard.element,
-      ),
-      h(
-        "div",
-        { class: "hud-column right" },
-        h(
-          "div",
-          { class: "panel view-options" },
-          this.cameraSwitch.element,
-          this.followMenu.element,
-          this.limitSwitch,
-          this.lidarSwitch,
-          this.decorSwitch,
-          h("span", { class: "badge", title: "Moteur de rendu" }, stage.backend),
-        ),
-        this.telemetry.element,
-      ),
+      this.top,
       this.notices,
-      this.perf.element,
-      this.minimap.element,
+      h(
+        "div",
+        { class: "hud-middle" },
+        h("div", { class: "hud-side left" }, this.leaderboard.element, this.perf.element),
+        h("div", { class: "hud-side right" }, this.telemetry.element, this.minimap.element),
+      ),
       this.bottom,
       this.loading,
       this.library.element,
@@ -260,6 +285,10 @@ export class App {
     const stage = await Stage.create(canvas, query.get("renderer") === "webgl");
     const app = new App(stage, canvas, hud, markers);
     if (query.has("perf")) app.perf.toggle();
+    // The surface textures are drawn while the user chooses a replay.
+    setTimeout(() => {
+      for (const draw of [asphalt, grass, concrete]) draw(stage.maxAnisotropy);
+    }, 0);
     app.resize();
     requestAnimationFrame((now) => app.frame(now));
     const replay = query.get("replay");
@@ -300,6 +329,7 @@ export class App {
       selectedCar: this.selectedCar,
       followedCar: this.follow.followed,
       followLinked: this.follow.linked,
+      resolutionScale: this.stage.resolutionScale,
       cameraMoving: this.cameras.inTransition,
       cameraPosition: {
         x: this.cameras.camera.position.x,
@@ -319,6 +349,7 @@ export class App {
       triangles: this.triangles(),
       error: this.lastError,
       perf: this.perf.summary(),
+      loadMs: this.loadMs,
     };
   }
 
@@ -336,7 +367,9 @@ export class App {
         this.fail("Replay introuvable.", `Le serveur n'a pas de fichier « ${name} ».`);
         return;
       }
-      await this.openReplay(name, new Uint8Array(await response.arrayBuffer()), true);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      this.lap("download");
+      await this.openReplay(name, bytes, true);
     } catch (error) {
       this.failUnexpected(error);
     }
@@ -351,7 +384,17 @@ export class App {
     }
   }
 
+  /** Records the time since the previous step of the opening of a replay. */
+  private lap(step: string): void {
+    const now = performance.now();
+    this.loadMs[step] = Math.round(now - this.loadMark);
+    this.loadMark = now;
+  }
+
   private beginLoading(label: string): void {
+    this.loadId++;
+    this.loadMs = {};
+    this.loadMark = performance.now();
     this.phase = "loading";
     this.lastError = null;
     this.library.setError(null);
@@ -376,6 +419,7 @@ export class App {
   }
 
   private async openReplay(name: string, bytes: Uint8Array, fromServer: boolean): Promise<void> {
+    const loadId = this.loadId;
     let replay: Replay;
     try {
       replay = parseReplay(name, bytes);
@@ -384,6 +428,7 @@ export class App {
       this.fail("Fichier de replay invalide.", error.message);
       return;
     }
+    this.lap("parse");
 
     const notices: string[] = [];
     let track: TrackView | null = null;
@@ -393,7 +438,10 @@ export class App {
     } else {
       try {
         const assets = await loadTrackAssets(replay.mapName);
+        if (loadId !== this.loadId) return;
+        this.lap("map");
         track = buildTrackView(assets, this.stage.maxAnisotropy);
+        this.lap("track");
         layout = layoutDecor(assets.centerline, assets.name);
       } catch (error) {
         if (!(error instanceof MapNotFoundError)) throw error;
@@ -418,6 +466,7 @@ export class App {
     }
     const decor = buildDecor(layout, track.bounds, replay.frameCount);
     decor.setVisible(this.decorVisible);
+    this.lap("decor");
     this.stage.simRoot.add(track.group, decor.ground, actors);
     this.stage.scene.add(decor.sky);
     this.session = {
@@ -457,8 +506,6 @@ export class App {
             ],
       ),
     );
-    const wide = this.width >= SIDE_PANELS_MIN_WIDTH_PX;
-    this.cameras.fit(track.bounds, wide ? HUD_INSETS : { ...HUD_INSETS, left: 0, right: 0 });
     this.minimap.setBounds(track.bounds);
     this.perf.reset();
 
@@ -470,8 +517,25 @@ export class App {
     );
     this.limitSwitch.disabled = !mapAvailable;
     this.bottom.hidden = false;
-    this.loading.hidden = true;
     this.library.hide();
+    // The panels now have their size: the circuit is framed in the space between them.
+    this.cameras.fit(track.bounds, this.hudInsets());
+    this.lap("hud");
+    this.placeCars(this.session);
+    this.preparing++;
+    try {
+      await this.stage.warmUp([this.cameras.aerial.camera, this.cameras.free.camera]);
+    } finally {
+      this.preparing--;
+    }
+    if (loadId !== this.loadId) return;
+    this.lap("programs");
+    // The first frame sends the textures and the geometry to the GPU: it is part of the wait.
+    this.draw(0);
+    await this.stage.finish();
+    this.lap("firstFrame");
+    this.perf.setLoad(this.loadMs);
+    this.loading.hidden = true;
     this.phase = "ready";
 
     const url = new URL(location.href);
@@ -491,6 +555,23 @@ export class App {
     session.track.dispose();
     for (const car of session.cars) car.dispose();
     this.session = null;
+  }
+
+  /** Space that the HUD panels cover on each side of the screen, in pixels. */
+  private hudInsets(): Insets {
+    const edge = (element: HTMLElement, side: "left" | "right" | "top" | "bottom"): number => {
+      const box = element.getBoundingClientRect();
+      if (box.width === 0) return 0;
+      if (side === "left" || side === "top") return box[side === "left" ? "right" : "bottom"];
+      return (side === "right" ? this.width : this.height) - box[side === "right" ? "left" : "top"];
+    };
+    const wide = this.width >= SIDE_PANELS_MIN_WIDTH_PX;
+    return {
+      top: edge(this.top, "top") + HUD_MARGIN_PX,
+      bottom: edge(this.bottom, "bottom") + HUD_MARGIN_PX,
+      left: wide ? edge(this.leaderboard.element, "left") + HUD_MARGIN_PX : 0,
+      right: wide ? edge(this.telemetry.element, "right") + HUD_MARGIN_PX : 0,
+    };
   }
 
   /** Triangles of the circuit, and of the scenery when it is drawn. */
@@ -563,15 +644,41 @@ export class App {
     requestAnimationFrame((next) => this.frame(next));
     const interval = this.lastFrameAt === 0 ? 16.7 : now - this.lastFrameAt;
     this.lastFrameAt = now;
-    if (this.benchmarking) return;
+    if (this.benchmarking || this.preparing > 0) return;
     const started = performance.now();
     this.draw(interval);
+    const scale = this.stage.resolutionScale;
     this.perf.sample(
       interval,
       performance.now() - started,
       now,
-      `${this.stage.backend} · ${Math.round(this.triangles())} triangles`,
+      `${this.stage.backend} · ${Math.round(this.triangles())} triangles` +
+        (scale < 1 ? ` · rendu à ${Math.round(scale * 100)} %` : ""),
     );
+    this.watchPace(interval);
+  }
+
+  /**
+   * Lowers the resolution of the scene when the GPU cannot keep the pace: fewer pixels, but a
+   * fluid motion. The resolution does not go up again during the visit, so that it cannot
+   * change back and forth.
+   */
+  private watchPace(interval: number): void {
+    // A long interval is a hidden tab or a stop of the page, not a slow GPU.
+    if (!this.session || document.hidden || interval > 250) return;
+    this.paceSum += interval;
+    if (++this.paceCount < PACE_WINDOW) return;
+    const mean = this.paceSum / this.paceCount;
+    this.paceSum = 0;
+    this.paceCount = 0;
+    this.slowWindows = mean > SLOW_FRAME_MS ? this.slowWindows + 1 : 0;
+    if (this.slowWindows < SLOW_WINDOWS) return;
+    this.slowWindows = 0;
+    const step = RESOLUTION_STEPS.indexOf(this.stage.resolutionScale as 1);
+    const next = RESOLUTION_STEPS[step + 1];
+    if (next === undefined) return;
+    this.stage.setResolutionScale(next, this.width, this.height);
+    this.minimap.stale = true;
   }
 
   /** Updates the scene for `interval` milliseconds of wall-clock time and renders it. */
@@ -674,7 +781,9 @@ export class App {
       car.group.visible = active;
       if (!active) continue;
       car.setPose(this.pose.x, this.pose.y, this.pose.heading);
-      car.setSteering(replay.steering?.[frame * replay.carCount + car.car] ?? 0);
+      car.setSteering(
+        replay.steering ? sampleChannel(replay, replay.steering, playback.time, car.car) : 0,
+      );
       if (lidar && car.car === this.selectedCar) {
         lidar.update(replay, frame, playback.time / replay.simDt - frame, car.car, this.pose);
       }
@@ -754,6 +863,14 @@ export class App {
         return;
       }
       if (this.library.open) return;
+      const target = event.target;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+      // In the Free camera, the move keys move the camera: they are not shortcuts there.
+      if (this.cameras.mode === "free" && this.cameras.free.pressKey(event.code)) {
+        this.cameras.free.fast = event.shiftKey;
+        event.preventDefault();
+        return;
+      }
       const playback = this.session?.playback;
       const handlers: Record<string, () => void> = {
         " ": () => playback?.toggle(),
@@ -765,7 +882,7 @@ export class App {
         ArrowDown: () => this.shiftSpeed(-1),
         l: () => this.setLimitVisible(!this.limitVisible),
         i: () => this.setLidarVisible(!this.lidarVisible),
-        d: () => this.setDecorVisible(!this.decorVisible),
+        g: () => this.setDecorVisible(!this.decorVisible),
         "1": () => this.selectCar(0),
         "2": () => this.selectCar(1),
         "3": () => this.selectCar(2),
@@ -783,6 +900,13 @@ export class App {
       event.preventDefault();
       handler();
     });
+
+    window.addEventListener("keyup", (event) => {
+      this.cameras.free.releaseKey(event.code);
+      this.cameras.free.fast = event.shiftKey;
+    });
+    // A key that goes up while the window has no focus gives no event: stop the move.
+    window.addEventListener("blur", () => this.cameras.free.releaseKeys());
 
     let dragDepth = 0;
     window.addEventListener("dragenter", (event) => {

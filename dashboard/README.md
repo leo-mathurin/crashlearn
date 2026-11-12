@@ -28,18 +28,21 @@ uv run python scripts/record_replay.py --map Austin --drivers driver1 driver2 dr
 
 ## Utiliser
 
-| Action                               | Souris ou clavier                           |
-| ------------------------------------ | ------------------------------------------- |
-| Lecture, pause                       | bouton ou `Espace`                          |
-| Avancer ou reculer d'une frame       | `→` `←` (20 frames, soit 1 s, avec `Maj`)   |
-| Début, fin                           | `Début`, `Fin`                              |
-| Vitesse de lecture, de 0,25× à 8×    | boutons ou `↑` `↓`                          |
-| Zoom                                 | molette ou pincement, centré sur le curseur |
-| Déplacement                          | glisser                                     |
-| Revenir à la vue d'ensemble          | double-clic ou `R`                          |
-| Afficher ou masquer la limite de DNF | interrupteur ou `L`                         |
-| Ouvrir un replay                     | bouton ou `O`                               |
-| Afficher les mesures de fluidité     | `P`                                         |
+| Action                                                            | Souris ou clavier                                                 |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Lecture, pause                                                    | bouton ou `Espace`                                                |
+| Avancer ou reculer d'une frame                                    | `→` `←` (20 frames, soit 1 s, avec `Maj`)                         |
+| Début, fin                                                        | `Début`, `Fin`                                                    |
+| Vitesse de lecture, de 0,25× à 8×                                 | boutons ou `↑` `↓`                                                |
+| Zoom                                                              | molette ou pincement, centré sur le curseur                       |
+| Déplacement                                                       | glisser                                                           |
+| Revenir à la vue d'ensemble                                       | double-clic ou `R`                                                |
+| Afficher ou masquer la limite de DNF                              | interrupteur ou `L`                                               |
+| Ouvrir un replay                                                  | bouton ou `O`                                                     |
+| Caméra Aérienne, Libre, Poursuite                                 | boutons ou `A`, `F`, `C`                                          |
+| Avancer, reculer, aller à gauche ou à droite avec la caméra Libre | `Z` `S` `Q` `D` (`W` `S` `A` `D` en QWERTY), plus vite avec `Maj` |
+| Afficher ou masquer le LiDAR, le décor                            | interrupteurs ou `I`, `G`                                         |
+| Afficher les mesures de fluidité                                  | `P`                                                               |
 
 Vu de loin, une voiture de 0,58 m fait moins d'un pixel : une pastille de couleur marque alors sa position. Elle disparaît quand on zoome assez pour voir la voiture.
 
@@ -78,6 +81,13 @@ Une seule caméra est à l'écran à la fois. Changer de caméra ne change pas l
 - **Transitions** : un clic fait glisser la vue d'une caméra à l'autre en 0,65 s. Au clavier, le changement est immédiat. Avec « réduire les animations » dans le système, il l'est toujours.
 - **Mini-carte** : toujours visible, affichage seul. Le circuit est une image de la scène 3D prise d'en haut, avec le rendu de la caméra Aérienne ; elle est refaite quand la limite de DNF change. Par-dessus : un point par voiture active (cerclé de blanc pour la Voiture sélectionnée), une croix rouge par marqueur DNF, et un cercle à l'endroit que regarde la caméra.
 
+- **Déplacement au clavier** : avec la caméra Libre, quatre touches déplacent la caméra et son point d'orbite au-dessus du sol, à une vitesse proportionnelle au zoom. Elles sont lues par leur place sur le clavier : `Z` `Q` `S` `D` en AZERTY, `W` `A` `S` `D` en QWERTY. Dans cette caméra, ces touches ne sont donc pas des raccourcis.
+- **Poursuite stable** : la caméra est à distance fixe de la voiture, seule sa direction tourne avec un retard. La voiture garde ainsi sa place à l'écran même quand des images arrivent en retard.
+
+## Fenêtres moyennes et petites
+
+Le HUD est une colonne : barre du haut, panneaux latéraux, timeline. Chaque partie prend sa place, donc aucun panneau ne passe sur un autre. La barre du haut passe sur deux lignes quand elle manque de largeur. Sous 1 100 px de large ou 760 px de haut, la courbe de vitesse disparaît ; sous 640 px de haut ou 760 px de large, la télémétrie ne garde que la vitesse et le tour ; sous 420 px de haut, la Mini-carte disparaît. Un test vérifie sept tailles, de 1920 × 1080 à 390 × 844.
+
 ## Décor
 
 Le décor donne une ambiance et ne dit rien de la course : ciel, nuages, collines, arbres, tribunes et portique de départ. Il est affiché par défaut et l'interrupteur « Décor » l'enlève en un clic.
@@ -98,6 +108,14 @@ Le décor donne une ambiance et ne dit rien de la course : ciel, nuages, colline
 | Firefox 159, WebGL 2  | 60 fps, p95 17,1 ms |                0,6 à 1,0 ms |                0,7 à 1,3 ms |
 
 La lecture réelle est limitée par l'écran (60 Hz). Le coût d'une frame est mesuré sans cette limite, travail du GPU compris : il laisse une large marge sur cette machine. La scène fait 165 000 triangles sans décor et 268 000 avec. Le tas JavaScript reste sous 70 Mo. Ces chiffres valent pour cette carte graphique ; sur une autre machine, la touche `P` affiche les mêmes mesures en direct.
+
+Trois réglages gardent le mouvement fluide sur une machine moins rapide :
+
+- **Mouvement entre deux frames** : le recorder écrit 20 poses par seconde. Entre deux poses, la voiture suit une courbe lisse (Catmull-Rom) qui passe par les poses enregistrées, pas des segments droits : sa vitesse ne change pas d'un coup à chaque frame.
+- **Programmes du GPU préparés à l'ouverture** : tout ce qui est dans la scène est compilé avant la première image, pour les caméras orthographique et perspective, y compris ce qui est caché (marqueurs DNF, décor masqué). Sans cela, chaque objet arrêtait l'affichage la première fois qu'il venait à l'écran : 6 programmes au premier passage en caméra Libre, 2 au premier DNF.
+- **Résolution adaptée** : si la moyenne dépasse 24 ms par image pendant 1,5 s, la scène est dessinée avec moins de pixels (80 %, 65 %, puis 50 %). Le HUD reste net. La résolution ne remonte pas pendant la visite.
+
+La touche `P` affiche aussi le temps de chaque étape de l'ouverture du replay (téléchargement, décodage, carte, circuit, programmes du GPU, première image). Sur la station : 1,0 s au total pour ce replay, dont 0,3 à 0,5 s de programmes du GPU.
 
 Le flou d'arrière-plan des panneaux a été retiré après mesure : il faisait tomber Firefox de 60 à 44 fps.
 

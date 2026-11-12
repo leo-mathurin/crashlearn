@@ -2,7 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { zipSync } from "fflate";
 
 import { type NpyArray, NpzError, parseNpy, parseNpz } from "../src/replay/npz";
-import { frameAt, lastActivePose, Playback, type Pose, samplePose } from "../src/replay/playback";
+import {
+  frameAt,
+  lastActivePose,
+  Playback,
+  type Pose,
+  sampleChannel,
+  samplePose,
+} from "../src/replay/playback";
 import { buildReplay, parseReplay, ReplayError, STATUS } from "../src/replay/replay";
 
 const fixture = new Uint8Array(
@@ -196,6 +203,11 @@ describe("playback", () => {
     expect(Math.abs(pose.heading)).toBeGreaterThan(3.1);
   });
 
+  test("gives the recorded pose on a recorded frame", () => {
+    expect(samplePose(replay, 0.05, 0, pose)).toBe(true);
+    expect(pose.x).toBeCloseTo(1);
+  });
+
   test("never interpolates towards the place where the simulator parks an inactive car", () => {
     expect(samplePose(replay, 0.125, 0, pose)).toBe(true);
     expect(pose.x).toBeCloseTo(2);
@@ -240,5 +252,57 @@ describe("playback", () => {
     playback.step(100);
     expect(playback.frame).toBe(3);
     expect(playback.playing).toBe(false);
+  });
+});
+
+describe("motion between recorded frames", () => {
+  // A car on a circle of 5 m at 5 m/s, recorded 20 times per second.
+  const frames = 40;
+  const circle = buildReplay(
+    "circle",
+    new Map([
+      [
+        "poses",
+        array(
+          "<f4",
+          [frames, 1, 3],
+          Array.from({ length: frames }, (_, frame) => {
+            const angle = frame * 0.05;
+            return [5 * Math.sin(angle), 5 - 5 * Math.cos(angle), angle];
+          }).flat(),
+        ),
+      ],
+      ["status", array("<i4", [frames, 1], Array<number>(frames).fill(STATUS.ACTIVE))],
+      ["sim_dt", array("<f4", [], [0.05])],
+    ]),
+  );
+  const pose: Pose = { x: 0, y: 0, heading: 0 };
+
+  const speedAt = (time: number) => {
+    samplePose(circle, time - 0.001, 0, pose);
+    const { x, y } = pose;
+    samplePose(circle, time + 0.001, 0, pose);
+    return Math.hypot(pose.x - x, pose.y - y) / 0.002;
+  };
+
+  test("follows the curve of the car, not the chord between two frames", () => {
+    let worst = 0;
+    for (let time = 0.1; time < 1.8; time += 0.0073) {
+      samplePose(circle, time, 0, pose);
+      worst = Math.max(worst, Math.abs(Math.hypot(pose.x, pose.y - 5) - 5));
+      expect(pose.heading).toBeCloseTo(time, 3);
+    }
+    // The middle of a chord is 0.16 mm inside this circle. The curve stays ten times closer.
+    expect(worst).toBeLessThan(2e-5);
+  });
+
+  test("keeps the speed of the car steady through a recorded frame", () => {
+    for (const time of [0.5, 0.524, 0.55, 0.576]) expect(speedAt(time)).toBeCloseTo(5, 2);
+  });
+
+  test("interpolates a channel between two frames", () => {
+    const channel = Float32Array.from({ length: frames }, (_, frame) => frame);
+    expect(sampleChannel(circle, channel, 0.125, 0)).toBeCloseTo(2.5);
+    expect(sampleChannel(circle, channel, 99, 0)).toBe(frames - 1);
   });
 });

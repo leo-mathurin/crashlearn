@@ -194,3 +194,40 @@ test("shows the mini-map with every camera", async ({ page }) => {
     expect(await colours()).toBeGreaterThan(50);
   }
 });
+
+test("moves the Free camera over the ground with the move keys", async ({ page }) => {
+  await openReplay(page, "demo-solo-spielberg");
+  await press(page, "f");
+  const start = await state(page);
+
+  // The keys are read by their place: KeyW is Z on an AZERTY keyboard.
+  await page.keyboard.down("KeyW");
+  await page.waitForTimeout(400);
+  await page.keyboard.up("KeyW");
+  await press(page);
+  const ahead = await state(page);
+  // The first view looks north: forward is +y, and the camera moves with its orbit centre.
+  expect(ahead.view.y - start.view.y).toBeGreaterThan(1);
+  expect(ahead.view.x).toBeCloseTo(start.view.x, 1);
+  expect(ahead.cameraPosition.y - start.cameraPosition.y).toBeGreaterThan(1);
+  expect(ahead.cameraPosition.z).toBeCloseTo(start.cameraPosition.z, 3);
+
+  await page.keyboard.down("KeyD");
+  await page.waitForTimeout(400);
+  await page.keyboard.up("KeyD");
+  await press(page);
+  const right = await state(page);
+  expect(right.view.x - ahead.view.x).toBeGreaterThan(1);
+  // The move key is not the shortcut of the scenery in this camera.
+  expect(right.decorVisible).toBe(ahead.decorVisible);
+  expect(right.camera).toBe("Libre");
+
+  // The camera stops after the key is up.
+  await expect
+    .poll(async () => {
+      const before = await state(page);
+      await page.waitForTimeout(250);
+      return Math.abs((await state(page)).view.x - before.view.x);
+    })
+    .toBeLessThan(0.005);
+});
