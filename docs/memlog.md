@@ -186,6 +186,34 @@ La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas 
 
 Préparation de E-28 : les poids d'entrée des colonnes adversaires (105 à 125 de chaque frame) n'avaient jamais été entraînés et décalaient les actions jusqu'à 0,25 avec des voitures adverses. Une dérivation sans interaction les met à zéro dans driver1 et driver2. Seul en piste, rien ne change : 40 courses de driver1 et 20 de driver2 sont identiques, les résultats publiés restent valables. Pourquoi : la course commune doit montrer les pilotes tels qu'ils ont appris, pas un bruit d'initialisation. Preuves : `docs/results/opponent-weights/README.md`.
 
+## 2026-11-12 · [Évaluation] Protocole E-23 figé avant les résultats
+
+La météo du tournoi change en pleine course (sujet v1.3.0) : friction dans [0,7 ; 1,0] et bruit LiDAR dans [0,001 ; 0,1], ensemble ou séparément. Le wrapper applique un calendrier de segments constants de 5 à 40 s, tiré par seed. Conditions d'évaluation : `low_friction` et `heavy_rain` passent de 0,5 à 0,7, et `changing_weather` tire son calendrier de la seed de course, par un flux que l'entraînement n'utilise jamais. Les anciens fichiers de résultats gardent leurs valeurs, enregistrées course par course.
+
+Campagne fixée avant tout résultat, à partir de `cap5-random-h1-seed0` (source de driver1), 2 000 000 interactions demandées par run, plafond 5 m/s, départs diversifiés, seeds 0, 1 et 2 :
+
+- **A** : météo changeante, 25 % d'épisodes nominaux ;
+- **B** : A plus `friction_current` en entrée (mesure seulement) ;
+- **C** : même adaptation sans météo, pour séparer l'effet de la météo de celui des interactions ajoutées.
+
+Chaque modèle brut, la source comprise, court les 117 courses de la campagne (train nominal, validation en six conditions). Règle pour la friction en entrée : l'adopter seulement si B finit au moins 10 courses de plus que A sur les 108 courses météo (`low_friction`, `heavy_rain`, `changing_weather`, trois seeds), sans perdre en nominal. Sinon les features restent à 126 colonnes.
+
+Candidat livrable : chaque seed de A passe par la chaîne de driver1 (progression masquée, plafond 4,75 m/s, poids adversaires à zéro), puis la campagne. La seed qui finit le plus de courses de validation, toutes conditions, est retenue (égalité : la plus petite seed). Elle remplace driver1 seulement si elle finit 400/400 sur la confirmation nominale (seeds 200 à 299, image du tournoi) et strictement plus de courses que driver1 sur une confirmation météo neuve : `changing_weather` seeds 300 à 349, `low_friction` et `heavy_rain` seeds 300 à 309, sur les quatre circuits de validation.
+
+## 2026-11-12 · [Livraison] driver1 réentraîné sous météo changeante
+
+E-23, selon le protocole figé : A seed 2 dérivé remplace driver1. Il finit 400/400 en nominal dans l'image du tournoi et 262/280 courses météo neuves, contre 218/280 pour l'ancien ; le gain vient de Montreal. `friction_current` reste hors des features : B ne gagne que 5 courses météo sur 108 face à A, sous le seuil de 10, et perd en nominal. Limite : brut, C (sans météo) finit plus de courses météo que A, 74 contre 61 sur 108 ; la part de la météo dans le gain n'est pas isolée. Pourquoi : la météo du tournoi change en pleine course, et l'ancien driver1 échouait à Montreal sous faible adhérence. Résultats : `docs/results/e-23/README.md`.
+
 ## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
 
 Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
+
+## 2026-11-12 · [Évaluation] Protocole E-49 figé avant les essais
+
+Objectif : 100 % de courses finies par driver1 sous la météo du tournoi, sans perdre le nominal. Les 280 courses de confirmation E-23 (262 finies) deviennent des cas de sélection. Confirmation fixée avant tout essai, sur courses neuves et sur les 4 circuits de validation : `changing_weather` seeds 350 à 449, `low_friction` et `heavy_rain` seeds 350 à 399 (800 courses), puis les 400 courses nominales (seeds 200 à 299) dans l'image du tournoi. Le résultat publié est celui de la confirmation, même sous 100 %.
+
+Piste 1, sans réentraînement : l'agent borne sa vitesse à 4,75 × μ^k m/s, μ étant `friction_current` de `info`. À μ = 1 la borne vaut le plafond actuel. k = 0,5 vient de la physique (vitesse de virage maximale en √μ) ; on retient le plus petit k parmi 0,5, 0,75 et 1 qui finit les 280 cas de sélection. Si aucun n'y arrive, piste 2 : réentraînement sous faible adhérence, circuits train seulement. Pourquoi : la friction est donnée par le tournoi, et un plafond global a déjà réglé Montreal en nominal.
+
+## 2026-11-12 · [Livraison] driver1 ralentit selon la friction : 800/800 sous météo
+
+E-49 : sur les 280 cas de sélection, la borne 4,75 × μ^k finit tout pour k = 0,5 et k = 0,75 ; k = 0,5 est retenu (plus petit, plus rapide). Confirmation neuve : 800/800 courses météo contre 716/800 sans la borne, et 400/400 courses nominales identiques à E-23. Coût : +5,6 % de temps médian sous météo. Le modèle ne change pas, seul `agent.py`. Pourquoi : le tournoi donne `friction_current`, et ralentir sous la pluie règle Montreal sans réentraîner. Résultats : `docs/results/e-49/README.md`.

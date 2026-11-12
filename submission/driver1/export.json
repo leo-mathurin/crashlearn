@@ -1,14 +1,14 @@
 {
-  "commit": "6e78605e892b8712c4cb52607f8e4aad84ff58ed",
+  "commit": "9b7bbdd38240298ef4febe4c53be7569ec951e69",
   "dirty": false,
   "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
   "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
   "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
   "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
   "reward_version": "v1",
-  "created_utc": "2026-11-11T23:57:36+00:00",
-  "source_run_id": "203a1511f49842d4bd87c4fbe2e096ed",
-  "source_model_sha256": "c343c68b19985d250453642a8c49e4b6609de99cd81767160be0f0cbcd8064e1",
+  "created_utc": "2026-11-12T10:27:19+00:00",
+  "source_run_id": "662801828515498e98e6ae90f8d1e495",
+  "source_model_sha256": "d473a5ba64d44ca9415622ae5330241e9d8b0a7fe2b26cd4bfa675b5eab13e72",
   "derivation": {
     "method": "zero_opponent_weights",
     "feature_columns": [
@@ -34,9 +34,9 @@
       124,
       125
     ],
-    "source_run_id": "7bf25c8c01d149f1a35f6b58ab646db5",
-    "source_model_sha256": "4956e2a9006f689cb4cf2123a274747798ae53c65504bd5a4b7f995611d7e4c9",
-    "source_manifest_sha256": "30724b715d58e04eb587fe7ef4d236d5b0adae6ce73a37707a52b9563f9a202f",
+    "source_run_id": "d8596b51ba4546d6a5eefd3d7ebbf1d2",
+    "source_model_sha256": "e1d0047d2da853ab8850aa627b353fe65dff83ebfa293cbdc3f314e0868a0cdb",
+    "source_manifest_sha256": "542f66f353ca858b4d2159ff5c23e0884aacf6959d07d58a9b9f5222409111b6",
     "source_derivation": {
       "method": "zero_progress_weights",
       "feature_columns": [
@@ -44,18 +44,18 @@
         103,
         104
       ],
-      "source_run_id": "e43816dce3db44ac93d82160a5af9e92",
-      "source_model_sha256": "f283194ea0334cfbde14c0f4925698d5226b335b89533c39dd1e3b940fc359aa",
-      "source_manifest_sha256": "948d6bc4c868d58fc48ea965c93b7982c63483012109240d901626f151ef8933",
+      "source_run_id": "09501eb5ad684cbda4371ccba9b7da5e",
+      "source_model_sha256": "3bc792a200c35f73c575352ab496c8e2da8fdd62b650dc967c5d229832efeab5",
+      "source_manifest_sha256": "930bc3dc5a1511dafa6088990f67465bdfedabee89f8354efd7ec3e2077e2fa4",
       "provenance": {
-        "commit": "2e5a75132d658f485e334bb8760583b142628701",
+        "commit": "a28cf7c0d2409d93f77ec5a4166cb58bc40bd026",
         "dirty": false,
         "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
         "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
         "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
         "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
         "reward_version": "v1",
-        "created_utc": "2026-11-10T16:11:53+00:00"
+        "created_utc": "2026-11-12T01:00:41+00:00"
       },
       "parity_samples": 256,
       "max_normalized_action_error": 0.0,
@@ -71,14 +71,14 @@
       ]
     },
     "provenance": {
-      "commit": "6e78605e892b8712c4cb52607f8e4aad84ff58ed",
+      "commit": "a28cf7c0d2409d93f77ec5a4166cb58bc40bd026",
       "dirty": false,
       "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
       "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
       "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
       "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
       "reward_version": "v1",
-      "created_utc": "2026-11-11T23:57:32+00:00"
+      "created_utc": "2026-11-12T01:00:43+00:00"
     },
     "parity_samples": 256,
     "max_normalized_action_error": 0.0,
@@ -93,13 +93,18 @@
     0.125,
     1.0
   ],
-  "max_normalized_action_error": 3.8743019104003906e-07,
+  "max_normalized_action_error": 5.960464477539062e-07,
   "parity_samples": 256,
   "parity_atol": 1e-05,
   "opset": 17,
+  "friction_speed_cap": {
+    "reference_mps": 4.75,
+    "exponent": 0.5
+  },
   "files": {
-    "agent.py": "02bd91117e70884825fcfe6c405b288dbb5bbea59bfeb3705093cdb0b431968e",
+    "agent.py": "02e7e20103c33097d8950c46413df7614a2c207c646f32f2420070750368b407",
     "model.onnx": "052c1a2e6b73470fc9190470e6d911f7555a50f2eaec9e6ce625db500f5b8629",
-    "model.onnx.data": "3f11680d76690780b92767c622595967261afad5bd2e7e015353538f04aec49b"
-  }
+    "model.onnx.data": "171f598008aad9fcf0d39fdc9e2d1a33b2ea182e7ad72b2bc23a53611eb0e012"
+  },
+  "agent_format": "ruff check --fix and ruff format after export; generated code is unchanged (AST checked by the tests)"
 }

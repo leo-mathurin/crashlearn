@@ -12,9 +12,17 @@ from pathlib import Path
 
 from crashlearn import map_cache
 from crashlearn.env import SPEED_MAX, CrashLearnEnv
-from crashlearn.experiments import Run, allow_sb3_saves, attach_wandb, checkpoint_step, sha256
-from crashlearn.history_env import HistoryWrapper
+from crashlearn.experiments import (
+    FROZEN_CONFIG,
+    Run,
+    allow_sb3_saves,
+    attach_wandb,
+    checkpoint_step,
+    sha256,
+)
+from crashlearn.history_env import FrictionWrapper, HistoryWrapper
 from crashlearn.tracks import train_tracks
+from crashlearn.weather import WeatherConfig
 
 PPO_CONFIG = {
     "n_steps": 2048,
@@ -28,14 +36,40 @@ PPO_CONFIG = {
 }
 
 
-def make_env(depth: int, track: str | None, max_speed: float, random_start: bool):
+def make_env(depth: int, track: str | None, config: dict):
     def build():
         map_cache.install()
-        return HistoryWrapper(
-            CrashLearnEnv(maps=track, max_speed=max_speed, random_start=random_start), depth
+        weather = config["weather"]
+        env = HistoryWrapper(
+            CrashLearnEnv(
+                maps=track,
+                max_speed=config["max_speed"],
+                random_start=config["random_start"],
+                weather=WeatherConfig(**weather) if weather else None,
+            ),
+            depth,
         )
+        return FrictionWrapper(env) if config["friction_feature"] else env
 
     return build
+
+
+def copy_policy(source, model) -> None:
+    """Copy compatible weights. A model with one input more (friction) gets a zero column,
+    so it starts by driving exactly as its source."""
+    import torch
+
+    state = source.policy.state_dict()
+    target = model.policy.state_dict()
+    for name, value in state.items():
+        if value.shape != target[name].shape:
+            rows, columns = value.shape
+            if target[name].shape != (rows, columns + 1):
+                raise ValueError("initialization checkpoint has a different observation shape")
+            state[name] = torch.cat(
+                [value, torch.zeros(rows, 1, dtype=value.dtype, device=value.device)], dim=1
+            )
+    model.policy.load_state_dict(state)
 
 
 def build_model(args: argparse.Namespace, env, run: Run):
@@ -46,9 +80,7 @@ def build_model(args: argparse.Namespace, env, run: Run):
     model = PPO("MlpPolicy", env, seed=args.seed, device=args.device, **PPO_CONFIG)
     if args.initialize_from:
         source = PPO.load(args.initialize_from, device=args.device)
-        if source.observation_space.shape != model.observation_space.shape:
-            raise ValueError("initialization checkpoint has a different observation shape")
-        model.policy.load_state_dict(source.policy.state_dict())
+        copy_policy(source, model)
         run.manifest["initialization"] = {
             "checkpoint": str(args.initialize_from),
             "checkpoint_sha256": sha256(args.initialize_from),
@@ -78,8 +110,8 @@ def train(args: argparse.Namespace, run: Run) -> None:
             make_env(
                 args.history_depth,
                 maps[i % len(maps)] if args.fixed_map_workers else None,
-                args.max_speed,
-                args.random_start,
+                # a resumed run older than a setting trains with its recorded default
+                FROZEN_CONFIG | run.manifest["config"],
             )
             for i in range(args.n_envs)
         ]
@@ -152,6 +184,17 @@ def main() -> int:
     parser.add_argument(
         "--random-start", action="store_true", help="randomize solo training starts"
     )
+    parser.add_argument(
+        "--weather", action="store_true", help="tournament weather that changes in the race"
+    )
+    parser.add_argument(
+        "--nominal-share", type=float, default=0.25, help="with --weather: nominal episodes"
+    )
+    parser.add_argument(
+        "--friction-feature",
+        action="store_true",
+        help="E-23 measurement: append friction_current to the observation (not exportable)",
+    )
     parser.add_argument("--wandb", action="store_true")
     parser.add_argument("--wandb-mode", choices=("online", "offline"), default="offline")
     parser.add_argument("--wandb-project", default="crashlearn")
@@ -166,6 +209,8 @@ def main() -> int:
         parser.error(f"no checkpoint at {args.initialize_from}")
     if not 0 < args.max_speed <= SPEED_MAX:
         parser.error(f"--max-speed must be in (0, {SPEED_MAX}]")
+    if not 0 <= args.nominal_share <= 1:
+        parser.error("--nominal-share must be in [0, 1]")
     if args.fixed_map_workers and args.n_envs % len(train_tracks()):
         parser.error("--fixed-map-workers needs n-envs to be a multiple of training track count")
     config = {
@@ -175,6 +220,10 @@ def main() -> int:
         "fixed_map_workers": args.fixed_map_workers,
         "max_speed": args.max_speed,
         "random_start": args.random_start,
+        "weather": WeatherConfig(nominal_share=args.nominal_share).to_dict()
+        if args.weather
+        else None,
+        "friction_feature": args.friction_feature,
     }
     try:
         run = Run.open(

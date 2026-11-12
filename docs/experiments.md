@@ -86,6 +86,12 @@ d'inférence. Cette option conserve les poids appris et la configuration du run
 d'entraînement ; le manifest dérivé enregistre les deux bornes. Le plafond doit
 être positif et au plus égal à celui du modèle source.
 
+`--weather` change la friction et le bruit LiDAR en pleine course, et `--nominal-share`
+garde une part d'épisodes aux valeurs officielles ([météo](weather.md)). Une reprise doit
+garder ces réglages. `--friction-feature` ajoute `friction_current` en entrée, pour une
+mesure seulement : un tel modèle ne s'exporte pas. Commande complète dans
+[les résultats E-23](results/e-23/README.md#provenance).
+
 ## Export et contrôle
 
 ```bash
@@ -100,6 +106,10 @@ l'accord des actions normalisées à `1e-5` sur 256 entrées et conserve les emp
 fichiers produits. La tolérance correspond à `6e-5` m/s et `4,189e-6` rad après conversion.
 Les essais de course et de prédiction sur des observations réelles complètent ce contrôle.
 
+`--friction-exponent k` (E-49) borne en plus la vitesse de l'agent à la limite du modèle
+fois `friction_current ** k`, lu dans `info` ; `export.json` enregistre la borne. driver1
+utilise k = 0,5 ([résultats](results/e-49/README.md)).
+
 Le modèle ONNX utilise l'opset 17 et le chemin d'export TorchScript explicite de la version
 PyTorch épinglée. Il conserve les poids dans un vrai fichier externe, même pour les petits
 MLP. Les fichiers des modèles livrés se versionnent sans Git LFS (`docs/remise.md`).
@@ -109,11 +119,18 @@ MLP. Les fichiers des modèles livrés se versionnent sans Git LFS (`docs/remise
 ```bash
 uv run python scripts/evaluate_drivers.py --run-dir runs/baseline --output runs/baseline.json
 uv run python scripts/evaluate_drivers.py --scripted --output runs/scripted.json
+uv run python scripts/evaluate_drivers.py --submission submission/driver1 --output runs/d1.json
 ```
 
-`evaluate_drivers.py` fait courir un run, ou le témoin scripté, sur les 105 courses de la
+`--submission` fait courir un dossier livré, chargé par le loader officiel : c'est l'agent
+ONNX qui court, borne de friction comprise. Sous météo, ses trajectoires divergent de
+celles du modèle PyTorch ; confirmer un livrable avec lui.
+
+`evaluate_drivers.py` fait courir un run, ou le témoin scripté, sur les 117 courses de la
 campagne : nominal sur train et validation, perturbations sur validation, jamais le test.
-Les DNF et TIMEOUT sont des résultats. Le fichier est réécrit après chaque course.
+Les DNF et TIMEOUT sont des résultats. Le fichier est réécrit après chaque course. Les
+perturbations suivent le sujet v1.3.0 depuis E-23 ([conditions](weather.md#évaluation)) ;
+les anciens fichiers de 105 courses gardent leurs valeurs, enregistrées course par course.
 
 `confirm_submission.py` fait courir un dossier de soumission sur les quatre circuits de
 validation, dans l'image CPU du tournoi, sans Gymnasium ni PyTorch. Une seed de course y

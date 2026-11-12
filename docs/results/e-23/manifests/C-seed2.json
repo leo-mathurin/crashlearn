@@ -1,0 +1,102 @@
+{
+  "commit": "a28cf7c0d2409d93f77ec5a4166cb58bc40bd026",
+  "dirty": false,
+  "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
+  "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
+  "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
+  "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
+  "reward_version": "v1",
+  "created_utc": "2026-11-12T00:55:16+00:00",
+  "run_id": "1aa1e5415a34490c9477808ad378239c",
+  "driver": "ppo-h1",
+  "train_seed": 2,
+  "history_depth": 1,
+  "config": {
+    "n_steps": 2048,
+    "batch_size": 512,
+    "n_epochs": 10,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "policy_kwargs": {
+      "net_arch": [
+        256,
+        256
+      ],
+      "log_std_init": -1.0
+    },
+    "n_envs": 15,
+    "device": "cuda",
+    "fixed_map_workers": true,
+    "max_speed": 5.0,
+    "random_start": true,
+    "weather": null,
+    "friction_feature": false
+  },
+  "attempts": [
+    {
+      "started_utc": "2026-11-12T00:55:16+00:00",
+      "status": "completed",
+      "commit": "a28cf7c0d2409d93f77ec5a4166cb58bc40bd026",
+      "resumed_from": null,
+      "checkpoint_sha256": null,
+      "budget_timesteps": 2000000,
+      "device": "cuda",
+      "torch_threads": 1,
+      "log_dir": "logs/attempt-001",
+      "first_step": 0,
+      "cuda_version": "13.0",
+      "gpu": "NVIDIA GeForce RTX 5070",
+      "last_step": 2027520,
+      "wall_time_s": 315.55,
+      "finished_utc": "2026-11-12T01:00:32+00:00"
+    }
+  ],
+  "versions": {
+    "numpy": "2.4.6",
+    "torch": "2.13.0",
+    "stable-baselines3": "2.9.0",
+    "gymnasium": "1.3.0",
+    "wandb": "0.30.0"
+  },
+  "python": "3.11.16",
+  "host": "tour",
+  "image_id": null,
+  "status": "completed",
+  "budget_timesteps": 2000000,
+  "resumed_from": null,
+  "initialization": {
+    "checkpoint": "/home/leo/runs/crashlearn/e19-20261110/cap5-random-h1-seed0/model.zip",
+    "checkpoint_sha256": "f283194ea0334cfbde14c0f4925698d5226b335b89533c39dd1e3b940fc359aa",
+    "source_timesteps": 2027520,
+    "optimizer_restored": false
+  },
+  "checkpoints": {
+    "checkpoints/ppo_attempt001_99990_steps.zip": "036eaacf4f022b790a1729982ef79fbdacf07da570e0fe7c815155422c574868",
+    "checkpoints/ppo_attempt001_199980_steps.zip": "f1d1aa3567db5b03cbf7fa325f8b912c51035eb22f9f4605678d86844ab0e558",
+    "checkpoints/ppo_attempt001_299970_steps.zip": "95739f03488beee7fb4a49edde2b9300f5317119f31468d74d1e6a74461120aa",
+    "checkpoints/ppo_attempt001_399960_steps.zip": "e1b0be75f392daa1a186e17c11ee1f9fa7f98fd3e8857528a5d448b65cf69fe0",
+    "checkpoints/ppo_attempt001_499950_steps.zip": "67194a0d74ec2ed66838b1088e512be89438be85f76659bdcb3f7d6f1c6cd278",
+    "checkpoints/ppo_attempt001_599940_steps.zip": "8ef883eeb8260ca6fc78c9f37bfd521ba3001f41a22d0955d194a8677bbf1882",
+    "checkpoints/ppo_attempt001_699930_steps.zip": "5b3e9cf533044517c50dc837a0e0223c752032a2ef221bcea9d836e794438038",
+    "checkpoints/ppo_attempt001_799920_steps.zip": "8ccda3967fcae0ef494759dacf56a55797fdf1d85e8174878111f92acc9cc768",
+    "checkpoints/ppo_attempt001_899910_steps.zip": "9e4d54a91373be06a4746a89a408dbb08253c58f9fbe3435f63233579f6f6456",
+    "checkpoints/ppo_attempt001_999900_steps.zip": "6f27fb3b6523eac97e6f24af32ed8e91f6b15d283c7db3256838caf3680445aa",
+    "checkpoints/ppo_attempt001_1099890_steps.zip": "1296adf2e7c4672deb5ff5f054619fa030ffdf59c7a8ee22b8a6ef97af73123e",
+    "checkpoints/ppo_attempt001_1199880_steps.zip": "7bff748a75d15c1893826160a967bcb071e0669c7133142dc435d3186ee0d90f",
+    "checkpoints/ppo_attempt001_1299870_steps.zip": "d39afbdb14cefc196362f5a670526c0b2cecfaddf4f5c97ea69c8c7f572a7a5d",
+    "checkpoints/ppo_attempt001_1399860_steps.zip": "9f682f99a765b2a33df43584a9203d59499fffc2e9db70d0e18314cdaa468e85",
+    "checkpoints/ppo_attempt001_1499850_steps.zip": "2410cbcda5a2b6e0110867d5e68bfd3bee88789e25713d16429971d69039a00b",
+    "checkpoints/ppo_attempt001_1599840_steps.zip": "3a39d908a0797177bf904f8ae46e7c6a31dc64f46b60d799207d5b40e53e2eba",
+    "checkpoints/ppo_attempt001_1699830_steps.zip": "f232675f60cc90482b77eb7b13ab1d018da1d8b8acfbafe68af14b195c00ebe5",
+    "checkpoints/ppo_attempt001_1799820_steps.zip": "d3c70ec1ce45f6440cf777849cd0c3ec84dd9b4733bdc5e5bdfd017173e0a959",
+    "checkpoints/ppo_attempt001_1899810_steps.zip": "9dd28880e096ee307d6a3882779043302eeb3954f05f7b7e8df5195a2754f508",
+    "checkpoints/ppo_attempt001_1999800_steps.zip": "7093af88ef5242eae8024ce01f14129a7b46c0394569d1c2b3d7b835a5f349ea"
+  },
+  "model_sha256": "49184294a7f958b81ffe6734fef24aedff586a6c1c9b74e4923af0e4b1ef8396",
+  "timesteps_done": 2027520,
+  "wall_time_s": 315.55,
+  "steps_per_s": 6425.4,
+  "total_wall_time_s": 315.55
+}

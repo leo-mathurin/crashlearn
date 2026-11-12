@@ -232,4 +232,6 @@ class Agent:
         vector = self.history.push(obs, info, build_features(obs))
         action = self.session.run(None, {self.input_name: vector[None]})[0][0]
         action = np.clip(np.nan_to_num(action, nan=0.0, posinf=1.0, neginf=-1.0), -1.0, 1.0)
-        return float(4.0 + 6.0 * action[0]), float(0.4189 * action[1])
+        friction = min(max(_number(info, "friction_current", 1.0), 0.05), 1.0)
+        speed = min(float(4.0 + 6.0 * action[0]), 4.75 * friction**0.5)
+        return speed, float(0.4189 * action[1])
