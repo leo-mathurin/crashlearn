@@ -1,12 +1,12 @@
 {
-  "commit": "f55c68b96183f25625fa6de6b83709e90845c630",
+  "commit": "9b7bbdd38240298ef4febe4c53be7569ec951e69",
   "dirty": false,
   "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
   "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
   "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
   "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
   "reward_version": "v1",
-  "created_utc": "2026-11-12T01:06:17+00:00",
+  "created_utc": "2026-11-12T10:27:19+00:00",
   "source_run_id": "662801828515498e98e6ae90f8d1e495",
   "source_model_sha256": "d473a5ba64d44ca9415622ae5330241e9d8b0a7fe2b26cd4bfa675b5eab13e72",
   "derivation": {
@@ -97,9 +97,14 @@
   "parity_samples": 256,
   "parity_atol": 1e-05,
   "opset": 17,
+  "friction_speed_cap": {
+    "reference_mps": 4.75,
+    "exponent": 0.5
+  },
   "files": {
-    "agent.py": "02bd91117e70884825fcfe6c405b288dbb5bbea59bfeb3705093cdb0b431968e",
+    "agent.py": "02e7e20103c33097d8950c46413df7614a2c207c646f32f2420070750368b407",
     "model.onnx": "052c1a2e6b73470fc9190470e6d911f7555a50f2eaec9e6ce625db500f5b8629",
     "model.onnx.data": "171f598008aad9fcf0d39fdc9e2d1a33b2ea182e7ad72b2bc23a53611eb0e012"
-  }
+  },
+  "agent_format": "ruff check --fix and ruff format after export; generated code is unchanged (AST checked by the tests)"
 }

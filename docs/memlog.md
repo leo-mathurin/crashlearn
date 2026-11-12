@@ -207,3 +207,13 @@ E-23, selon le protocole figé : A seed 2 dérivé remplace driver1. Il finit 40
 ## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
 
 Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
+
+## 2026-11-12 · [Évaluation] Protocole E-49 figé avant les essais
+
+Objectif : 100 % de courses finies par driver1 sous la météo du tournoi, sans perdre le nominal. Les 280 courses de confirmation E-23 (262 finies) deviennent des cas de sélection. Confirmation fixée avant tout essai, sur courses neuves et sur les 4 circuits de validation : `changing_weather` seeds 350 à 449, `low_friction` et `heavy_rain` seeds 350 à 399 (800 courses), puis les 400 courses nominales (seeds 200 à 299) dans l'image du tournoi. Le résultat publié est celui de la confirmation, même sous 100 %.
+
+Piste 1, sans réentraînement : l'agent borne sa vitesse à 4,75 × μ^k m/s, μ étant `friction_current` de `info`. À μ = 1 la borne vaut le plafond actuel. k = 0,5 vient de la physique (vitesse de virage maximale en √μ) ; on retient le plus petit k parmi 0,5, 0,75 et 1 qui finit les 280 cas de sélection. Si aucun n'y arrive, piste 2 : réentraînement sous faible adhérence, circuits train seulement. Pourquoi : la friction est donnée par le tournoi, et un plafond global a déjà réglé Montreal en nominal.
+
+## 2026-11-12 · [Livraison] driver1 ralentit selon la friction : 800/800 sous météo
+
+E-49 : sur les 280 cas de sélection, la borne 4,75 × μ^k finit tout pour k = 0,5 et k = 0,75 ; k = 0,5 est retenu (plus petit, plus rapide). Confirmation neuve : 800/800 courses météo contre 716/800 sans la borne, et 400/400 courses nominales identiques à E-23. Coût : +5,6 % de temps médian sous météo. Le modèle ne change pas, seul `agent.py`. Pourquoi : le tournoi donne `friction_current`, et ralentir sous la pluie règle Montreal sans réentraîner. Résultats : `docs/results/e-49/README.md`.
