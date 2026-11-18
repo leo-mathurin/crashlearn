@@ -1,0 +1,34 @@
+name: Epitech mirror
+on:
+  push:
+  delete:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: epitech-mirror
+  cancel-in-progress: false
+jobs:
+  mirror:
+    if: github.repository == 'leo-mathurin/crashlearn'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Copy all branches and tags to Epitech
+        env:
+          SOURCE_URL: https://github.com/leo-mathurin/crashlearn.git
+          TARGET_URL: https://github.com/EpitechMscProPromo2027/T-AIA-901-LYN-9-1-crashlearn-8.git
+          GH_TOKEN: ${{ github.token }}
+          EPITECH_MIRROR_TOKEN: ${{ secrets.EPITECH_MIRROR_TOKEN }}
+          GIT_TERMINAL_PROMPT: "0"
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: credential.helper
+          GIT_CONFIG_VALUE_0: '!f() { printf "%s\n" "username=x-access-token" "password=$GH_TOKEN"; }; f'
+        run: |
+          : "${EPITECH_MIRROR_TOKEN:?Set the EPITECH_MIRROR_TOKEN repository secret.}"
+          mirror="$RUNNER_TEMP/epitech.git"
+          git clone --bare "$SOURCE_URL" "$mirror"
+          GH_TOKEN="$EPITECH_MIRROR_TOKEN" git -C "$mirror" push --atomic --prune "$TARGET_URL" \
+            '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
