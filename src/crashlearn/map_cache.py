@@ -3,6 +3,10 @@
 The official scanner rebuilds its distance transform twice on every seeded reset. Its
 set_map method only assigns geometry from the map files, independent of the ray count or
 RNG. Keep two maps per worker; scans read these arrays and never modify them.
+
+Two maps suit `train_ppo.py --fixed-map-workers`, one track per worker, which every
+campaign used. Without the flag each worker draws among the 15 train tracks and the cache
+rarely hits: training stays correct, only slower.
 """
 
 from functools import lru_cache

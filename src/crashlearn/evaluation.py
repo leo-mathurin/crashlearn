@@ -6,7 +6,6 @@ friction and LiDAR noise overrides, so a seed means the same race for every driv
 """
 
 import hashlib
-import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Protocol
@@ -15,6 +14,7 @@ import numpy as np
 
 from crashlearn import tracks
 from crashlearn.env import STATUS_DNF, STATUS_FINISHED, controls_to_action, sim
+from crashlearn.experiments import write_json
 from crashlearn.scripted_driver import ScriptedDriver
 from crashlearn.weather import WeatherConfig, schedule
 
@@ -182,5 +182,5 @@ def evaluate(env, pilot: Pilot, races: list[Race], output: Path, metadata: dict)
     records = []
     for race in races:
         records.append({**metadata, **run_race(env, pilot, race)})
-        output.write_text(json.dumps(records, indent=2) + "\n")
+        write_json(output, records)  # atomic: a crash mid-write keeps the earlier races
     return records

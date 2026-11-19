@@ -93,3 +93,13 @@ def test_the_friction_cap_bounds_the_speed_by_the_friction_in_info(monkeypatch, 
 def test_without_a_friction_cap_the_agent_ignores_the_friction(monkeypatch):
     agent = _agent(monkeypatch, None)
     assert agent.predict({"agent_id": 0}, {"friction_current": 0.7})[0] == pytest.approx(10.0)
+
+
+def test_an_import_the_agent_does_not_provide_fails_the_export(tmp_path, monkeypatch):
+    module = tmp_path / "embedded.py"
+    module.write_text('"""Doc."""\n\nimport math\nimport numpy as np\n\nX = math.pi\n')
+    fake = type("Module", (), {"__file__": str(module), "__name__": "embedded"})
+    with pytest.raises(ValueError, match="import math"):
+        export._body(fake)
+    module.write_text('"""Doc."""\n\nimport numpy as np\n\nX = np.pi\n')
+    assert export._body(fake).strip() == "X = np.pi"
