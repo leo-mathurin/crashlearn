@@ -18,6 +18,7 @@ from crashlearn.experiments import (
     allow_sb3_saves,
     attach_wandb,
     checkpoint_step,
+    initialization_source,
     sha256,
 )
 from crashlearn.history_env import FrictionWrapper, HistoryWrapper
@@ -82,6 +83,7 @@ def build_model(args: argparse.Namespace, env, run: Run):
         source = PPO.load(args.initialize_from, device=args.device)
         copy_policy(source, model)
         run.manifest["initialization"] = {
+            **args.initialization,
             "checkpoint": str(args.initialize_from),
             "checkpoint_sha256": sha256(args.initialize_from),
             "source_timesteps": source.num_timesteps,
@@ -169,7 +171,8 @@ def main() -> int:
     parser.add_argument(
         "--fixed-map-workers",
         action="store_true",
-        help="one training track per worker; n-envs must be a multiple of 15",
+        help="one training track per worker; n-envs must be a multiple of 15. Without it, "
+        "the two-map geometry cache of each worker rarely hits",
     )
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--checkpoint-every", type=int, default=100_000)
@@ -226,6 +229,11 @@ def main() -> int:
         "friction_feature": args.friction_feature,
     }
     try:
+        args.initialization = (
+            initialization_source(args.initialize_from, args.history_depth)
+            if args.initialize_from
+            else None
+        )
         run = Run.open(
             args.output_dir,
             history_depth=args.history_depth,

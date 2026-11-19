@@ -56,12 +56,26 @@ def export_onnx(policy: torch.nn.Module, path: Path, sample_input: torch.Tensor)
     onnx.checker.check_model(str(path))
 
 
+# The only import the generated agent provides to the embedded modules.
+EMBEDDED_IMPORT = "import numpy as np"
+
+
 def _body(module) -> str:
+    """The module source without its docstring and imports.
+
+    Raises ValueError for any other import: the agent would fail with a NameError at race
+    time, so the export fails now.
+    """
     source = Path(module.__file__).read_text()
     lines = source.splitlines(keepends=True)
     tree = ast.parse(source)
     removed = set()
     for node in tree.body:
+        if isinstance(node, ast.Import | ast.ImportFrom) and ast.unparse(node) != EMBEDDED_IMPORT:
+            raise ValueError(
+                f"{module.__name__} has `{ast.unparse(node)}`; the agent only provides "
+                f"`{EMBEDDED_IMPORT}`"
+            )
         if isinstance(node, ast.Import | ast.ImportFrom) or (
             node is tree.body[0]
             and isinstance(node, ast.Expr)
