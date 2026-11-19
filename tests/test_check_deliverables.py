@@ -144,3 +144,32 @@ def test_parent_without_hash_is_reported(repo, field, empty):
         del manifest[field][key]
     path.write_text(json.dumps(manifest))
     assert check_deliverables.check(repo) == [f"{path.relative_to(repo)}: no {field}.{key}"]
+
+
+def test_an_initialization_from_a_periodic_checkpoint_is_followed(repo):
+    """Turn the parent of an initialization into a periodic checkpoint of its run."""
+    manifests = {
+        json.loads(p.read_text()).get("model_sha256"): p
+        for p in (repo / "docs/results").rglob("manifests/*.json")
+    }
+    derived = json.loads(manifests[source_model(repo)].read_text())
+    initialized = json.loads(manifests[derived["derivation"]["source_model_sha256"]].read_text())
+    parent = initialized["initialization"]["checkpoint_sha256"]
+    path = manifests[parent]
+    manifest = json.loads(path.read_text())
+    manifest["checkpoints"] = {"checkpoints/ppo_attempt001_100000_steps.zip": parent}
+    manifest["model_sha256"] = "f" * 64
+    path.write_text(json.dumps(manifest))
+    assert check_deliverables.check(repo) == []
+
+
+def test_the_commit_of_a_derivation_must_exist(tmp_path):
+    head = check_deliverables.subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True
+    ).stdout.strip()
+    manifests = {
+        "model": (tmp_path, {"commit": head, "derivation": {"provenance": {"commit": "0" * 40}}})
+    }
+    assert check_deliverables.missing_commits(ROOT, manifests, []) == [
+        f"commit {'0' * 40} is not in this clone"
+    ]

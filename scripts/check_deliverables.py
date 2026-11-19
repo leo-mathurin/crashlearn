@@ -34,12 +34,19 @@ def sha256(path: Path) -> str:
 
 
 def load_manifests(root: Path) -> dict[str, tuple[Path, dict]]:
-    """Run manifests by model hash."""
+    """Run manifests by model hash, final models first, then their periodic checkpoints:
+    `--initialize-from` accepts both."""
+    documents = [
+        (path, json.loads(path.read_text()))
+        for path in sorted((root / "docs" / "results").rglob("manifests/*.json"))
+    ]
     manifests = {}
-    for path in sorted((root / "docs" / "results").rglob("manifests/*.json")):
-        document = json.loads(path.read_text())
+    for path, document in documents:
         if "model_sha256" in document:  # an interrupted attempt has no model
             manifests.setdefault(document["model_sha256"], (path, document))
+    for path, document in documents:
+        for checkpoint in (document.get("checkpoints") or {}).values():
+            manifests.setdefault(checkpoint, (path, document))
     return manifests
 
 
@@ -143,6 +150,12 @@ def check_driver(driver: Path, manifests: dict, root: Path) -> list[str]:
 def missing_commits(root: Path, manifests: dict, drivers: list[Path]) -> list[str]:
     """Commits named by the deliverables that this clone cannot find."""
     commits = {str(m.get("commit")) for _, m in manifests.values()}
+    # a derivation copies the training commit; the commit that derived it is apart
+    commits |= {
+        str(m["derivation"]["provenance"]["commit"])
+        for _, m in manifests.values()
+        if (m.get("derivation") or {}).get("provenance", {}).get("commit")
+    }
     commits |= {str(json.loads((d / "export.json").read_text()).get("commit")) for d in drivers}
     return [
         f"commit {commit} is not in this clone"
