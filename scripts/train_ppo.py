@@ -12,7 +12,14 @@ from pathlib import Path
 
 from crashlearn import map_cache
 from crashlearn.env import SPEED_MAX, CrashLearnEnv
-from crashlearn.experiments import Run, allow_sb3_saves, attach_wandb, checkpoint_step, sha256
+from crashlearn.experiments import (
+    Run,
+    allow_sb3_saves,
+    attach_wandb,
+    checkpoint_step,
+    initialization_source,
+    sha256,
+)
 from crashlearn.history_env import HistoryWrapper
 from crashlearn.tracks import train_tracks
 
@@ -50,6 +57,7 @@ def build_model(args: argparse.Namespace, env, run: Run):
             raise ValueError("initialization checkpoint has a different observation shape")
         model.policy.load_state_dict(source.policy.state_dict())
         run.manifest["initialization"] = {
+            **args.initialization,
             "checkpoint": str(args.initialize_from),
             "checkpoint_sha256": sha256(args.initialize_from),
             "source_timesteps": source.num_timesteps,
@@ -137,7 +145,8 @@ def main() -> int:
     parser.add_argument(
         "--fixed-map-workers",
         action="store_true",
-        help="one training track per worker; n-envs must be a multiple of 15",
+        help="one training track per worker; n-envs must be a multiple of 15. Without it, "
+        "the two-map geometry cache of each worker rarely hits",
     )
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--checkpoint-every", type=int, default=100_000)
@@ -177,6 +186,11 @@ def main() -> int:
         "random_start": args.random_start,
     }
     try:
+        args.initialization = (
+            initialization_source(args.initialize_from, args.history_depth)
+            if args.initialize_from
+            else None
+        )
         run = Run.open(
             args.output_dir,
             history_depth=args.history_depth,

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from crashlearn.experiments import Run, provenance
+from crashlearn.experiments import Run, initialization_source, provenance, sha256, write_json
 
 CONFIG = {"n_envs": 2, "fixed_map_workers": False, "max_speed": 10.0, "random_start": False}
 
@@ -76,3 +76,62 @@ def test_a_resume_refuses_another_training_distribution(tmp_path, change):
     checkpoint.write_bytes(b"")
     with pytest.raises(ValueError, match=next(iter(change))):
         open_run(tmp_path, resume=checkpoint, **change)
+
+
+def test_a_system_exit_does_not_leave_the_run_running(tmp_path):
+    run = open_run(tmp_path)
+    with pytest.raises(SystemExit), run.attempt(budget_timesteps=10, resumed_from=None):
+        raise SystemExit(1)
+    record = manifest(tmp_path)
+    assert record["status"] == record["attempts"][0]["status"] == "interrupted"
+
+
+def test_a_json_write_keeps_the_previous_content_when_it_fails(tmp_path):
+    path = tmp_path / "races.json"
+    write_json(path, [{"race": 1}])
+    with pytest.raises(TypeError):
+        write_json(path, [{"race": 2, "not": object()}])
+    assert json.loads(path.read_text()) == [{"race": 1}]
+
+
+def recorded_run(run_dir, **changes):
+    """A completed run folder with a final model and one periodic checkpoint."""
+    (run_dir / "checkpoints").mkdir(parents=True)
+    (run_dir / "model.zip").write_bytes(b"final")
+    (run_dir / "checkpoints" / "a.zip").write_bytes(b"periodic")
+    record = provenance() | {
+        "run_id": "source",
+        "history_depth": 1,
+        "model_sha256": sha256(run_dir / "model.zip"),
+        "checkpoints": {"checkpoints/a.zip": sha256(run_dir / "checkpoints" / "a.zip")},
+    }
+    (run_dir / "manifest.json").write_text(json.dumps(record | changes))
+    return run_dir
+
+
+@pytest.mark.parametrize("name", ["model.zip", "checkpoints/a.zip"])
+def test_an_initialization_names_its_recorded_source(tmp_path, name):
+    source = recorded_run(tmp_path)
+    found = initialization_source(source / name, history_depth=1)
+    assert found == {"source_run_dir": str(source.resolve()), "source_run_id": "source"}
+
+
+@pytest.mark.parametrize(
+    ("changes", "depth", "message"),
+    [
+        ({"features_sha256": "0" * 64}, 1, "different features_sha256"),
+        ({"history_sha256": "0" * 64}, 1, "different history_sha256"),
+        ({}, 4, "history depth"),
+        ({"model_sha256": "0" * 64}, 1, "does not match a checkpoint"),
+    ],
+)
+def test_an_initialization_refuses_another_preprocessing(tmp_path, changes, depth, message):
+    source = recorded_run(tmp_path, **changes)
+    with pytest.raises(ValueError, match=message):
+        initialization_source(source / "model.zip", history_depth=depth)
+
+
+def test_an_initialization_needs_a_run_folder(tmp_path):
+    (tmp_path / "loose.zip").write_bytes(b"weights")
+    with pytest.raises(ValueError, match="no run manifest"):
+        initialization_source(tmp_path / "loose.zip", history_depth=1)
