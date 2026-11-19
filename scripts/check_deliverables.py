@@ -45,6 +45,8 @@ def load_manifests(root: Path) -> dict[str, tuple[Path, dict]]:
         if "model_sha256" in document:  # an interrupted attempt has no model
             manifests.setdefault(document["model_sha256"], (path, document))
     for path, document in documents:
+        if document.get("derivation"):  # it copies the checkpoints of its source run
+            continue
         for checkpoint in (document.get("checkpoints") or {}).values():
             manifests.setdefault(checkpoint, (path, document))
     return manifests

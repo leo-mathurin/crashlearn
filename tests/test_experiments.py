@@ -76,3 +76,9 @@ def test_a_resume_refuses_another_training_distribution(tmp_path, change):
     checkpoint.write_bytes(b"")
     with pytest.raises(ValueError, match=next(iter(change))):
         open_run(tmp_path, resume=checkpoint, **change)
+
+
+@pytest.mark.parametrize(("declared", "dirty"), [("true", True), ("false", False)])
+def test_the_station_declares_whether_the_tree_was_clean(monkeypatch, declared, dirty):
+    monkeypatch.setenv("GIT_DIRTY", declared)
+    assert provenance()["dirty"] is dirty

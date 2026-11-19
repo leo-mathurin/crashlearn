@@ -37,6 +37,13 @@ Mesuré le 12/11/2026 (E-36) : `model.onnx.data` pèse 395 296 octets pour drive
 - le modèle source, ou un modèle dont il dérive ou part, n'a pas de manifest sous `docs/results/*/manifests/` avec commit, configuration et seed ;
 - aucun `docs/results/<campagne>/README.md` ne cite le modèle source (hash complet ou ses 12 premiers caractères), à côté d'un `SHA256SUMS` qui nomme la version de l'artefact W&B de ses résultats ([résultats bruts](experiments.md#résultats-bruts)).
 
+Un parent d'initialisation peut être le modèle final d'un run ou l'un de ses checkpoints périodiques : le contrôle cherche les deux. Avec `--git`, il cherche aussi le commit de chaque dérivation (`derivation.provenance.commit`), distinct du commit d'entraînement qu'elle recopie.
+
+Ce que le contrôle ne prouve pas :
+
+- **Arbre propre à l'entraînement.** Les 14 manifests actuels notent `dirty: null` : l'image d'entraînement n'a pas git, et le commit vient de `GIT_COMMIT`. « Relié à son commit » veut dire « relié au commit déclaré ». Les prochains runs passent aussi `GIT_DIRTY` ([entraînements](experiments.md)).
+- **Contenu de l'artefact.** Le lien avec les résultats est une citation du modèle dans un README, à côté d'un `SHA256SUMS`. Il ne prouve pas que les fichiers de l'artefact contiennent des courses de ce modèle : les JSON bruts portent `model_sha256` ou `source_model_sha256`, et seul `results_artifact.py fetch` permet de le lire.
+
 Un nouvel export versionne donc son manifest, et le README et le `SHA256SUMS` de sa campagne. Le job Pytest de la CI lance ce contrôle. Pour vérifier aussi les courses, `scripts/results_artifact.py fetch` télécharge l'artefact et le compare à `SHA256SUMS`.
 
 ```bash
