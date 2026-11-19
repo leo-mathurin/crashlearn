@@ -87,10 +87,15 @@ def provenance() -> dict:
     }
 
 
-def write_manifest(path: Path, manifest: dict) -> None:
-    temporary = path.with_suffix(".tmp")
-    temporary.write_text(json.dumps(manifest, indent=2) + "\n")
+def write_json(path: Path, data) -> None:
+    """Write through a temporary file: a crash mid-write keeps the previous content."""
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(json.dumps(data, indent=2) + "\n")
     temporary.replace(path)
+
+
+def write_manifest(path: Path, manifest: dict) -> None:
+    write_json(path, manifest)
 
 
 def require_empty(directory: Path) -> None:
@@ -114,6 +119,31 @@ def load_completed_run(run_dir: Path) -> dict:
         if manifest[key] != current[key]:
             raise ValueError(f"{run_dir}: training has a different {key}; use its original sources")
     return manifest
+
+
+def initialization_source(checkpoint: Path, history_depth: int) -> dict:
+    """The run whose recorded weights start a new run, checked like a reload.
+
+    The checkpoint must be the final model or a periodic checkpoint recorded by the
+    manifest of a run folder above it, with the same history depth and preprocessing.
+    Raises ValueError otherwise: same input size does not mean same inputs.
+    """
+    resolved = checkpoint.resolve()
+    run_dir = next((d for d in resolved.parents if (d / "manifest.json").is_file()), None)
+    if run_dir is None:
+        raise ValueError(f"{checkpoint}: no run manifest above it; initialize from a run folder")
+    manifest = json.loads((run_dir / "manifest.json").read_text())
+    saved = manifest.get("checkpoints", {}) | {"model.zip": manifest.get("model_sha256")}
+    name = resolved.relative_to(run_dir).as_posix()
+    if saved.get(name) is None or saved[name] != sha256(checkpoint):
+        raise ValueError(f"{checkpoint} does not match a checkpoint recorded by {run_dir}")
+    if manifest["history_depth"] != history_depth:
+        raise ValueError(f"{run_dir}: source history depth is {manifest['history_depth']}")
+    current = provenance()
+    for key in PREPROCESSING_KEYS:
+        if manifest[key] != current[key]:
+            raise ValueError(f"{run_dir}: source has a different {key}; use its original sources")
+    return {"source_run_dir": str(run_dir), "source_run_id": manifest["run_id"]}
 
 
 def checkpoint_step(path: Path) -> int:
@@ -247,8 +277,10 @@ class Run:
         cleanups = ExitStack()
         try:
             yield cleanups
-        except (Exception, KeyboardInterrupt) as error:
-            status = "interrupted" if isinstance(error, KeyboardInterrupt) else "failed"
+        except BaseException as error:
+            # SystemExit too: no attempt may stay "running" once the process stops
+            stopped = isinstance(error, KeyboardInterrupt | SystemExit | GeneratorExit)
+            status = "interrupted" if stopped else "failed"
             record |= {"status": status, "error": traceback.format_exc()}
             record["wall_time_s"] = self._elapsed()
             self.manifest |= {"status": status, "error": record["error"]}
