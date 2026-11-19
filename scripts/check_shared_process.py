@@ -230,8 +230,9 @@ def check_observation(obs: dict, observations: dict) -> None:
 def race(sim, agents: list, track: str, seed: int, steps: int) -> list[tuple]:
     """One race in the order of sim_recorder.py; returns (car, obs, info, action) per call.
 
-    Every car still racing, or out of the race, gets predict() each step, all with the
-    same info object, as in the official recorder.
+    As in the official recorder, every observation is read after the step, then each car
+    still racing, or out of the race, gets predict() with the same info object, and the
+    actions are applied only once every car has decided. A finished car gets (0, 0).
     """
     space = sim.get_space_info()
     dry_obs, dry_info = schema(agent_loader.create_dummy_obs()), agent_loader.create_dummy_info()
@@ -244,10 +245,13 @@ def race(sim, agents: list, track: str, seed: int, steps: int) -> list[tuple]:
         if schema(info) != schema(dry_info):
             raise CheckError(f"race info differs from the dry-run schema: {schema(info)}")
         info_before = copy.deepcopy(info)
+        observations = [sim.get_obs(car) for car in range(len(agents))]
+        decisions = {}
         for car, agent in enumerate(agents):
             if info["agent_status"][car] == STATUS_FINISHED:
+                decisions[car] = (0.0, 0.0)
                 continue
-            obs = sim.get_obs(car)
+            obs = observations[car]
             if schema(obs) != dry_obs:
                 raise CheckError(f"race observation differs from the dry-run: {schema(obs)}")
             check_observation(obs, space["observations"])
@@ -256,9 +260,11 @@ def race(sim, agents: list, track: str, seed: int, steps: int) -> list[tuple]:
             if not same(obs, obs_before):
                 raise CheckError(f"car {car}: predict() changed its observation")
             calls.append((car, obs_before, info_before, action))
-            sim.apply_action(car, *action)
+            decisions[car] = action
         if not same(info, info_before):
             raise CheckError("predict() changed the shared info dict")
+        for car, action in decisions.items():
+            sim.apply_action(car, *action)
         sim.simulation_step()
         if all(status != 1 for status in sim.get_step_info()["agent_status"].values()):
             break
