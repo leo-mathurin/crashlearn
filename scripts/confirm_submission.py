@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from crashlearn import MAX_DECISIONS, add_simulator_to_path, engine_seed, map_cache
-from crashlearn.experiments import sha256
+from crashlearn.experiments import sha256, write_json
 from crashlearn.reward import STATUS_ACTIVE, STATUS_DNF, STATUS_FINISHED
 from crashlearn.tracks import validation_tracks
 
@@ -90,7 +90,7 @@ def main() -> int:
                         "stable_baselines3_imported": "stable_baselines3" in sys.modules,
                     }
                 )
-                args.output.write_text(json.dumps(records, indent=2) + "\n")
+                write_json(args.output, records)
             print(
                 f"{track}: {sum(r['status'] == 'FINISHED' for r in records if r['map'] == track)}"
                 f"/{args.seed_count} finished",
@@ -99,7 +99,9 @@ def main() -> int:
     finally:
         sim.close()
     check_files(args.submission, exported)
-    assert "torch" not in sys.modules and "stable_baselines3" not in sys.modules
+    # a delivery proof, so not an assert: `python -O` would skip it
+    if "torch" in sys.modules or "stable_baselines3" in sys.modules:
+        raise SystemExit("the submission imported torch or stable_baselines3")
     return 0
 
 

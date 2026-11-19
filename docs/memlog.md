@@ -194,3 +194,7 @@ E-27 : `scripts/check_shared_process.py` charge les quatre pilotes dans un seul 
 - **Hashes lus dans `export.json`** : jamais écrits dans le code, car les poids vont changer (mise à zéro des entrées adversaires, E-28).
 - **Pas de mesure avec adversaires** : ces courses testent le chargement et la mémoire, pas la conduite à plusieurs. Le format des courses finales est inconnu.
 - **Preuve** : le contrôle échoue sur un `model.onnx.data` absent, un import de `yaml` dans `Agent()`, un état global partagé et une mémoire commune à toutes les voitures. Il passe sur la livraison actuelle en 20 s.
+
+## 2026-11-19 · [Évaluation] Le 400/400 de driver1 est une mesure sur les cartes de sélection
+
+Correction de l'entrée du 2026-11-10 sur driver1. Les quatre cartes de validation ont servi à choisir l'ablation de la progression et le plafond de 4,75 m/s ; les seeds 200 à 299 ne changent que le bruit du moteur. Le 400/400 est donc optimiste : il décrit les cartes de sélection, pas la généralisation, qui se jugera sur les circuits test scellés. Pourquoi : remarque de méthode de Thibaud sur #19. Au passage, `--initialize-from` exige désormais un checkpoint enregistré par un run au même prétraitement, comme une reprise. Détails : `docs/results/driver1/README.md`.
