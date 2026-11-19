@@ -185,3 +185,7 @@ La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas 
 ## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
 
 Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
+
+## 2026-11-19 · [Évaluation] Le 400/400 de driver1 est une mesure sur les cartes de sélection
+
+Correction de l'entrée du 2026-11-10 sur driver1. Les quatre cartes de validation ont servi à choisir l'ablation de la progression et le plafond de 4,75 m/s ; les seeds 200 à 299 ne changent que le bruit du moteur. Le 400/400 est donc optimiste : il décrit les cartes de sélection, pas la généralisation, qui se jugera sur les circuits test scellés. Pourquoi : remarque de méthode de Thibaud sur #19. Au passage, `--initialize-from` exige désormais un checkpoint enregistré par un run au même prétraitement, comme une reprise. Détails : `docs/results/driver1/README.md`.
