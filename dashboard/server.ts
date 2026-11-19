@@ -75,7 +75,8 @@ const server = Bun.serve({
     },
     "/api/maps/:name/:asset": (request) => {
       const { name, asset } = request.params;
-      const fileOf = MAP_ASSETS[asset];
+      // own keys only: `constructor` or `toString` must not resolve to an Object method
+      const fileOf = Object.hasOwn(MAP_ASSETS, asset) ? MAP_ASSETS[asset] : undefined;
       if (!SAFE_NAME.test(name) || !fileOf) return notFound("invalid map asset");
       // The default map of the simulator is in `examples/` with the prefix `example`.
       const folder = name === "example" ? "examples" : name;
