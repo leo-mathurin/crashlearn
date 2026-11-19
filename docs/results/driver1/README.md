@@ -1,8 +1,13 @@
-# driver1 : 400/400 courses finies en validation nominale
+# driver1 : 400/400 courses finies sur les cartes de sélection
 
 Le pilote réactif de `submission/driver1` finit **400/400 courses nouvelles** sur
 Montreal, Sochi, Spielberg et YasMarina, après 132/132 cas de sélection : trois tours,
 départ officiel, conditions nominales, 8000 décisions au plus. DNF et TIMEOUT comptent.
+
+**Portée du 400/400.** Ces quatre cartes de validation ont servi à choisir l'ablation et
+le plafond de 4,75 m/s. Les seeds nouvelles ne changent que le bruit du moteur : le
+400/400 est une mesure optimiste sur les cartes de sélection, pas une estimation hors
+échantillon. La généralisation se mesurera sur les circuits test, encore scellés.
 
 ![Finitions nominales par circuit](comparaison.png)
 
@@ -26,6 +31,12 @@ entraînements indépendants : le taux décrit ces quatre cartes en nominal.
 - **Ablation** : `scripts/ablate_progress.py` met à zéro, dans l'acteur et le critique,
   les connexions depuis le sinus et le cosinus de progression et les tours accomplis.
   Un contrôle sur 256 entrées compare au modèle source avec ces entrées masquées.
+  Hypothèse, non testée : la progression du simulateur part du départ de chaque voiture.
+  Au départ officiel, sinus et cosinus donnent donc la position sur la piste, et le
+  réactif E-18 a pu apprendre les circuits train par cœur à travers elles. Avec
+  `random_start`, ils ne la donnent plus. Masquer ces entrées dès l'entraînement
+  changerait `features.py`, donc l'empreinte de tous les modèles livrés : c'est laissé au
+  prochain entraînement.
 - **Calibration** : les deux DNF de Montreal sont reproduits avec l'agent ONNX. Le plus
   haut plafond global qui les corrige, 4,75 m/s, est retenu sur les 132 anciens cas,
   sans réglage par circuit ni par seed (`speed-diagnostic.json`,
@@ -61,8 +72,11 @@ sa version et l'empreinte de chaque fichier ([récupération](../../experiments.
 
 La preuve de livraison (`submission-proof.json`) relie le modèle aux courses :
 vérificateur officiel valide, écart ONNX/PyTorch de 4,77 × 10⁻⁷ sur 256 entrées.
-Archives de la station : `/home/leo/runs/crashlearn/e19-20261110` (entraînements,
-checkpoints, logs) et `/home/leo/runs/crashlearn/e19-100-20261110` (calibration).
+Archives de la station de Léo, accessibles sur cette seule machine :
+`/home/leo/runs/crashlearn/e19-20261110` (entraînements, checkpoints, logs) et
+`/home/leo/runs/crashlearn/e19-100-20261110` (calibration). Hors de la station, la
+vérification passe par l'artefact W&B de l'équipe `crashlearn` (E-20) ; la commande
+ci-dessous suppose le run source sur le disque.
 
 ```bash
 uv run python scripts/ablate_progress.py --max-speed 4.75 \

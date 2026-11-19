@@ -58,3 +58,13 @@ def test_export_keeps_the_trained_action_bounds(tmp_path):
         np.testing.assert_allclose(actual[:, 0], upper, atol=TORCH_ONNX_ATOL, rtol=0)
     finally:
         env.close()
+
+
+def test_an_import_the_agent_does_not_provide_fails_the_export(tmp_path, monkeypatch):
+    module = tmp_path / "embedded.py"
+    module.write_text('"""Doc."""\n\nimport math\nimport numpy as np\n\nX = math.pi\n')
+    fake = type("Module", (), {"__file__": str(module), "__name__": "embedded"})
+    with pytest.raises(ValueError, match="import math"):
+        export._body(fake)
+    module.write_text('"""Doc."""\n\nimport numpy as np\n\nX = np.pi\n')
+    assert export._body(fake).strip() == "X = np.pi"
