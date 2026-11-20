@@ -83,4 +83,4 @@ Ce qu'on en retient :
 
 ### Ce qui reste à régler
 
-Les coefficients v1 sont des valeurs de départ vérifiées en ordre de grandeur, pas un résultat d'entraînement. Ils seront ajustés à partir des expériences sur les circuits d'entraînement et de validation (E-18, E-19, E-24), jamais sur le test scellé. Les poids des contacts attendent les mesures d'E-47.
+Les coefficients v1 sont des valeurs de départ vérifiées en ordre de grandeur, pas un résultat d'entraînement. Ils seront ajustés à partir des expériences sur les circuits d'entraînement et de validation (E-18, E-19, E-24), jamais sur le test scellé. Les mesures d'E-47 ([`docs/exploits.md`](exploits.md)) confirment les poids nuls des contacts et le terme `slow` de la v1.
