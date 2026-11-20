@@ -186,6 +186,10 @@ La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas 
 
 Préparation de E-28 : les poids d'entrée des colonnes adversaires (105 à 125 de chaque frame) n'avaient jamais été entraînés et décalaient les actions jusqu'à 0,25 avec des voitures adverses. Une dérivation sans interaction les met à zéro dans driver1 et driver2. Seul en piste, rien ne change : 40 courses de driver1 et 20 de driver2 sont identiques, les résultats publiés restent valables. Pourquoi : la course commune doit montrer les pilotes tels qu'ils ont appris, pas un bruit d'initialisation. Preuves : `docs/results/opponent-weights/README.md`.
 
+## 2026-11-12 · [Outillage] Équipe W&B partagée
+
+E-20 : entité W&B `crashlearn` (organisation `crashlearn-org`, plan académique en essai jusqu'au 12/12/2026, 100 Go inclus, aucun moyen de paiement). Lucas et Thibaud sont invités ; la clé d'API de la station est dans `~/.netrc`, hors Git. Les 13 runs hors ligne de E-18 et E-19 sont dans le projet `crashlearn-archive` avec leurs identifiants d'origine, sans leurs checkpoints, qui restent sur la station. Un run en ligne de contrôle (4096 puis 8192 interactions) garde son identifiant W&B à la reprise. Le suivi hors ligne reste le défaut. Pourquoi : comparer les runs à trois sans passer par la station, sans dépendre du réseau pendant un entraînement.
+
 ## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
 
 Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
