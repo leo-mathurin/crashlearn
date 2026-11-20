@@ -254,3 +254,23 @@ Retour de Léo après essai : voitures saccadées, ouverture lente, panneaux qui
 ## 2026-11-19 · [Évaluation] Le 400/400 de driver1 est une mesure sur les cartes de sélection
 
 Correction de l'entrée du 2026-11-10 sur driver1. Les quatre cartes de validation ont servi à choisir l'ablation de la progression et le plafond de 4,75 m/s ; les seeds 200 à 299 ne changent que le bruit du moteur. Le 400/400 est donc optimiste : il décrit les cartes de sélection, pas la généralisation, qui se jugera sur les circuits test scellés. Pourquoi : remarque de méthode de Thibaud sur #19. Au passage, `--initialize-from` exige désormais un checkpoint enregistré par un run au même prétraitement, comme une reprise. Détails : `docs/results/driver1/README.md`.
+
+## 2026-11-20 · [Pédagogie] Follow-up : voir le code tourner, un pilote par membre, un dossier qui raconte le projet
+
+Retour du follow-up : on avance dans la bonne voie, et la prochaine fois l'intervenante veut voir le code tourner (E-58). Tiziano a rejoint l'équipe : le sujet demande un pilote par membre, donc un quatrième pilote. Attentes, et ce qu'on en fait :
+
+- **driver4** : au premier follow-up, l'intervenante avait conseillé une technique multi-agents ou génétique, sur de gros GPU, par-dessus le Deep RL. On retient le Population Based Training, une population de PPO qui copie ses meilleurs membres et fait muter leurs hyperparamètres (E-52, Tiziano).
+- **Confrontation des pilotes, puis phase champion avec adversité** (dépassement, collisions) : déjà prévues (E-28, E-26, E-31).
+- **Supervision des entraînements** : des courbes et des métriques d'apprentissage. W&B reçoit déjà les métriques de Stable-Baselines3, mais hors ligne par défaut et sans métrique de course (E-53). Le plan académique W&B est à demander avant la fin de l'essai, le 12/12 (E-54).
+- **Documentation sans friction** : un guide unique, validé par Tiziano sur une machine neuve (E-55).
+- **Dossier complet** : il doit permettre de retracer le projet pour évaluer nos compétences et notre compréhension, avec la théorie, la technique, les choix et les alternatives écartées. En storytelling, lisible par un lycéen curieux. Il s'écrit au fil de l'eau à partir de ce memlog (E-42).
+
+Pourquoi : notre objectif est le podium national, et les GPU de Léo et de Thibaud permettent de réentraîner au lieu de corriger après coup. driver1 sera réentraîné sans ses trois corrections (E-56), et driver2 recevra les recettes qui ont fiabilisé driver1 (E-57).
+
+## 2026-11-20 · [Outillage] #19 et #25 mergées en merge commit, par exception au squash
+
+`check_deliverables.py --git` (#20) retrouve chaque modèle livré par les commits qui l'ont produit : 2e5a751, a900b2a, 9b3a9cc et adf5a5f pour la campagne E-18 et driver2 (#19), 9b7bbdd pour le driver1 météo (#25). Un squash effacerait ces commits de `develop` et du dépôt Epitech. #19 et #25 sont donc mergées en merge commit, et les autres PR de la pile en squash. Pourquoi : la provenance des modèles doit rester vérifiable depuis un simple clone. Règle pour la suite : une PR qui livre un modèle se merge en merge commit.
+
+## 2026-11-20 · [Organisation] Feuille de route d'exploration
+
+Document Linear « Feuille de route d'exploration » et tickets E-59 à E-67. Les règles du tournoi sont secrètes. Hypothèse retenue : la pédagogie testera surtout la généralisation (circuits nouveaux ou modifiés), et un peu les circuits connus. On vise donc un pilote robuste partout, qui gagne du temps sur ce qu'il reconnaît. Méthode commune : un banc d'évaluation unique (E-59), des circuits modifiés pour mesurer la généralisation sans ouvrir le test scellé (E-60), un protocole écrit avant chaque campagne et une règle d'abandon des pistes qui ne battent pas la référence. Pistes : vitesse (E-61), budget (E-62), critique privilégié (E-63), pilote hybride généraliste et spécialiste (E-64), ligue avec exploiteurs et classement Elo (E-65), RL résiduel (E-66), imitation (E-67). Pourquoi : le plan s'en tenait à améliorer l'existant, ce qui ne suffit pas pour viser le podium.
