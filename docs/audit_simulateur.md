@@ -57,12 +57,11 @@ Circuits dont deux portions sont assez proches pour que le couloir toléré se r
 
 ### Se faire pousser par l'arrière
 
-Sur Spa, voiture de devant à 6 m/s, voiture de derrière partant 1 m derrière à 10 m/s, pendant 5 s : la voiture de devant gagne **+4,5 m** par rapport à la même course seule (+2,2 m à 3 m/s contre 6 m/s). Aucune des deux n'est DNF, et celle qui pousse dépasse ensuite (`test_being_rear_ended_pushes_the_front_car_forward`, lent). Le knockback déplace les voitures sans vérifier la grille d'occupation. Une voiture poussée latéralement peut donc être envoyée dans un mur, voire à travers un mur fin (non mesuré).
+Sur Spa, voiture de devant à 6 m/s, voiture de derrière partant 1 m derrière à 10 m/s, pendant 5 s : la voiture de devant gagne **+4,5 m** par rapport à la même course seule (+2,2 m à 3 m/s contre 6 m/s). Aucune des deux n'est DNF, et celle qui pousse dépasse ensuite (`test_being_rear_ended_pushes_the_front_car_forward`, lent). Le knockback déplace les voitures sans vérifier la grille d'occupation. Une voiture poussée latéralement peut donc être envoyée dans un mur, voire à travers un mur fin (1 cas sur 54 dans E-47).
 
-### Pistes non explorées
+### Pistes explorées depuis (E-47)
 
-- Pousser un adversaire dans un mur, ou le faire passer en DNF (stagnation, sortie de piste).
-- Se servir du rebond sur un mur pour repartir en marche arrière sans perte de temps.
+[`docs/exploits.md`](exploits.md) mesure la poussée d'un adversaire vers un mur ou vers le DNF, le rebond sur un mur et le catalogue des raccourcis aux marges de 1,00 m et 0,50 m.
 
 ## Première archive (2026-09-08) : défauts relevés et devenir
 
