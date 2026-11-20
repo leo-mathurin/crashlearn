@@ -10,6 +10,8 @@ when `info["step_count"] == 0`.
 """
 
 import ast
+import hashlib
+import json
 import math
 
 import numpy as np
@@ -121,6 +123,24 @@ def test_agent_imports_only_allowed_modules(submission_dir):
 def test_delivery_files_present(submission_dir):
     for name in ("agent.py", "model.onnx", "model.onnx.data"):
         assert (submission_dir / name).is_file(), f"missing {submission_dir.name}/{name}"
+
+
+@submissions
+def test_delivered_files_match_their_export_record(submission_dir):
+    exported = json.loads((submission_dir / "export.json").read_text())
+    for name, recorded in exported["files"].items():
+        assert hashlib.sha256((submission_dir / name).read_bytes()).hexdigest() == recorded, name
+
+
+@submissions
+def test_agent_is_the_generated_source(submission_dir):
+    """Formatting may differ from the generator; the code must not."""
+    pytest.importorskip("torch")
+    from crashlearn.export import agent_source
+
+    depth = json.loads((submission_dir / "export.json").read_text())["history_depth"]
+    delivered = ast.parse((submission_dir / "agent.py").read_text(encoding="utf-8"))
+    assert ast.dump(delivered) == ast.dump(ast.parse(agent_source(depth)))
 
 
 @submissions

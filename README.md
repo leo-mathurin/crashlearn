@@ -17,7 +17,10 @@ Le [projet Linear Crash & Learn](https://linear.app/e-hamilton/project/crash-and
 - [Qualité du code et livraison](https://linear.app/e-hamilton/document/qualite-du-code-et-livraison-1da5f06a62ac)
 - [Infrastructure, stockage et reproductibilité](https://linear.app/e-hamilton/document/infrastructure-stockage-et-reproductibilite-9553c0c81bbc)
 - [Station Ubuntu et image Docker GPU](docs/station-gpu.md)
+- [Suivi des entraînements, reprise et export ONNX](docs/experiments.md)
 - [MDP et reward](docs/mdp.md)
+- [Expérience E-18 : apport de la mémoire pour driver2](docs/results/e-18/README.md)
+- [driver1 : 400/400 courses finies en validation nominale](docs/results/driver1/README.md)
 - [Dashboard de course et vocabulaire](https://linear.app/e-hamilton/document/dashboard-de-course-et-vocabulaire-0987cb2ff84a)
 
 ## Développement
@@ -122,13 +125,13 @@ uv run python scripts/control_race.py --map Austin --cars 4 --seed 1 --output ru
 
 ## Intégration continue
 
-GitHub Actions lance deux jobs, **Ruff** et **Pytest**, sur chaque PR et chaque push vers `develop` et `main`. Le workflow **Commitlint** s'exécute sur chaque PR et à chaque modification de son titre.
+GitHub Actions lance trois jobs, **Ruff**, **Pytest** et **Training and ONNX**, sur chaque PR et chaque push vers `develop` et `main`. Pour une PR empilée sur une autre branche, les lancer à la main (`gh workflow run ci.yml --ref <branche>`). Le workflow **Commitlint** s'exécute sur chaque PR et à chaque modification de son titre.
 - Il vérifie le **titre de la PR suivi de ` (#N)`**, c'est-à-dire le titre du commit que GitHub crée lors d'une fusion en squash. Le titre de la PR doit donc tenir en 93 caractères environ.
 - Il vérifie aussi **chaque commit** de la PR (hors commits de fusion), sans exception pour les fixup. Tant que le dépôt autorise aussi les fusions par merge commit et par rebase, ces commits peuvent arriver tels quels sur `develop`.
 - Réglage recommandé : fusion en squash uniquement, avec le titre de la PR (`PR_TITLE`) comme titre de commit. Ce réglage n'est pas encore appliqué. Une fois en place, seul le titre de la PR ferait foi, et la vérification des commits pourrait se limiter au refus des fixup.
 - Le job Commitlint n'utilise pas `uv` : il installe Node 22.12 et commitlint avec `npm`, aux versions épinglées dans le workflow.
 - L'environnement des jobs Ruff et Pytest est installé avec `uv sync --locked` : la CI échoue si `uv.lock` n'est plus aligné sur `pyproject.toml`. Après toute modification des dépendances, lancer `uv lock` et committer le lock.
-- La CI n'installe ni torch ni CUDA.
+- Ruff et Pytest n'installent ni torch ni CUDA. Training and ONNX utilise PyTorch CPU dans l'image officielle pour vérifier entraînement, reprise et export.
 
 Protection prévue sur `develop` et `main` :
 - PR obligatoire, avec l'approbation d'un autre membre ;

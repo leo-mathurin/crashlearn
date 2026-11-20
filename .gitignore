@@ -17,3 +17,7 @@ wandb/
 # Raw simulator archive / extraction (vendored copy lives in vendor/)
 simulation.zip
 /simulation/
+
+# Raw results live in W&B artifacts (scripts/results_artifact.py); manifests stay in Git
+docs/results/**/*.json
+!docs/results/**/manifests/*.json
