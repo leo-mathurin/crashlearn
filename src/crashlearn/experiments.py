@@ -66,6 +66,19 @@ def _commit() -> str:
     return os.environ.get("GIT_COMMIT") or _git("rev-parse", "HEAD")
 
 
+def _dirty() -> bool | None:
+    """Whether tracked files differ from the commit; None when nobody can tell.
+
+    The training image has no git: the station passes GIT_DIRTY (true or false) with
+    GIT_COMMIT.
+    """
+    declared = os.environ.get("GIT_DIRTY", "").strip().lower()
+    if declared in ("true", "false"):
+        return declared == "true"
+    status = _git("status", "--porcelain", "--untracked-files=no")
+    return None if status == "unknown" else bool(status)
+
+
 def _version(package: str) -> str | None:
     try:
         return importlib.metadata.version(package)
@@ -75,11 +88,10 @@ def _version(package: str) -> str | None:
 
 def provenance() -> dict:
     """The code and simulator a result depends on. Preprocessing hashes gate every reload."""
-    status = _git("status", "--porcelain", "--untracked-files=no")
     package = Path(__file__).parent
     return {
         "commit": _commit(),
-        "dirty": None if status == "unknown" else bool(status),
+        "dirty": _dirty(),
         "sim_sha256": sha256(SIM_DIR / "env_simulation.py"),
         "features_sha256": sha256(package / "features.py"),
         "history_sha256": sha256(package / "history.py"),
