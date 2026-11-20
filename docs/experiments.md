@@ -2,7 +2,13 @@
 
 Chaque run garde son identifiant, le commit, les empreintes du simulateur, des features,
 de l'historique et de la reward, les versions, la seed et la configuration. Dans Docker,
-passer `GIT_COMMIT` et `TRAIN_IMAGE_ID` pour identifier les sources et l'image exécutées.
+passer `GIT_COMMIT` et `TRAIN_IMAGE_ID` pour identifier les sources et l'image exécutées,
+et `GIT_DIRTY` (`true` ou `false`) : sans git dans l'image, le manifest note sinon
+`dirty: null`, et le commit reste déclaré sans garantie d'arbre propre.
+
+```bash
+GIT_DIRTY=$(test -z "$(git status --porcelain --untracked-files=no)" && echo false || echo true)
+```
 
 ```bash
 uv sync --locked --group train

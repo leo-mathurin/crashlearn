@@ -117,7 +117,7 @@ seed (`selection/agents.json`, preuve dans `selection/submission-proof.json`).
 
 | Agent | Modèle | Arrivées nominales en validation |
 |---|---|---:|
-| `submission/driver2` | ppo-h4, seed 1 | 6/12 |
+| `submission/driver2` | ppo-h4, seed 1, `3e495a4a35a0` | 6/12 |
 | ancien `driver1` | ppo-h1, seed 0 | 7/12, remplacé : voir [driver1](../driver1/README.md) |
 
 ## Provenance
