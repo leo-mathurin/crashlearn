@@ -1,6 +1,6 @@
 # Remise finale sur le dépôt Epitech (E-7)
 
-Rendu : **7 février 2027 à 23:42 (Europe/Paris)**. Le dépôt de remise est [EpitechMscProPromo2027/T-AIA-901-LYN-9-1-crashlearn-8](https://github.com/EpitechMscProPromo2027/T-AIA-901-LYN-9-1-crashlearn-8). Il ne sert qu'à la remise : le travail courant reste sur `origin`.
+Rendu : **7 février 2027 à 23:42 (Europe/Paris)**. Le dépôt de remise est [EpitechMscProPromo2027/T-AIA-901-LYN-9-1-crashlearn-8](https://github.com/EpitechMscProPromo2027/T-AIA-901-LYN-9-1-crashlearn-8). Le travail courant reste sur `origin` ; le dépôt Epitech en est une copie automatique.
 
 ## Accès
 
@@ -20,7 +20,13 @@ L'organisation impose le SSO SAML d'Epitech. Un token GitHub (API, MCP) doit êt
 | Léo | OK | OK |
 | Thibaud | OK | OK |
 
-`epitech/main` contient les deux commits initiaux de Léo du 16/09 (`bb52993`, `3e184fe`). Ce sont les ancêtres de notre `main` : la remise est un simple fast-forward qui conserve l'historique et les auteurs.
+La première synchronisation de `main` avance les deux commits initiaux de Léo du 16/09 (`bb52993`, `3e184fe`) jusqu'au `main` du dépôt principal. Elle conserve l'historique et les auteurs.
+
+## Synchronisation automatique
+
+Le [workflow Epitech mirror](../.github/workflows/mirror-epitech.yml) copie toutes les branches et tous les tags au push sur une branche qui contient le workflow et à la suppression d'une branche dans `origin`. Une exécution toutes les 15 minutes rattrape les pushes sur les anciennes branches sans workflow et les tags qui pointent vers un ancien commit. Pour une copie immédiate, lancer manuellement **Epitech mirror** depuis `main` dans GitHub Actions. La copie est atomique et supprime les branches et tags présents uniquement sur Epitech : ne pas modifier directement le dépôt Epitech.
+
+Le secret GitHub Actions `EPITECH_MIRROR_TOKEN` contient un token classique avec les scopes `repo` et `workflow`, autorisé par le SSO de l'organisation Epitech. Il expire le 16 février 2027 ; renouveler le token et le secret avant cette date si le projet continue, puis lancer manuellement le workflow pour vérifier le nouvel accès. Le test SSH ci-dessus vérifie uniquement l'accès SSH personnel.
 
 ## Pas de Git LFS
 
@@ -73,13 +79,15 @@ Les commits de provenance (`2e5a751`, `a900b2a`, `9b3a9cc`, `adf5a5f`) ne sont q
    uv run python vendor/simulation/verify_submission.py --submission submission/ --grandprix
    ```
 
-3. Vérifier que le push est un fast-forward, puis pousser `main` et le tag, sans `--force` ni `--mirror` :
+3. Vérifier que le workflow de synchronisation du dernier push est vert, puis comparer `main` et le tag entre les deux dépôts :
 
    ```bash
+   set -e
    git fetch --multiple origin epitech
-   git merge-base --is-ancestor epitech/main origin/main && echo fast-forward
-   git push epitech origin/main:refs/heads/main
-   git push epitech <tag>
+   test "$(git rev-parse origin/main)" = "$(git rev-parse epitech/main)"
+   origin_tag=$(git ls-remote --refs --exit-code origin "refs/tags/<tag>")
+   epitech_tag=$(git ls-remote --refs --exit-code epitech "refs/tags/<tag>")
+   test "$origin_tag" = "$epitech_tag"
    ```
 
 4. Recloner le dépôt Epitech dans un dossier temporaire, puis relancer le vérificateur sur ce clone : c'est ce que la pédagogie récupérera.
