@@ -17,3 +17,12 @@ wandb/
 # Raw simulator archive / extraction (vendored copy lives in vendor/)
 simulation.zip
 /simulation/
+/.idea/.gitignore
+/.idea/crashlearn.iml
+/.idea/easycode.ignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/pyLspTools.xml
+/.idea/vcs.xml
