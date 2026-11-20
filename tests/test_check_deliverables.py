@@ -28,6 +28,23 @@ def source_model(repo, driver="driver1"):
     ]
 
 
+def citing_readmes(repo, model):
+    """Every docs/results/<campaign>/README.md that cites the model (12-char prefix)."""
+    return [
+        path
+        for path in sorted((repo / "docs/results").glob("*/README.md"))
+        if model[:12] in path.read_text()
+    ]
+
+
+def first_trained(manifests, model):
+    """Follow derivations from a delivered model back to the manifest of its training run."""
+    path = manifests[model]
+    while (derivation := json.loads(path.read_text()).get("derivation")) is not None:
+        path = manifests[derivation["source_model_sha256"]]
+    return path
+
+
 def test_delivered_models_are_intact_and_linked():
     assert check_deliverables.check(ROOT) == []
 
@@ -81,8 +98,8 @@ def test_manifest_without_seed_is_reported(repo):
 
 def test_model_without_results_is_reported(repo):
     model = source_model(repo, "driver2")
-    readme = repo / "docs/results/e-18/README.md"
-    readme.write_text(readme.read_text().replace(model[:12], ""))
+    for readme in citing_readmes(repo, model):
+        readme.write_text(readme.read_text().replace(model[:12], ""))
     assert check_deliverables.check(repo) == [
         f"submission/driver2: no docs/results/*/README.md cites model {model[:12]}"
     ]
@@ -93,14 +110,18 @@ def test_model_without_results_is_reported(repo):
 )
 def test_results_without_artifact_version_are_reported(repo, sums):
     """The README cites the model, but no SHA256SUMS names the W&B artifact version."""
-    model = source_model(repo, "driver2")
-    path = repo / "docs/results/e-18/SHA256SUMS"
+    (readme,) = citing_readmes(repo, source_model(repo, "driver2"))
+    path = readme.parent / "SHA256SUMS"
     if sums is None:
         path.unlink()
     else:
         path.write_text(sums)
+    # every delivered model cited by this campaign loses its artifact version
+    cited = [
+        m for d in ("driver1", "driver2") if (m := source_model(repo, d))[:12] in readme.read_text()
+    ]
     assert check_deliverables.check(repo) == [
-        f"docs/results/e-18/SHA256SUMS: names no artifact version for {model[:12]}"
+        f"{path.relative_to(repo)}: names no artifact version for {m[:12]}" for m in cited
     ]
 
 
@@ -127,7 +148,7 @@ def test_missing_file_is_reported_with_the_other_drivers_checked(repo):
 @pytest.mark.parametrize("field", ["derivation", "initialization"])
 def test_parent_without_hash_is_reported(repo, field, empty):
     """driver1's source has both records: the derivation is its parent, then the
-    initialization of the model it derives from."""
+    initialization of the training run it derives from."""
     key = {"derivation": "source_model_sha256", "initialization": "checkpoint_sha256"}[field]
     manifests = {
         json.loads(p.read_text()).get("model_sha256"): p
@@ -135,8 +156,7 @@ def test_parent_without_hash_is_reported(repo, field, empty):
     }
     path = manifests[source_model(repo)]
     if field == "initialization":
-        parent = json.loads(path.read_text())["derivation"]["source_model_sha256"]
-        path = manifests[parent]
+        path = first_trained(manifests, source_model(repo))
     manifest = json.loads(path.read_text())
     if empty:
         manifest[field] = {}
@@ -152,8 +172,7 @@ def test_an_initialization_from_a_periodic_checkpoint_is_followed(repo):
         json.loads(p.read_text()).get("model_sha256"): p
         for p in (repo / "docs/results").rglob("manifests/*.json")
     }
-    derived = json.loads(manifests[source_model(repo)].read_text())
-    initialized = json.loads(manifests[derived["derivation"]["source_model_sha256"]].read_text())
+    initialized = json.loads(first_trained(manifests, source_model(repo)).read_text())
     parent = initialized["initialization"]["checkpoint_sha256"]
     path = manifests[parent]
     manifest = json.loads(path.read_text())
