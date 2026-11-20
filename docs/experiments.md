@@ -18,19 +18,37 @@ environnements. SB3 arrondit le budget au prochain rollout complet.
 
 ## W&B
 
-`--wandb` utilise le mode **hors ligne par défaut** : métriques et artefacts de checkpoints
-restent sur la station. Une panne de W&B ne supprime pas les logs CSV et n'arrête pas le run.
-Pour un projet partagé déjà configuré, fournir `WANDB_API_KEY` hors Git et ajouter
-`--wandb-mode online --wandb-entity <équipe>`. Le projet est `crashlearn` par défaut ;
-`--wandb-project` et `--wandb-group` permettent de le choisir.
+`--wandb` est **hors ligne par défaut** : métriques et checkpoints restent sur la station.
+Une panne de W&B ne supprime pas les logs CSV et n'arrête pas le run.
 
-Avant de synchroniser une campagne, vérifier le quota de stockage du compte et le volume
-local des checkpoints. Aucun compte, abonnement payant ni secret n'est créé par le code.
+L'équipe partagée (E-20, depuis le 12/11/2026) est l'entité `crashlearn` de
+l'organisation `crashlearn-org`. W&B s'appelle désormais CoreWeave Forge ; les URL
+`wandb.ai` redirigent.
+
+| Projet | Contenu |
+| --- | --- |
+| [`crashlearn`](https://wandb.ai/crashlearn/crashlearn) | Runs en ligne et leurs checkpoints (6 versions pour le run de contrôle), artefacts [`results-<campagne>`](#résultats-bruts) |
+| [`crashlearn-archive`](https://wandb.ai/crashlearn/crashlearn-archive) | Les 13 runs hors ligne de E-18 et E-19, avec les identifiants de leurs manifests : métriques, configuration, console. Sans checkpoints : `wandb sync` annonce leur envoi, mais l'API n'en trouve aucun. Ils restent sur la station. |
+
+- **Accès** : Lucas et Thibaud sont invités par e-mail ; le plan gratuit ne propose que le
+  rôle Admin.
+- **Station** : la clé d'API `tour-station-crashlearn` est dans `~/.netrc` (droits 600),
+  jamais dans Git. Elle expire au bout de 30 jours : la recréer dans les réglages du
+  compte, puis `uv run wandb login --relogin`.
+- **Plan** : « Academic plan » en essai gratuit jusqu'au 12/12/2026, 100 Go inclus, sans
+  moyen de paiement ni paiement à l'usage. Avant la fin de l'essai, Léo demande le plan
+  académique par le lien « Apply for free access » de la page Billing de l'organisation,
+  sous « Plan summary ».
+- **Quota** : avant une campagne, comparer `du -sh` des checkpoints au stockage restant
+  (page Billing). Les 13 runs archivés pèsent 5 Mio hors ligne ; tous les checkpoints de
+  la station, 2,3 Gio.
 
 ```bash
-du -sh runs/baseline
-# Après configuration du compte et vérification du quota :
-uv run wandb sync --entity <équipe> --project crashlearn \
+uv run python scripts/train_ppo.py ... --wandb --wandb-mode online --wandb-entity crashlearn
+# Runs hors ligne : une fois chacun (wandb marque *.wandb.synced). Un run créé dans Docker
+# se synchronise dans la même image et avec les mêmes montages, sinon ses chemins (/runs/...)
+# n'existent pas. Ne jamais supprimer un run synchronisé : W&B refuse ensuite son identifiant.
+uv run wandb sync --entity crashlearn --project crashlearn \
   runs/baseline/logs/attempt-001/wandb/offline-run-*
 ```
 
@@ -132,7 +150,7 @@ tournoi. Elle installe la pile d'entraînement aux versions de `uv.lock`.
 ## Résultats bruts
 
 Les courses brutes (`.json` de `docs/results/`) ne sont pas dans Git : chaque campagne
-est un artefact W&B `results-<dossier>` du projet `crashlearn/crashlearn`. Git garde le
+est un artefact W&B `results-<campagne>` du projet `crashlearn` ([W&B](#wb)). Git garde le
 README, les manifests et `SHA256SUMS`, qui donne la version de l'artefact et l'empreinte
 de chaque fichier. Le `.gitignore` refuse les autres `.json` de `docs/results/`.
 
@@ -143,4 +161,4 @@ uv run python scripts/results_artifact.py publish docs/results/e-23   # nouvelle
 
 `publish` envoie tous les `.json` du dossier hors `manifests/` et réécrit `SHA256SUMS` ;
 committer ce fichier avec le README qui cite les résultats. `fetch` échoue si un fichier
-diffère de `SHA256SUMS`. L'accès demande un compte de l'équipe W&B (section W&B).
+diffère de `SHA256SUMS`. L'accès demande un compte de l'équipe `crashlearn`.
