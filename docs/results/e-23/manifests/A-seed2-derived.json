@@ -1,0 +1,170 @@
+{
+  "commit": "a28cf7c0d2409d93f77ec5a4166cb58bc40bd026",
+  "dirty": false,
+  "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
+  "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
+  "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
+  "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
+  "reward_version": "v1",
+  "created_utc": "2026-11-12T01:00:43+00:00",
+  "run_id": "662801828515498e98e6ae90f8d1e495",
+  "driver": "ppo-h1",
+  "train_seed": 2,
+  "history_depth": 1,
+  "config": {
+    "n_steps": 2048,
+    "batch_size": 512,
+    "n_epochs": 10,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "policy_kwargs": {
+      "net_arch": [
+        256,
+        256
+      ],
+      "log_std_init": -1.0
+    },
+    "n_envs": 15,
+    "device": "cuda",
+    "fixed_map_workers": true,
+    "max_speed": 5.0,
+    "random_start": true,
+    "weather": {
+      "friction": [
+        0.7,
+        1.0
+      ],
+      "lidar_noise": [
+        0.001,
+        0.1
+      ],
+      "segment_s": [
+        5.0,
+        40.0
+      ],
+      "nominal_share": 0.25
+    },
+    "friction_feature": false
+  },
+  "attempts": [],
+  "versions": {
+    "numpy": "2.4.6",
+    "torch": "2.13.0",
+    "stable-baselines3": "2.9.0",
+    "gymnasium": "1.3.0",
+    "wandb": "0.30.0"
+  },
+  "python": "3.11.16",
+  "host": "tour",
+  "image_id": null,
+  "status": "completed",
+  "budget_timesteps": 2000000,
+  "resumed_from": null,
+  "initialization": {
+    "checkpoint": "/home/leo/runs/crashlearn/e19-20261110/cap5-random-h1-seed0/model.zip",
+    "checkpoint_sha256": "f283194ea0334cfbde14c0f4925698d5226b335b89533c39dd1e3b940fc359aa",
+    "source_timesteps": 2027520,
+    "optimizer_restored": false
+  },
+  "checkpoints": {
+    "checkpoints/ppo_attempt001_99990_steps.zip": "d21584b083311b49b4636885125204ef11dfe2fe819ef768e3eabc3097b485e2",
+    "checkpoints/ppo_attempt001_199980_steps.zip": "d71898f119d1181818200d6ad2831075eb8fcdd5f574b1f350b08e4410c0fbd3",
+    "checkpoints/ppo_attempt001_299970_steps.zip": "9ea58eaeb762f0835b79d5e4507cf58e7cabcd26e0668c46ff2364a936f87fbd",
+    "checkpoints/ppo_attempt001_399960_steps.zip": "32af0239bb4cee64f2932cb282bb3469da782438857565a0fb2851527e8a6f22",
+    "checkpoints/ppo_attempt001_499950_steps.zip": "1a6a850aa16e19883d4130e4d24d1b68a7621a1af02def906e313cb5bf8e2494",
+    "checkpoints/ppo_attempt001_599940_steps.zip": "6e7c78336f1299d4989deb8bc1a6e3b76025a174826fe32abc7e0a4ca3d99a0e",
+    "checkpoints/ppo_attempt001_699930_steps.zip": "dee73d270ecb1a8199ac8130784f09beecbd0ac2b86b3eb2ce7c178d660a62f0",
+    "checkpoints/ppo_attempt001_799920_steps.zip": "fb5f27bea9520328c411b358816d266a11aee32a5b924eec7f2e3f1a8a5a3fd8",
+    "checkpoints/ppo_attempt001_899910_steps.zip": "f9f91838bcef521f70b55f3f751736f111c44c578b9f13b4df449b88b37ae951",
+    "checkpoints/ppo_attempt001_999900_steps.zip": "49d795254e8bab61627b449c69217c4fd05609599f5d3aac2d46db5eee6f755e",
+    "checkpoints/ppo_attempt001_1099890_steps.zip": "ec77e0b9e1adf9d2a31c75a0dfca5ca3abd00bc6de629de08ee4ecbb24697e51",
+    "checkpoints/ppo_attempt001_1199880_steps.zip": "b529dd2665a133deb7666e7a2e225d8f3d471f67ada602414ffe3130035a1602",
+    "checkpoints/ppo_attempt001_1299870_steps.zip": "4f4a9045e97651f92301d3a8c5d7a5105c0a9dbd858ee2740b40df3c1b6e216d",
+    "checkpoints/ppo_attempt001_1399860_steps.zip": "3b016fafc9037249832b453c50f05cf7a80b76df9ca5d395b19a7e597b0bd849",
+    "checkpoints/ppo_attempt001_1499850_steps.zip": "eb60f16fbb8818d088ad6608777d5a4d706ddf3066e4c45ecc92a0d09e519418",
+    "checkpoints/ppo_attempt001_1599840_steps.zip": "35cda27819667443e9f6e41d661ad1dec8ca4e153c372633e93b8a2cd293c1aa",
+    "checkpoints/ppo_attempt001_1699830_steps.zip": "028d303906bf015d525065be1d054a72060fc6ac9e034a0a0f04d70cf87e6b1a",
+    "checkpoints/ppo_attempt001_1799820_steps.zip": "a9345af2b62eae26076ac8aa2ffc64eedd68fb0941be323cd03ab34517a7e582",
+    "checkpoints/ppo_attempt001_1899810_steps.zip": "6586586ae720eae563a1a34a7ee787319bd697daec520c6b1ca1cc702e82c14d",
+    "checkpoints/ppo_attempt001_1999800_steps.zip": "f4d4745dbf07a985c9f7f2dac7483976968cb29b193fd658836cbfaf22458a83"
+  },
+  "model_sha256": "d473a5ba64d44ca9415622ae5330241e9d8b0a7fe2b26cd4bfa675b5eab13e72",
+  "timesteps_done": 2027520,
+  "derivation": {
+    "method": "zero_opponent_weights",
+    "feature_columns": [
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      122,
+      123,
+      124,
+      125
+    ],
+    "source_run_id": "d8596b51ba4546d6a5eefd3d7ebbf1d2",
+    "source_model_sha256": "e1d0047d2da853ab8850aa627b353fe65dff83ebfa293cbdc3f314e0868a0cdb",
+    "source_manifest_sha256": "542f66f353ca858b4d2159ff5c23e0884aacf6959d07d58a9b9f5222409111b6",
+    "source_derivation": {
+      "method": "zero_progress_weights",
+      "feature_columns": [
+        102,
+        103,
+        104
+      ],
+      "source_run_id": "09501eb5ad684cbda4371ccba9b7da5e",
+      "source_model_sha256": "3bc792a200c35f73c575352ab496c8e2da8fdd62b650dc967c5d229832efeab5",
+      "source_manifest_sha256": "930bc3dc5a1511dafa6088990f67465bdfedabee89f8354efd7ec3e2077e2fa4",
+      "provenance": {
+        "commit": "a28cf7c0d2409d93f77ec5a4166cb58bc40bd026",
+        "dirty": false,
+        "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
+        "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
+        "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
+        "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
+        "reward_version": "v1",
+        "created_utc": "2026-11-12T01:00:41+00:00"
+      },
+      "parity_samples": 256,
+      "max_normalized_action_error": 0.0,
+      "training_steps_added": 0,
+      "requested_max_speed_mps": 4.75,
+      "source_action_high": [
+        0.1666666716337204,
+        1.0
+      ],
+      "derived_action_high": [
+        0.125,
+        1.0
+      ]
+    },
+    "provenance": {
+      "commit": "a28cf7c0d2409d93f77ec5a4166cb58bc40bd026",
+      "dirty": false,
+      "sim_sha256": "3f4aac8ef21348db41c9279ad908c8139e2f52a866751013f5a8ab698a7f92cb",
+      "features_sha256": "00cdfc64bf3459e747622aeaf5fa3cb862ea17a9fde8c95d6d325f72c766fd45",
+      "history_sha256": "3ee6990a1c1ddfc3d8c2e397a15b187290bf972b9e959dd275caa7c6d101a6e0",
+      "reward_sha256": "53a1469033d0dd31598654b21696aae0b2ae0a9f7ade8bbee9830584018c7b9c",
+      "reward_version": "v1",
+      "created_utc": "2026-11-12T01:00:43+00:00"
+    },
+    "parity_samples": 256,
+    "max_normalized_action_error": 0.0,
+    "training_steps_added": 0
+  }
+}

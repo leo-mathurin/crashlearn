@@ -138,9 +138,10 @@ def test_agent_is_the_generated_source(submission_dir):
     pytest.importorskip("torch")
     from crashlearn.export import agent_source
 
-    depth = json.loads((submission_dir / "export.json").read_text())["history_depth"]
+    exported = json.loads((submission_dir / "export.json").read_text())
+    expected = agent_source(exported["history_depth"], exported.get("friction_speed_cap"))
     delivered = ast.parse((submission_dir / "agent.py").read_text(encoding="utf-8"))
-    assert ast.dump(delivered) == ast.dump(ast.parse(agent_source(depth)))
+    assert ast.dump(delivered) == ast.dump(ast.parse(expected))
 
 
 @submissions

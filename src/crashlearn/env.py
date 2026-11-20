@@ -17,8 +17,9 @@ Action: two floats in [-1, 1], mapped affinely to target speed [-2, 10] m/s and 
 [-0.4189, 0.4189] rad.
 
 Friction and LiDAR noise: the official simulator pins them (friction 1.0, noise ±0.1 %, `TODO`
-upstream). `friction` and `lidar_noise` override them from our side, `vendor/` untouched;
-`None` keeps the official behaviour, i.e. the tournament conditions.
+upstream). `friction` and `lidar_noise` override them from our side for a whole episode,
+`vendor/` untouched; `None` keeps the official behaviour. `weather` changes both during the
+episode, as the tournament does (E-23, `crashlearn.weather`).
 """
 
 from collections.abc import Callable, Sequence
@@ -31,6 +32,7 @@ from gymnasium import spaces
 from crashlearn import MAX_DECISIONS, add_simulator_to_path, engine_seed, features
 from crashlearn.reward import STATUS_ACTIVE, STATUS_DNF, STATUS_FINISHED, RaceReward, RewardConfig
 from crashlearn.tracks import train_tracks
+from crashlearn.weather import Segment, WeatherConfig, schedule
 
 add_simulator_to_path()
 import env_simulation as sim  # noqa: E402
@@ -47,6 +49,8 @@ __all__ = ["STATUS_ACTIVE", "STATUS_DNF", "STATUS_FINISHED", "CrashLearnEnv"]
 OpponentPolicy = Callable[[dict], tuple[float, float]]
 # fixed value, or (low, high) sampled uniformly at each reset
 Setting = float | tuple[float, float] | None
+# Seeds the weather schedule apart from the LiDAR noise stream of the same episode.
+WEATHER_STREAM = 23
 
 _open_env: "CrashLearnEnv | None" = None
 
@@ -86,6 +90,7 @@ class CrashLearnEnv(gym.Env):
         lidar_noise: Setting = None,
         max_speed: float = SPEED_MAX,
         random_start: bool = False,
+        weather: WeatherConfig | None = None,
     ):
         global _open_env
         if _open_env is not None:
@@ -98,6 +103,8 @@ class CrashLearnEnv(gym.Env):
             raise ValueError(f"max_speed must be in (0, {SPEED_MAX}]")
         if random_start and num_cars != 1:
             raise ValueError("random_start is only supported for solo training")
+        if weather is not None and (friction is not None or lidar_noise is not None):
+            raise ValueError("weather replaces the friction and lidar_noise overrides")
 
         self.num_cars = num_cars
         self.maps = (maps,) if isinstance(maps, str) else tuple(maps or train_tracks())
@@ -112,6 +119,7 @@ class CrashLearnEnv(gym.Env):
         self.lidar_noise = lidar_noise
         self.max_speed = max_speed
         self.random_start = random_start
+        self.weather = weather
 
         self.observation_space = spaces.Box(-1.0, 1.0, (OBS_SIZE,), dtype=np.float32)
         upper = controls_to_action(max_speed, STEER_MAX)
@@ -120,6 +128,8 @@ class CrashLearnEnv(gym.Env):
         self._noise_rng = np.random.default_rng()
         self._episode_noise: float | None = None
         self._episode_friction: float | None = None
+        self._segments: list[Segment] = []
+        self._steps = 0
         self._map: str | None = None
         _open_env = self
 
@@ -154,12 +164,23 @@ class CrashLearnEnv(gym.Env):
             sim.reset(self.num_cars, seed=episode_seed)
         self._noise_rng = np.random.default_rng(episode_seed)
 
-        self._episode_friction = _sample(options.get("friction", self.friction), self.np_random)
-        self._episode_noise = _sample(options.get("lidar_noise", self.lidar_noise), self.np_random)
-        if self._episode_friction is not None:
-            params = dict(sim._PARAMS, mu=self._episode_friction)
-            # upstream _update_friction never re-applies mu: this holds for the episode
-            sim._get_sim()._sim.update_params(params, agent_idx=-1)
+        # options["weather"]: a config, or the segments of a fixed race (evaluation)
+        weather = options.get("weather", self.weather)
+        if isinstance(weather, WeatherConfig):
+            rng = np.random.default_rng([episode_seed, WEATHER_STREAM])
+            weather = schedule(weather, rng, self.max_episode_steps)
+        self._segments = list(weather or [])
+        self._steps = 0
+        if self._segments:
+            self._apply_segment(self._segments[0])
+        else:
+            friction = _sample(options.get("friction", self.friction), self.np_random)
+            self._episode_noise = _sample(
+                options.get("lidar_noise", self.lidar_noise), self.np_random
+            )
+            self._episode_friction = None
+            if friction is not None:
+                self._apply_friction(friction)
         # The simulator keeps the last step's noise across reset: without this, the first
         # obs of an episode would depend on the previous one. None = noiseless, as in a
         # fresh process.
@@ -177,6 +198,12 @@ class CrashLearnEnv(gym.Env):
         )
         speed, steering = action_to_controls(clipped)
         speed = min(speed, self.max_speed)
+        # a segment holds from its first decision: the change applies before the step
+        if len(self._segments) > 1:
+            current = [s for s in self._segments if s.start_step <= self._steps][-1]
+            if current.start_step == self._steps:
+                self._apply_segment(current)
+        self._steps += 1
         sim.apply_action(self.ego_id, speed, steering)
         if self.opponent_policy is not None:
             for car in range(self.num_cars):
@@ -204,6 +231,17 @@ class CrashLearnEnv(gym.Env):
         if _open_env is self:
             sim.close()
             _open_env = None
+
+    def _apply_friction(self, mu: float) -> None:
+        # upstream _update_friction never re-applies mu: it holds until the next change.
+        # `_friction` is what get_step_info() reports as friction_current.
+        sim._get_sim()._sim.update_params(dict(sim._PARAMS, mu=mu), agent_idx=-1)
+        sim._get_sim()._friction = mu
+        self._episode_friction = mu
+
+    def _apply_segment(self, segment: Segment) -> None:
+        self._apply_friction(segment.friction)
+        self._episode_noise = segment.lidar_noise
 
     def _draw_noise(self) -> np.ndarray | None:
         if self._episode_noise is None:
