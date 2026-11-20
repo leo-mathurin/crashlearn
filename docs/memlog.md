@@ -186,6 +186,18 @@ La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas 
 
 Préparation de E-28 : les poids d'entrée des colonnes adversaires (105 à 125 de chaque frame) n'avaient jamais été entraînés et décalaient les actions jusqu'à 0,25 avec des voitures adverses. Une dérivation sans interaction les met à zéro dans driver1 et driver2. Seul en piste, rien ne change : 40 courses de driver1 et 20 de driver2 sont identiques, les résultats publiés restent valables. Pourquoi : la course commune doit montrer les pilotes tels qu'ils ont appris, pas un bruit d'initialisation. Preuves : `docs/results/opponent-weights/README.md`.
 
+## 2026-11-12 · [Outillage] Équipe W&B partagée
+
+E-20 : entité W&B `crashlearn` (organisation `crashlearn-org`, plan académique en essai jusqu'au 12/12/2026, 100 Go inclus, aucun moyen de paiement). Lucas et Thibaud sont invités ; la clé d'API de la station est dans `~/.netrc`, hors Git. Les 13 runs hors ligne de E-18 et E-19 sont dans le projet `crashlearn-archive` avec leurs identifiants d'origine, sans leurs checkpoints, qui restent sur la station. Un run en ligne de contrôle (4096 puis 8192 interactions) garde son identifiant W&B à la reprise. Le suivi hors ligne reste le défaut. Pourquoi : comparer les runs à trois sans passer par la station, sans dépendre du réseau pendant un entraînement.
+
+## 2026-11-12 · [Simulateur] Exploits mesurés : raccourcis rarement rentables, contacts gratuits
+
+E-47 : 1 404 traversées de mur sur les 8 circuits à raccourci, aux marges de 1,00 m et 0,50 m, et 180 mesures de contact sur trois circuits d'entraînement. 10 % des traversées sont créditées et finissent en course, 90 % en DNF. Le meilleur raccourci rapporte +8 m face à une poursuite propre à 6 m/s, et aucun ne vaut la conduite propre avec la reward v1 à γ = 0,99. Être poussé par l'arrière rapporte +4 à +8 m en 5 s ; pousser de côté à 6 m/s met la victime en DNF 7 fois sur 18. Décision : garder les poids nuls des contacts, `slow`, le DNF à -200 et la seconde de marche arrière tolérée ; ajouter un pousseur latéral à la ligue (E-31) ; proposer le raccourci de Zandvoort au curriculum (E-23), à faible dose. Pourquoi : les contacts coûtent déjà par la physique, et une pénalité de contact ferait payer la voiture poussée. Le catalogue couvre aussi les circuits de test scellés, car il ne mesure que la géométrie et la physique : aucun scénario n'en est tiré. Détails : `docs/exploits.md` ; mesures brutes dans l'artefact W&B `results-e-47`.
+
+## 2026-11-12 · [Livraison] Modèles livrés sans LFS, provenance contrôlée
+
+E-36 demandait Git LFS pour les modèles livrés. On garde Git simple, comme décidé dans `docs/remise.md` : les fichiers font moins de 800 Ko, et une récupération qui ignore LFS ne verrait que des pointeurs. Pour l'intention du critère, `scripts/check_deliverables.py` vérifie en CI les hashes de `export.json` et relie chaque modèle à son manifest (commit, configuration, seed), à ses ancêtres et à ses résultats. Un clone neuf passe le contrôle, et les deux modèles sont restaurés depuis les archives de la station puis ré-exportés à l'octet près. Pourquoi : la remise doit rester récupérable et prouvable sans outil en plus. Détails : `docs/remise.md`.
+
 ## 2026-11-12 · [Évaluation] Protocole E-23 figé avant les résultats
 
 La météo du tournoi change en pleine course (sujet v1.3.0) : friction dans [0,7 ; 1,0] et bruit LiDAR dans [0,001 ; 0,1], ensemble ou séparément. Le wrapper applique un calendrier de segments constants de 5 à 40 s, tiré par seed. Conditions d'évaluation : `low_friction` et `heavy_rain` passent de 0,5 à 0,7, et `changing_weather` tire son calendrier de la seed de course, par un flux que l'entraînement n'utilise jamais. Les anciens fichiers de résultats gardent leurs valeurs, enregistrées course par course.
@@ -207,6 +219,15 @@ E-23, selon le protocole figé : A seed 2 dérivé remplace driver1. Il finit 40
 ## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
 
 Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
+
+## 2026-11-12 · [Livraison] Soumission contrôlée dans un processus partagé
+
+E-27 : `scripts/check_shared_process.py` charge les quatre pilotes dans un seul processus, comme au tournoi, puis lance trois courses de 600 décisions à quatre voitures sur Austin. La CI l'exécute dans l'image CPU du tournoi, avec `verify_submission.py` sur chaque pilote et en mode Grand Prix. Pourquoi : le vérificateur officiel charge chaque pilote seul et ne contrôle que la présence de `model.onnx.data`. Un état global partagé, une mémoire commune aux voitures ou des poids lus hors du fichier passeraient sans erreur. Détail des contrôles : `submission/README.md`.
+
+- **driver3 et driver4 manquants** : remplacés par des copies de `driver1` et `driver2`, et la sortie l'indique.
+- **Hashes lus dans `export.json`** : jamais écrits dans le code, car les poids vont changer (mise à zéro des entrées adversaires, E-28).
+- **Pas de mesure avec adversaires** : ces courses testent le chargement et la mémoire, pas la conduite à plusieurs. Le format des courses finales est inconnu.
+- **Preuve** : le contrôle échoue sur un `model.onnx.data` absent, un import de `yaml` dans `Agent()`, un état global partagé et une mémoire commune à toutes les voitures. Il passe sur la livraison actuelle en 20 s.
 
 ## 2026-11-12 · [Évaluation] Protocole E-49 figé avant les essais
 
