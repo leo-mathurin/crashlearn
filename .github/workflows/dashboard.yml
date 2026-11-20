@@ -1,0 +1,44 @@
+name: Dashboard
+
+# The race dashboard (dashboard/) is a Bun and TypeScript project, apart from the Python
+# package: it has its own workflow, so a Python change does not run it. No `branches` filter on
+# pull requests: the checks also run for a PR stacked on another branch.
+on:
+  pull_request:
+    paths: ["dashboard/**", ".github/workflows/dashboard.yml"]
+  push:
+    branches: [develop, main]
+    paths: ["dashboard/**", ".github/workflows/dashboard.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: dashboard-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Same commands as in dashboard/README.md. `--frozen-lockfile` fails if bun.lock is out of date
+# with package.json instead of fixing it.
+jobs:
+  check:
+    name: Dashboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: dashboard/package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run format:check
+      - run: bun run typecheck
+      # The unit tests read the track files of vendor/simulation/maps.
+      - run: bun run test
+      - run: bun run build

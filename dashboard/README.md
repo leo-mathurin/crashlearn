@@ -1,0 +1,171 @@
+# Dashboard de course
+
+Lecteur web local de replays de course, dans une scène 3D. Il lit les fichiers `.npz` de `vendor/simulation/sim_recorder.py`, sans compte, sans base distante et sans streaming. Vocabulaire et périmètre : [Dashboard de course et vocabulaire](https://linear.app/e-hamilton/document/dashboard-de-course-et-vocabulaire-0987cb2ff84a).
+
+## Démarrer
+
+Prérequis : [Bun](https://bun.sh) 1.4 ou plus récent, et `uv` pour enregistrer des replays.
+
+```bash
+uv run python scripts/record_replay.py --demo    # une fois, depuis la racine : 3 replays dans replays/
+cd dashboard && bun install && bun start         # puis ouvrir http://localhost:5173
+```
+
+La page liste les replays du dossier `replays/` (ignoré par Git). On peut aussi choisir un fichier `.npz` ou le déposer dans la fenêtre. Un replay ouvert depuis la liste a une adresse stable : `http://localhost:5173/?replay=demo-4-voitures-spielberg.npz`.
+
+Options du serveur : `bun start --port 8080 --replays <dossier> --maps <dossier>`. `bun dev` recharge la page à chaque modification du code.
+
+### Enregistrer un replay
+
+`scripts/record_replay.py` lance le `sim_recorder.py` fourni, sans le modifier, avec les pilotes de `submission/`. Il refuse les circuits du test scellé.
+
+```bash
+uv run python scripts/record_replay.py --map Sochi --drivers driver1 driver2 --seed 4
+uv run python scripts/record_replay.py --map Austin --drivers driver1 driver2 driver1 crash-test
+```
+
+`crash-test` n'est pas un pilote livré : cette voiture roule tout droit à 3 m/s et finit en DNF. Elle sert à enregistrer un vrai abandon. Le replay `demo-dnf-sochi` en contient une.
+
+## Utiliser
+
+| Action                                                            | Souris ou clavier                                                 |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Lecture, pause                                                    | bouton ou `Espace`                                                |
+| Avancer ou reculer d'une frame                                    | `→` `←` (20 frames, soit 1 s, avec `Maj`)                         |
+| Début, fin                                                        | `Début`, `Fin`                                                    |
+| Vitesse de lecture, de 0,25× à 8×                                 | boutons ou `↑` `↓`                                                |
+| Zoom                                                              | molette ou pincement, centré sur le curseur                       |
+| Déplacement                                                       | glisser                                                           |
+| Revenir à la vue d'ensemble                                       | double-clic ou `R`                                                |
+| Afficher ou masquer la limite de DNF                              | interrupteur ou `L`                                               |
+| Ouvrir un replay                                                  | bouton ou `O`                                                     |
+| Caméra Aérienne, Libre, Poursuite                                 | boutons ou `A`, `F`, `C`                                          |
+| Avancer, reculer, aller à gauche ou à droite avec la caméra Libre | `Z` `S` `Q` `D` (`W` `S` `A` `D` en QWERTY), plus vite avec `Maj` |
+| Afficher ou masquer le LiDAR, le décor                            | interrupteurs ou `I`, `G`                                         |
+| Afficher les mesures de fluidité                                  | `P`                                                               |
+
+Vu de loin, une voiture de 0,58 m fait moins d'un pixel : une pastille de couleur marque alors sa position. Elle disparaît quand on zoome assez pour voir la voiture.
+
+## Ce que la scène montre
+
+Tout ce qui est sur la piste vient des données du simulateur. Rien n'est inventé.
+
+| Élément                      | Source                                                                                                                                                |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bitume                       | centerline et demi-largeurs de `<Carte>_centerline.csv`                                                                                               |
+| Lignes de bord, vibreurs     | même bord de piste ; rouge et blanc là où la centerline tourne à plus de 0,14 rad/m. Les vibreurs sont de la peinture sur le bord mesuré, sans relief |
+| Ligne de départ              | premier point de la centerline, la pose de départ du simulateur                                                                                       |
+| Murs, 0,25 m de haut         | pixels occupés de `<Carte>_map.png`, au seuil du simulateur (valeur ≤ 128). Un rayon LiDAR s'arrête sur ces mêmes pixels                              |
+| Limite de DNF, tirets rouges | bord de piste + 1 m (`_OFFTRACK_MARGIN_M`), avec le calcul de `_is_off_track`                                                                         |
+| Voitures                     | poses enregistrées, à la taille de la boîte de collision : 0,58 × 0,31 m                                                                              |
+
+| LiDAR de la Voiture sélectionnée | les 100 distances enregistrées, avec les angles du simulateur (`_LIDAR_SCAN_FOV`). Un point marque chaque rayon qui a touché un mur ; un rayon à 15 m n'a rien touché |
+| Marqueur « DNF » | dernière pose d'une voiture en abandon, à partir de la frame où le simulateur déclare le DNF. Pas de marqueur pour une arrivée |
+
+Une Voiture inactive (statut DNF ou arrivée) est masquée : le simulateur la retire de la piste. Entre deux frames (20 Hz), la pose est interpolée pour un mouvement fluide ; les valeurs affichées sont celles de la frame enregistrée.
+
+Entre deux frames, le bout de chaque rayon LiDAR glisse en ligne droite de son point à la frame précédente à son point à la frame suivante. En pause sur une frame, ce sont exactement les distances enregistrées.
+
+## Caméras et Mini-carte
+
+Une seule caméra est à l'écran à la fois. Changer de caméra ne change pas la position de lecture.
+
+| Caméra    | Vue                                                                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Aérienne  | orthographique, nord en haut ; c'est la caméra à l'ouverture                                                                                            |
+| Libre     | perspective en orbite autour d'un point du sol. À la première utilisation, elle cadre ce que montrait la caméra précédente, puis elle garde sa position |
+| Poursuite | derrière la Voiture suivie, tournée vers l'avant                                                                                                        |
+
+- **Voiture suivie** : c'est la Voiture sélectionnée par défaut. Le menu « Suivre » choisit une autre voiture : elle est alors déliée, et la sélection peut changer sans déplacer la caméra. « Voiture sélectionnée » les lie de nouveau.
+- **Voiture suivie inactive** : quand elle devient inactive, la caméra reste 2 s sur place (temps réel), puis suit la voiture active la mieux classée. Si les deux voitures sont liées, la Voiture sélectionnée change avec elle. Une voiture déjà inactive que l'on choisit garde la caméra : on peut regarder l'endroit de son DNF.
+- **Transitions** : un clic fait glisser la vue d'une caméra à l'autre en 0,65 s. Au clavier, le changement est immédiat. Avec « réduire les animations » dans le système, il l'est toujours.
+- **Mini-carte** : toujours visible, affichage seul. Le circuit est une image de la scène 3D prise d'en haut, avec le rendu de la caméra Aérienne ; elle est refaite quand la limite de DNF change. Par-dessus : un point par voiture active (cerclé de blanc pour la Voiture sélectionnée), une croix rouge par marqueur DNF, et un cercle à l'endroit que regarde la caméra.
+
+- **Déplacement au clavier** : avec la caméra Libre, quatre touches déplacent la caméra et son point d'orbite au-dessus du sol, à une vitesse proportionnelle au zoom. Elles sont lues par leur place sur le clavier : `Z` `Q` `S` `D` en AZERTY, `W` `A` `S` `D` en QWERTY. Dans cette caméra, ces touches ne sont donc pas des raccourcis.
+- **Poursuite stable** : la caméra est à distance fixe de la voiture, seule sa direction tourne avec un retard. La voiture garde ainsi sa place à l'écran même quand des images arrivent en retard.
+
+## Fenêtres moyennes et petites
+
+Le HUD est une colonne : barre du haut, panneaux latéraux, timeline. Chaque partie prend sa place, donc aucun panneau ne passe sur un autre. La barre du haut passe sur deux lignes quand elle manque de largeur. Sous 1 100 px de large ou 760 px de haut, la courbe de vitesse disparaît ; sous 640 px de haut ou 760 px de large, la télémétrie ne garde que la vitesse et le tour ; sous 420 px de haut, la Mini-carte disparaît. Un test vérifie sept tailles, de 1920 × 1080 à 390 × 844.
+
+## Décor
+
+Le décor donne une ambiance et ne dit rien de la course : ciel, nuages, collines, arbres, tribunes et portique de départ. Il est affiché par défaut et l'interrupteur « Décor » l'enlève en un clic.
+
+- **Hors de la piste** : chaque arbre et chaque tribune est à 4 m au moins au-delà de la limite de DNF, distance vérifiée avec le calcul de sortie de piste du simulateur (`src/track/decorLayout.ts`, testé sur cinq circuits). Les poteaux du portique sont au-delà de la limite, de chaque côté ; seule sa traverse passe au-dessus de la piste, à 1 m de haut.
+- **Ne cache jamais la course** : à chaque frame, le sol et le décor sont dessinés d'abord, puis la piste, les murs, les voitures et le LiDAR sont dessinés par-dessus (`Stage.render`). Quelle que soit la caméra, un arbre ou la traverse du portique ne peut pas masquer un mur, une voiture ou un rayon. Un test compare les pixels du LiDAR avec et sans décor, pour les trois caméras.
+- **Déterministe** : le décor d'un circuit est tiré de son nom. Il est le même à chaque ouverture.
+- **Coût** : voir les mesures ci-dessous.
+
+## Fluidité
+
+`bun run measure` rejoue un replay dans Chromium (WebGPU et WebGL 2) et Firefox, pour chaque caméra, avec et sans décor (`scripts/measure-performance.ts`). Mesures du 12 novembre 2026 sur la station (Ryzen 7 7800X3D, RTX 5070, Ubuntu, écran virtuel 1920 × 1080 à 60 Hz), replay `demo-4-voitures-spielberg` (4 voitures, 4 267 frames) :
+
+| Navigateur            |      Lecture réelle | Coût d'une frame sans décor | Coût d'une frame avec décor |
+| --------------------- | ------------------: | --------------------------: | --------------------------: |
+| Chromium 158, WebGPU  | 60 fps, p95 16,8 ms |                1,5 à 1,8 ms |                      2,0 ms |
+| Chromium 158, WebGL 2 | 60 fps, p95 16,8 ms |                0,7 à 1,0 ms |                0,9 à 1,2 ms |
+| Firefox 159, WebGL 2  | 60 fps, p95 17,1 ms |                0,6 à 1,0 ms |                0,7 à 1,3 ms |
+
+La lecture réelle est limitée par l'écran (60 Hz). Le coût d'une frame est mesuré sans cette limite, travail du GPU compris : il laisse une large marge sur cette machine. La scène fait 165 000 triangles sans décor et 268 000 avec. Le tas JavaScript reste sous 70 Mo. Ces chiffres valent pour cette carte graphique ; sur une autre machine, la touche `P` affiche les mêmes mesures en direct.
+
+Trois réglages gardent le mouvement fluide sur une machine moins rapide :
+
+- **Mouvement entre deux frames** : le recorder écrit 20 poses par seconde. Entre deux poses, la voiture suit une courbe lisse (Catmull-Rom) qui passe par les poses enregistrées, pas des segments droits : sa vitesse ne change pas d'un coup à chaque frame.
+- **Programmes du GPU préparés à l'ouverture** : tout ce qui est dans la scène est compilé avant la première image, pour les caméras orthographique et perspective, y compris ce qui est caché (marqueurs DNF, décor masqué). Sans cela, chaque objet arrêtait l'affichage la première fois qu'il venait à l'écran : 6 programmes au premier passage en caméra Libre, 2 au premier DNF.
+- **Résolution adaptée** : si la moyenne dépasse 24 ms par image pendant 1,5 s, la scène est dessinée avec moins de pixels (80 %, 65 %, puis 50 %). Le HUD reste net. La résolution ne remonte pas pendant la visite.
+
+La touche `P` affiche aussi le temps de chaque étape de l'ouverture du replay (téléchargement, décodage, carte, circuit, programmes du GPU, première image). Sur la station : 1,0 s au total pour ce replay, dont 0,3 à 0,5 s de programmes du GPU.
+
+Le flou d'arrière-plan des panneaux a été retiré après mesure : il faisait tomber Firefox de 60 à 44 fps.
+
+## Classement et télémétrie
+
+- **Classement** : ordre du simulateur (`ranks`), nom, couleur, tour et progression du tour. Une voiture inactive affiche « Arrivée » ou « DNF » avec le temps simulé de sa fin de course. À la dernière frame, c'est le classement final. Les marques de couleur sur la timeline donnent ces mêmes instants.
+- **Télémétrie de la Voiture sélectionnée** : vitesse mesurée et vitesse cible, braquage mesuré et braquage demandé (le trait blanc de chaque jauge est la consigne du pilote), tour, adhérence de la piste, et courbe des deux vitesses sur 6 s avant et après la tête de lecture.
+- **Données absentes** : un ancien replay peut ne pas avoir `ranks`, `lidar`, `velocity` ou `actions`. La valeur est alors notée « indisponible », jamais remplacée par zéro. Sans `ranks`, l'ordre est celui de `viz_replay.py` : arrivées, puis voitures actives par distance, puis DNF.
+
+Le recorder ne garde ni le nombre de tours visé ni la raison d'un DNF, et il coupe les noms à 10 caractères : le dashboard affiche ce que le fichier contient. Ces enrichissements sont le sujet de E-35.
+
+Si la carte du replay est introuvable, les voitures sont affichées sur une grille neutre, avec un avertissement. Si le fichier n'est pas un replay valide, la page dit pourquoi et reste utilisable.
+
+## Technique
+
+| Choix                                         | Raison                                                                                                                                                   |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Three.js, `WebGPURenderer`                    | un seul code de scène : WebGPU quand le navigateur l'offre, WebGL 2 sinon (Firefox et Chrome sous Linux aujourd'hui)                                     |
+| TypeScript strict, sans framework d'interface | le HUD est mis à jour à chaque frame : du DOM direct coûte moins qu'un rendu virtuel, et il n'y a que deux dépendances à l'exécution (`three`, `fflate`) |
+| Bun pour tout : serveur, bundler, tests       | `Bun.serve` sert la page compilée à la volée, les replays et les cartes de `vendor/` sans copie. Pas de Vite, pas de Node                                |
+| Décodage NPZ dans le navigateur               | `fflate` pour le ZIP, lecteur `.npy` maison : le format du recorder reste la seule source                                                                |
+| Textures procédurales                         | bitume, herbe et béton sont dessinés au chargement avec une graine fixe : aucun fichier image, même rendu partout                                        |
+| oxlint, oxfmt, `tsc`, `bun test`, Playwright  | mêmes outils que les autres projets de l'équipe                                                                                                          |
+
+```
+server.ts            serveur local : page, /api/replays, /api/maps
+src/replay/          décodage NPZ, validation, horloge de lecture, classement, valeurs par voiture, Voiture suivie
+src/track/           données de piste : centerline, limite de DNF, murs, placement du décor (sans Three.js, testé)
+src/scene/           rendu : renderer, lumières, circuit, voitures, LiDAR, marqueur DNF, caméras, décor
+src/ui/              HUD : timeline, classement, télémétrie, caméras, Mini-carte, étiquettes, choix du replay, mesures
+tests/               tests unitaires (bun test)
+e2e/                 tests navigateur, Chromium et Firefox (Playwright)
+scripts/             mesure de fluidité
+```
+
+## Qualité
+
+Ce sont les commandes de la CI (`.github/workflows/dashboard.yml`).
+
+```bash
+bun run lint && bun run format:check && bun run typecheck && bun run test && bun run build
+```
+
+Tests navigateur, hors CI : ils enregistrent les replays de démonstration s'ils manquent.
+
+```bash
+bunx playwright install chromium firefox    # une fois
+bun run test:e2e                            # sur une machine sans écran : xvfb-run -a bun run test:e2e
+```
+
+Sans écran, Firefox n'a pas de WebGL : `xvfb-run` lui en donne un. `E2E_WEBGPU=1` ajoute un troisième passage, dans Chromium avec WebGPU (il ouvre des fenêtres).
+
+`window.dashboard` donne l'état de la page aux tests (`state()`) et mesure le coût d'une frame sans la limite de l'écran (`benchmark()`).
