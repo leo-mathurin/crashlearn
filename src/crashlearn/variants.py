@@ -13,6 +13,9 @@ A variant is named `<Base>@<kind>[+<kind>...]`, for instance `Sochi@mirror` or
 the start untouched. A draw is kept only if the new corridor stays drivable (`check`);
 otherwise the next draw of the same seed is tried. `Sochi@bend3` is always the same track.
 
+A real track that the school left out of its archive, `Norisring`, is built the same way
+from `new_tracks/` (`load_new`) and accepts the same kinds (`Norisring@mirror`).
+
 A map is three files: an occupancy image (thin black walls on a free background), a YAML
 (resolution, origin) and the centerline (`x_m, y_m, w_tr_right_m, w_tr_left_m`). The
 simulator reads the centerline for the start pose, the progress and the off-track check,
@@ -43,6 +46,22 @@ from scipy.spatial import cKDTree
 from crashlearn import add_simulator_to_path, tracks
 
 VARIANTS_DIR = Path(__file__).resolve().parents[2] / "runs" / "track_variants"
+NEW_TRACKS_DIR = Path(__file__).with_name("new_tracks")
+# Suzuka, the other track left out, crosses itself (a bridge): the simulator projects the
+# car on the nearest centerline point, so the progress jumps by 41 % of a lap at the
+# crossing and the car is declared DNF. It cannot be driven in this simulator.
+NEW_TRACKS = ("Norisring",)
+# How the school scaled the TUMFTM centerlines, median over the 19 train and validation
+# maps: real length times 0.0801, corridor 2.229 m wide (its own measurement), the track
+# spread over 1726 pixels of a 2000 x 2000 image, centred.
+SCHOOL_SCALE = 0.0801
+# Norisring's straights run 25.8 m apart for real: at 0.0801 the two 2.229 m corridors
+# merge. 0.128 is the smallest scale that keeps 3.3 m between their centerlines (corridor,
+# two walls, GAP_CLEARANCE_M), which gives 294 m a lap, close to IMS and Oschersleben.
+NEW_TRACK_SCALE = {"Norisring": 0.128}
+SCHOOL_WIDTH_M = 2.229
+SCHOOL_EXTENT_PX = 1726
+IMAGE_PX = 2000
 GENERATOR_VERSION = 2
 KINDS = ("reverse", "mirror", "narrow", "bend<seed>", "section<seed>")
 KIND_PATTERN = re.compile(r"(reverse|mirror|narrow|(bend|section)(\d+))")
@@ -92,11 +111,37 @@ def parse_name(name: str) -> tuple[str, tuple[str, ...]]:
     unknown = [k for k in kinds if not KIND_PATTERN.fullmatch(k)]
     if unknown:
         raise ValueError(f"unknown variant kinds {unknown} in {name!r}, known: {KINDS}")
-    return tracks.canonical_name(base), kinds
+    return base_name(base), kinds
+
+
+def base_name(base: str) -> str:
+    return base if base in NEW_TRACKS else tracks.canonical_name(base)
 
 
 def is_variant(name: str) -> bool:
     return "@" in name
+
+
+def is_generated(name: str) -> bool:
+    """A name `install()` serves from `VARIANTS_DIR`: a variant or a new track."""
+    return is_variant(name) or name in NEW_TRACKS
+
+
+def load_new(name: str) -> TrackMap:
+    """A TUMFTM track the school left out, at the scale and width of its maps."""
+    real = np.loadtxt(NEW_TRACKS_DIR / f"{name}.csv", delimiter=",", comments="#")
+    xy = (real[:, :2] - real[0, :2]) * NEW_TRACK_SCALE[name]  # the start on (0, 0), like the others
+    half = np.full((len(xy), 2), SCHOOL_WIDTH_M / 2)
+    centerline = np.hstack([xy, half])
+    resolution = float(np.ptp(xy, axis=0).max() / SCHOOL_EXTENT_PX)
+    centre = (xy.min(axis=0) + xy.max(axis=0)) / 2
+    origin = (*(centre - IMAGE_PX * resolution / 2), 0.0)
+    blank = np.full((IMAGE_PX, IMAGE_PX), FREE, dtype=np.uint8)
+    return _redrawn(TrackMap(centerline, blank, resolution, origin))
+
+
+def load_base(base: str) -> TrackMap:
+    return load_new(base) if base in NEW_TRACKS else load_official(base)
 
 
 def load_official(base: str) -> TrackMap:
@@ -355,8 +400,10 @@ def render(track: TrackMap) -> np.ndarray:
 
 
 def build(name: str) -> TrackMap:
+    if name in NEW_TRACKS:
+        return load_new(name)
     base, kinds = parse_name(name)
-    track = load_official(base)
+    track = load_base(base)
     for kind in kinds:
         track = apply(track, kind, base)
     return track
@@ -430,7 +477,7 @@ def install(root: Path = VARIANTS_DIR) -> None:
     official_set_map = sim.set_map
 
     def set_map(name: str, num_cars: int | None = None) -> None:
-        if not is_variant(name):
+        if not is_generated(name):
             return official_set_map(name, num_cars)
         if name == sim._current_map:
             return None

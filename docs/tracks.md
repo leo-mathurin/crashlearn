@@ -129,6 +129,11 @@ Une carte, ce sont trois fichiers cohérents : la centerline (départ, progressi
 
 **Chargement.** `env_simulation.set_map` construit ses chemins à partir de `_REPO_ROOT/maps/<nom>` puis ne garde que des chemins absolus. `variants.install()`, appelé à l'import de `crashlearn.env`, enveloppe `set_map` : pour un nom de variante, il pointe `_REPO_ROOT` vers le dossier des variantes le temps de ce seul appel.
 
+**Norisring, un circuit réel que l'école n'a pas repris.** Les 23 cartes viennent de la [TUMFTM racetrack-database](https://github.com/TUMFTM/racetrack-database) : chaque centerline en reprend les points un à un, réduits d'un facteur propre à chaque circuit (0,065 pour Montreal à 0,092 pour Budapest). La base compte deux circuits de plus, Norisring et Suzuka.
+
+- **Norisring** est construit comme l'école a construit les autres : départ en (0, 0), couloir de 2,229 m (la largeur médiane de nos cartes), tracé étalé sur 1 726 pixels d'une image de 2 000, centré. À l'échelle médiane (0,0801), ses deux lignes droites parallèles, à 25,8 m l'une de l'autre en vrai, fusionnent en un seul couloir : on l'agrandit à 0,128, la plus petite échelle qui les sépare, soit 294 m au tour, entre Oschersleben et IMS. Le pilote scripté le termine, ainsi que ses variantes. Il s'utilise par son nom, `Norisring`, et accepte les mêmes transformations (`Norisring@mirror`).
+- **Suzuka** n'est pas utilisable : son tracé se croise (un pont en vrai). Le simulateur projette la voiture sur le point de centerline le plus proche, sur tout le tour : au croisement, la progression saute de 41 % d'un tour, et la voiture est déclarée en abandon. C'est sans doute la raison de son absence, et celle de Norisring à l'échelle commune : **ni l'un ni l'autre n'a de bonnes chances d'être au tournoi**. Norisring sert donc à mesurer la généralisation sur un vrai circuit inédit.
+
 **Règle.** Un circuit du test scellé ne sert jamais de base (`PermissionError`) : un Spa en miroir serait déjà un regard sur Spa.
 
 ## Métriques géométriques : limites

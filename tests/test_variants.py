@@ -98,10 +98,10 @@ def test_files_round_trip(tmp_path):
 
 
 @pytest.mark.slow
-def test_env_drives_a_variant():
+@pytest.mark.parametrize("name", ["Montreal@mirror+reverse", "Norisring"])
+def test_env_drives_a_variant(name):
     from crashlearn.env import CrashLearnEnv, sim
 
-    name = "Montreal@mirror+reverse"
     env = CrashLearnEnv(maps=name, max_episode_steps=40)
     try:
         env.reset(seed=0)
@@ -161,3 +161,28 @@ def test_check_rejects_a_corridor_pushed_onto_another():
 def test_a_track_without_bends_refuses_bend():
     with pytest.raises(ValueError, match="no bend"):
         variants.build("IMS@bend1")
+
+
+# --- tracks the school left out ------------------------------------------------------
+
+
+def test_norisring_at_the_school_scale():
+    track = variants.build("Norisring")
+    xy = track.centerline[:, :2]
+    lap = np.sum(np.hypot(*np.diff(np.vstack([xy, xy[:1]]), axis=0).T))
+    assert np.array_equal(xy[0], [0.0, 0.0])
+    assert lap == pytest.approx(294, abs=2)  # between Oschersleben (261 m) and IMS (293 m)
+    assert np.allclose(track.centerline[:, 2:].sum(axis=1), variants.SCHOOL_WIDTH_M)
+    assert track.image.shape == (variants.IMAGE_PX, variants.IMAGE_PX)
+    row, col = track.pixel(xy[:, 0], xy[:, 1])
+    assert np.ptp(col) == pytest.approx(variants.SCHOOL_EXTENT_PX, abs=1) or np.ptp(
+        row
+    ) == pytest.approx(variants.SCHOOL_EXTENT_PX, abs=1)
+    assert variants.check(track, track) is None
+    assert np.all(clearance_m(track) > 0.5)  # its parallel straights stay apart
+
+
+def test_new_tracks_take_variants():
+    assert variants.parse_name("Norisring@mirror+bend1") == ("Norisring", ("mirror", "bend1"))
+    assert variants.is_generated("Norisring") and not variants.is_generated("Sochi")
+    assert np.all(clearance_m(variants.build("Norisring@mirror")) > 0.5)

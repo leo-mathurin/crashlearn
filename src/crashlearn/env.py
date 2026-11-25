@@ -112,7 +112,7 @@ class CrashLearnEnv(gym.Env):
         self.maps = (maps,) if isinstance(maps, str) else tuple(maps or train_tracks())
         for name in filter(variants.is_variant, self.maps):
             variants.parse_name(name)  # raises on an unknown base or kind
-        official = {name for name in self.maps if not variants.is_variant(name)}
+        official = {name for name in self.maps if not variants.is_generated(name)}
         unknown = official - set(sim.get_available_maps()) - {"example"}
         if unknown:
             raise ValueError(f"unknown maps: {sorted(unknown)}")
