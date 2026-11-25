@@ -47,6 +47,7 @@ def make_env(depth: int, track: str | None, config: dict):
                 max_speed=config["max_speed"],
                 random_start=config["random_start"],
                 weather=WeatherConfig(**weather) if weather else None,
+                track_variants=config["track_variants"],
             ),
             depth,
         )
@@ -194,6 +195,12 @@ def main() -> int:
         "--nominal-share", type=float, default=0.25, help="with --weather: nominal episodes"
     )
     parser.add_argument(
+        "--track-variants",
+        type=float,
+        default=0.0,
+        help="E-60: share of episodes on a modified train track, in [0, 1]",
+    )
+    parser.add_argument(
         "--friction-feature",
         action="store_true",
         help="E-23 measurement: append friction_current to the observation (not exportable)",
@@ -212,6 +219,8 @@ def main() -> int:
         parser.error(f"no checkpoint at {args.initialize_from}")
     if not 0 < args.max_speed <= SPEED_MAX:
         parser.error(f"--max-speed must be in (0, {SPEED_MAX}]")
+    if not 0 <= args.track_variants <= 1:
+        parser.error("--track-variants must be in [0, 1]")
     if not 0 <= args.nominal_share <= 1:
         parser.error("--nominal-share must be in [0, 1]")
     if args.fixed_map_workers and args.n_envs % len(train_tracks()):
@@ -227,6 +236,7 @@ def main() -> int:
         if args.weather
         else None,
         "friction_feature": args.friction_feature,
+        "track_variants": args.track_variants,
     }
     try:
         args.initialization = (

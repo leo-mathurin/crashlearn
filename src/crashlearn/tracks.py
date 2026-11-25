@@ -52,6 +52,27 @@ def sealed_test_tracks(*, unseal: bool = False) -> tuple[str, ...]:
     return _split("test")
 
 
+def variant_test_tracks() -> tuple[str, ...]:
+    """Modified tracks of the common bench (E-60): validation and new bases, never trained on.
+
+    The new tracks (Norisring) count as-is too: nobody has ever driven them."""
+    spec = _load()["variants"]["test"]
+    known = {t["name"] for t in _load()["tracks"]}
+    plain = [base for base in spec["bases"] if base not in known]
+    return tuple(sorted(plain + [f"{b}@{k}" for b in spec["bases"] for k in spec["kinds"]]))
+
+
+def random_train_variant(base: str, rng: np.random.Generator) -> str:
+    """A modified version of a train track, for track randomization during training."""
+    if base not in train_tracks():
+        raise ValueError(f"{base} is not a train track: its variants belong to the bench")
+    spec = _load()["variants"]["train"]
+    kind = str(rng.choice(spec["kinds"]))
+    if kind in ("bend", "section"):
+        kind += str(int(rng.integers(1, spec["seeds"] + 1)))
+    return f"{base}@{kind}"
+
+
 def final_retraining_tracks() -> tuple[str, ...]:
     """All distinct tracks, test included. Only for the final retraining after the freeze."""
     return tuple(sorted(t["name"] for t in _load()["tracks"]))

@@ -152,6 +152,8 @@ celles du modèle PyTorch ; confirmer un livrable avec lui.
 
 `evaluate_drivers.py` fait courir un run, ou le témoin scripté, sur les 117 courses de la
 campagne : nominal sur train et validation, perturbations sur validation, jamais le test.
+`--variants` ajoute les 26 circuits modifiés du banc (E-60, [circuits modifiés](tracks.md#circuits-modifiés-e-60)),
+en conditions nominales.
 Les DNF et TIMEOUT sont des résultats. Le fichier est réécrit après chaque course. Les
 perturbations suivent le sujet v1.3.0 depuis E-23 ([conditions](weather.md#évaluation)) ;
 les anciens fichiers de 105 courses gardent leurs valeurs, enregistrées course par course.

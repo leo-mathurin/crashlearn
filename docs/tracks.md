@@ -105,6 +105,42 @@ Si une récompense, une feature ou le replay venait à utiliser la raceline, il 
 
 Chargement réel : `uv run python scripts/check_track_loading.py` enchaîne `set_map`, `reset(num_cars=1)` et 20 décisions à 20 Hz sur chaque nom. Les 23 circuits se chargent. La version pytest est `uv run pytest -m slow tests/test_tracks.py`. Le chargement par le visualiseur (`viz_replay.py`) n'est pas couvert ici.
 
+## Circuits modifiés (E-60)
+
+Nos 4 circuits de test ne s'ouvrent qu'une fois : pour mesurer la généralisation d'ici le gel, et pour faire varier les circuits à l'entraînement, `crashlearn.variants` dérive des variantes des cartes officielles, sans toucher `vendor/`.
+
+Une variante s'appelle `<Base>@<transformation>[+<transformation>...]`, appliquées de gauche à droite : `Sochi@mirror`, `Montreal@mirror+reverse`. On l'utilise comme un circuit officiel : `CrashLearnEnv(maps="Sochi@mirror")` ou `env.reset(options={"map": "Sochi@narrow"})`.
+
+| Transformation | Ce qui change | Image |
+|---|---|---|
+| `reverse` | On roule dans l'autre sens. Le départ reste sur le premier point, les côtés droit et gauche s'échangent | Identique |
+| `mirror` | Le circuit est retourné de gauche à droite : les virages à gauche deviennent des virages à droite | Retournée, origine recalculée pour que chaque pixel garde sa position |
+| `narrow` | Les deux demi-largeurs sont multipliées par `NARROW_FACTOR` (0,75) | Redessinée |
+| `bend<graine>` | Un virage tiré au sort est resserré (rayon × 0,55 à 0,85) ou élargi (× 1,3 à 2) autour de son centre de courbure, avec des raccords progressifs | Redessinée |
+| `section<graine>` | Un tronçon tiré au sort, de 6 à 16 m, est poussé sur le côté de 0,6 à 1,8 m par une bosse douce, nulle à ses deux bouts | Redessinée |
+
+`bend` et `section` ne déplacent la centerline que dans une fenêtre : la boucle reste fermée, les largeurs ne changent pas, et les 15 premiers et derniers mètres (le départ et la grille) ne bougent jamais. Un tirage n'est gardé que si le couloir reste praticable (`variants.check`) : rayon lissé sur 6 m d'au moins 1 m, bord intérieur qui ne se replie pas, piste dans l'image, et aucun tronçon rapproché d'un autre au point que leurs couloirs se touchent. Sinon on passe au tirage suivant de la même graine. Une graine donne toujours le même circuit : `Sochi@bend3` est reproductible, et `Sochi@bend1` à `Sochi@bend50` donnent 50 circuits différents. IMS, un ovale sans virage serré, n'accepte pas `bend`.
+
+Une carte, ce sont trois fichiers cohérents : la centerline (départ, progression, sortie de piste), l'image (LiDAR et contacts avec les murs) et le YAML (résolution, origine). Chaque variante réécrit les trois.
+
+**Le dessin des murs.** Les cartes officielles sont des murs de 3 pixels (0,28 m) sur fond libre, à la distance de la centerline que donnent les largeurs mesurées. `variants.render` redessine ce couloir à partir de la seule centerline et de ses largeurs. Sur les 19 circuits d'entraînement et de validation, les murs redessinés tombent à moins de 0,1 m des murs officiels pour 95 % des pixels (un pixel vaut 0,09 m), et à 0,18 m au pire (test `test_render_reproduces_every_official_map`).
+
+**Génération.** Les fichiers sont produits au premier usage dans `runs/track_variants/maps/<nom>/` (ignoré par git), en une fraction de seconde, de façon reproductible et atomique (plusieurs workers peuvent demander la même variante). `GENERATOR_VERSION` régénère les variantes quand le générateur change.
+
+**Chargement.** `env_simulation.set_map` construit ses chemins à partir de `_REPO_ROOT/maps/<nom>` puis ne garde que des chemins absolus. `variants.install()`, appelé à l'import de `crashlearn.env`, enveloppe `set_map` : pour un nom de variante, il pointe `_REPO_ROOT` vers le dossier des variantes le temps de ce seul appel.
+
+**Norisring, un circuit réel que l'école n'a pas repris.** Les 23 cartes viennent de la [TUMFTM racetrack-database](https://github.com/TUMFTM/racetrack-database) : chaque centerline en reprend les points un à un, réduits d'un facteur propre à chaque circuit (0,065 pour Montreal à 0,092 pour Budapest). La base compte deux circuits de plus, Norisring et Suzuka.
+
+- **Norisring** est construit comme l'école a construit les autres : départ en (0, 0), couloir de 2,229 m (la largeur médiane de nos cartes), tracé étalé sur 1 726 pixels d'une image de 2 000, centré. À l'échelle médiane (0,0801), ses deux lignes droites parallèles, à 25,8 m l'une de l'autre en vrai, fusionnent en un seul couloir : on l'agrandit à 0,128, la plus petite échelle qui les sépare, soit 294 m au tour, entre Oschersleben et IMS. Le pilote scripté le termine, ainsi que ses variantes. Il s'utilise par son nom, `Norisring`, et accepte les mêmes transformations (`Norisring@mirror`).
+- **Suzuka** n'est pas utilisable : son tracé se croise (un pont en vrai). Le simulateur projette la voiture sur le point de centerline le plus proche, sur tout le tour : au croisement, la progression saute de 41 % d'un tour, et la voiture est déclarée en abandon. C'est sans doute la raison de son absence, et celle de Norisring à l'échelle commune : **ni l'un ni l'autre n'a de bonnes chances d'être au tournoi**. Norisring sert donc à mesurer la généralisation sur un vrai circuit inédit.
+
+**Deux usages séparés.** Ils sont déclarés dans le bloc `variants` de `tracks.yaml`.
+
+- **Le banc de test** (`tracks.variant_test_tracks()`, 26 circuits) : Norisring, et les 4 circuits de validation plus Norisring, chacun en `reverse`, `mirror`, `narrow`, `bend1` et `section1`. Aucun pilote ne s'entraîne dessus. `evaluate_drivers.py --variants` les ajoute à la campagne en partition `variant`, en conditions nominales. Premiers résultats : [`results/e-60`](results/e-60/README.md).
+- **La randomisation à l'entraînement** (`CrashLearnEnv(track_variants=p)`, `train_ppo.py --track-variants p`) : une part `p` des épisodes tirés sur un circuit d'entraînement roule sur une variante de ce circuit (`tracks.random_train_variant`), avec une graine de 1 à 1 000 pour `bend` et `section`. Les circuits de validation ne sont jamais randomisés. À `p = 0`, la valeur par défaut, l'environnement ne tire rien de plus : les anciennes seeds rejouent à l'identique. Un tirage impossible (IMS n'a pas de virage) roule sur le circuit d'origine.
+
+**Règle.** Un circuit du test scellé ne sert jamais de base (`PermissionError`) : un Spa en miroir serait déjà un regard sur Spa.
+
 ## Métriques géométriques : limites
 
 Les champs `geometry_*` sont des **descripteurs géométriques** calculés à partir de la seule centerline. Ce ne sont **pas des mesures de difficulté** : aucun agent n'a encore roulé.
