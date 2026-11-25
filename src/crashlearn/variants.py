@@ -6,6 +6,12 @@ A variant is named `<Base>@<kind>[+<kind>...]`, for instance `Sochi@mirror` or
 - `reverse`: the same corridor, driven the other way. The start stays on the first point.
 - `mirror`: the track flipped left to right, so left turns become right turns.
 - `narrow`: both half-widths times `NARROW_FACTOR`; the walls are redrawn (`render`).
+- `bend<seed>`: one bend tightened or widened, drawn at random from the seed.
+- `section<seed>`: one stretch pushed sideways by a smooth bump, drawn from the seed.
+
+`bend` and `section` move the centerline only inside a window, so the loop stays closed and
+the start untouched. A draw is kept only if the new corridor stays drivable (`check`);
+otherwise the next draw of the same seed is tried. `Sochi@bend3` is always the same track.
 
 A map is three files: an occupancy image (thin black walls on a free background), a YAML
 (resolution, origin) and the centerline (`x_m, y_m, w_tr_right_m, w_tr_left_m`). The
@@ -21,8 +27,10 @@ serve as a base: a variant of Spa would already be a look at Spa.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import tempfile
+import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -30,13 +38,27 @@ import numpy as np
 import yaml
 from PIL import Image, ImageDraw
 from scipy import ndimage
+from scipy.spatial import cKDTree
 
 from crashlearn import add_simulator_to_path, tracks
 
 VARIANTS_DIR = Path(__file__).resolve().parents[2] / "runs" / "track_variants"
-GENERATOR_VERSION = 1
-KINDS = ("reverse", "mirror", "narrow")
+GENERATOR_VERSION = 2
+KINDS = ("reverse", "mirror", "narrow", "bend<seed>", "section<seed>")
+KIND_PATTERN = re.compile(r"(reverse|mirror|narrow|(bend|section)(\d+))")
 NARROW_FACTOR = 0.75
+# geometric edits (bend, section)
+SMOOTH_M = 6.0  # curvature is averaged over this length: below it, it is drawing noise
+BEND_MIN_CURVATURE = 0.15  # rad/m, radius < 6.7 m: what counts as a bend
+TIGHTEN = (0.55, 0.85)  # bend radius scale when tightened
+WIDEN = (1.3, 2.0)  # bend radius scale when widened
+SECTION_LENGTH_M = (6.0, 16.0)
+SECTION_SHIFT_M = (0.6, 1.8)
+START_GUARD_M = 15.0  # the start and the grid behind it are never edited
+MIN_RADIUS_M = 1.0  # smoothed, at the centerline; the car turns on 0.74 m at full lock
+INNER_CLEARANCE_M = 0.3  # inner edge radius left once the inner half-width is taken
+GAP_CLEARANCE_M = 0.5  # between two corridors that the edit brought closer
+MAX_DRAWS = 50
 WALL_PX = 3  # thickness of the official walls, measured on every map
 FREE, WALL = 255, 0
 # a pocket of wall-enclosed free space smaller than this inside the corridor is an
@@ -67,7 +89,7 @@ def parse_name(name: str) -> tuple[str, tuple[str, ...]]:
     if not sep or not spec:
         raise ValueError(f"not a variant name: {name!r}")
     kinds = tuple(spec.split("+"))
-    unknown = [k for k in kinds if k not in KINDS]
+    unknown = [k for k in kinds if not KIND_PATTERN.fullmatch(k)]
     if unknown:
         raise ValueError(f"unknown variant kinds {unknown} in {name!r}, known: {KINDS}")
     return tracks.canonical_name(base), kinds
@@ -116,7 +138,168 @@ def narrow(track: TrackMap, factor: float = NARROW_FACTOR) -> TrackMap:
     return TrackMap(c, render(redrawn), track.resolution, track.origin)
 
 
+# --- geometric edits -----------------------------------------------------------------
+
+
+def _loop_geometry(xy: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Arc length at each point, step to the next one, smoothed signed curvature (+ = left)."""
+    step = np.hypot(*(np.roll(xy, -1, axis=0) - xy).T)
+    heading = np.arctan2(*(np.roll(xy, -1, axis=0) - xy).T[::-1])
+    turn = np.angle(np.exp(1j * (heading - np.roll(heading, 1))))
+    curvature = turn / np.maximum((step + np.roll(step, 1)) / 2, 1e-9)
+    window = max(3, int(round(SMOOTH_M / step.mean())) | 1)
+    smooth = ndimage.uniform_filter1d(curvature, window, mode="wrap")
+    return np.r_[0.0, np.cumsum(step)[:-1]], step, smooth
+
+
+def _editable(arc: np.ndarray, total: float) -> np.ndarray:
+    return (arc > START_GUARD_M) & (arc < total - START_GUARD_M)
+
+
+def find_bends(track: TrackMap) -> list[tuple[int, int, int]]:
+    """(first, apex, last) index of each bend, sharpest first, away from the start."""
+    arc, step, curvature = _loop_geometry(track.centerline[:, :2])
+    editable = _editable(arc, arc[-1] + step[-1])
+    strength = np.where(editable, np.abs(curvature), 0.0)
+    bends = []
+    while strength.max() >= BEND_MIN_CURVATURE:
+        apex = int(np.argmax(strength))
+        inside = np.abs(curvature) >= strength[apex] / 2
+        first = last = apex
+        while first > 0 and inside[first - 1] and editable[first - 1]:
+            first -= 1
+        while last < len(arc) - 1 and inside[last + 1] and editable[last + 1]:
+            last += 1
+        bends.append((first, apex, last))
+        strength[max(0, first - 1) : last + 2] = 0.0
+    return bends
+
+
+def _taper(arc: np.ndarray, start: float, plateau: tuple[float, float], end: float) -> np.ndarray:
+    """0 outside [start, end], 1 on the plateau, raised-cosine ramps in between."""
+    weight = np.zeros_like(arc)
+    up = (arc > start) & (arc < plateau[0])
+    weight[up] = (1 - np.cos(np.pi * (arc[up] - start) / (plateau[0] - start))) / 2
+    weight[(arc >= plateau[0]) & (arc <= plateau[1])] = 1.0
+    down = (arc > plateau[1]) & (arc < end)
+    weight[down] = (1 + np.cos(np.pi * (arc[down] - plateau[1]) / (end - plateau[1]))) / 2
+    return weight
+
+
+def scale_bend(track: TrackMap, bend: tuple[int, int, int], scale: float) -> TrackMap:
+    """Scale the bend radius about its centre of curvature, blended in and out."""
+    xy = track.centerline[:, :2]
+    arc, _, curvature = _loop_geometry(xy)
+    first, apex, last = bend
+    radius = 1.0 / curvature[apex]  # signed: > 0 for a left turn, centre on the left
+    left = -right_normals(xy)[apex]
+    centre = xy[apex] + left * radius
+    ramp = max(SMOOTH_M, arc[last] - arc[first])
+    lo = max(arc[first] - ramp, START_GUARD_M)
+    hi = min(arc[last] + ramp, arc[-1] - START_GUARD_M)
+    weight = _taper(arc, lo, (arc[first], arc[last]), hi)
+    moved = weight > 0  # elsewhere, leave the points bit for bit
+    factor = 1.0 + (scale - 1.0) * weight[moved]
+    edited = track.centerline.copy()
+    edited[moved, :2] = centre + (xy[moved] - centre) * factor[:, None]
+    return TrackMap(edited, track.image, track.resolution, track.origin)
+
+
+def shift_section(track: TrackMap, start_m: float, length_m: float, shift_m: float) -> TrackMap:
+    """Push a stretch sideways (+ = right) by a smooth bump that is zero at both ends."""
+    xy = track.centerline[:, :2]
+    arc, _, _ = _loop_geometry(xy)
+    u = (arc - start_m) / length_m
+    bump = np.where((u > 0) & (u < 1), (1 - np.cos(2 * np.pi * u)) / 2, 0.0)
+    edited = track.centerline.copy()
+    edited[:, :2] = xy + right_normals(xy) * (shift_m * bump)[:, None]
+    return TrackMap(edited, track.image, track.resolution, track.origin)
+
+
+def check(edited: TrackMap, original: TrackMap) -> str | None:
+    """Why the edited corridor is not drivable, or None."""
+    xy = edited.centerline[:, :2]
+    _, step, curvature = _loop_geometry(xy)
+    radius = 1.0 / np.maximum(np.abs(curvature), 1e-9)
+    if radius.min() < MIN_RADIUS_M:
+        return f"radius {radius.min():.2f} m < {MIN_RADIUS_M} m"
+    inner = np.where(curvature > 0, edited.centerline[:, 3], edited.centerline[:, 2])
+    if np.any(radius - inner < INNER_CLEARANCE_M):
+        return "the inner edge folds over itself"
+    row, col = edited.pixel(xy[:, 0], xy[:, 1])
+    margin = 2 * WALL_PX + 2
+    h, w = edited.image.shape
+    if row.min() < margin or col.min() < margin or row.max() > h - margin or col.max() > w - margin:
+        return "the track leaves the image"
+    # two parts of the loop that the edit brought closer than their corridors allow
+    half = edited.centerline[:, 2:].max(axis=1)
+    reach = 2 * half.max() + 2 * WALL_PX * edited.resolution + GAP_CLEARANCE_M
+    arc = np.r_[0.0, np.cumsum(step)[:-1]]
+    total = arc[-1] + step[-1]
+    before = original.centerline[:, :2]
+    pairs = cKDTree(xy).query_pairs(reach, output_type="ndarray")
+    if len(pairs):
+        i, j = pairs.T
+        along = np.abs(arc[i] - arc[j])
+        far = np.minimum(along, total - along) >= 3 * reach  # not neighbours on one stretch
+        gap = np.hypot(*(xy[i] - xy[j]).T)
+        need = half[i] + half[j] + 2 * WALL_PX * edited.resolution + GAP_CLEARANCE_M
+        closer = gap < np.hypot(*(before[i] - before[j]).T) - 1e-6
+        bad = far & (gap < need) & closer
+        if bad.any():
+            k = int(np.argmax(bad))
+            return f"two stretches {gap[k]:.2f} m apart, {need[k]:.2f} m needed"
+    return None
+
+
+def _rng(base: str, kind: str, seed: int) -> np.random.Generator:
+    return np.random.default_rng([zlib.crc32(f"{base}/{kind}".encode()), seed])
+
+
+def random_bend(track: TrackMap, base: str, seed: int) -> TrackMap:
+    bends = find_bends(track)
+    if not bends:
+        raise ValueError(f"{base}: no bend sharper than {BEND_MIN_CURVATURE} rad/m")
+    rng = _rng(base, "bend", seed)
+    for _ in range(MAX_DRAWS):
+        bend = bends[rng.integers(len(bends))]
+        scale = rng.uniform(*(TIGHTEN if rng.random() < 0.5 else WIDEN))
+        edited = scale_bend(track, bend, scale)
+        if check(edited, track) is None:
+            return _redrawn(edited)
+    raise ValueError(f"{base}@bend{seed}: no drivable draw in {MAX_DRAWS}")
+
+
+def random_section(track: TrackMap, base: str, seed: int) -> TrackMap:
+    arc, step, _ = _loop_geometry(track.centerline[:, :2])
+    total = arc[-1] + step[-1]
+    rng = _rng(base, "section", seed)
+    for _ in range(MAX_DRAWS):
+        length = rng.uniform(*SECTION_LENGTH_M)
+        start = rng.uniform(START_GUARD_M, total - START_GUARD_M - length)
+        shift = rng.uniform(*SECTION_SHIFT_M) * rng.choice([-1.0, 1.0])
+        edited = shift_section(track, start, length, shift)
+        if check(edited, track) is None:
+            return _redrawn(edited)
+    raise ValueError(f"{base}@section{seed}: no drivable draw in {MAX_DRAWS}")
+
+
+def _redrawn(track: TrackMap) -> TrackMap:
+    return TrackMap(track.centerline, render(track), track.resolution, track.origin)
+
+
 TRANSFORMS = {"reverse": reverse, "mirror": mirror, "narrow": narrow}
+
+
+def apply(track: TrackMap, kind: str, base: str) -> TrackMap:
+    match = KIND_PATTERN.fullmatch(kind)
+    if match is None:
+        raise ValueError(f"unknown variant kind {kind!r}")
+    if match[2] == "bend":
+        return random_bend(track, base, int(match[3]))
+    if match[2] == "section":
+        return random_section(track, base, int(match[3]))
+    return TRANSFORMS[kind](track)
 
 
 # --- drawing -------------------------------------------------------------------------
@@ -175,7 +358,7 @@ def build(name: str) -> TrackMap:
     base, kinds = parse_name(name)
     track = load_official(base)
     for kind in kinds:
-        track = TRANSFORMS[kind](track)
+        track = apply(track, kind, base)
     return track
 
 

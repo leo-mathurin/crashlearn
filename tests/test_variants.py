@@ -112,3 +112,52 @@ def test_env_drives_a_variant():
         assert info["progress_delta"] >= 0
     finally:
         env.close()
+
+
+# --- geometric edits (bend, section) -------------------------------------------------
+
+
+def test_edit_names():
+    assert variants.parse_name("Sochi@bend3+section12") == ("Sochi", ("bend3", "section12"))
+    for bad in ("Sochi@bend", "Sochi@section-1", "Sochi@bendy"):
+        with pytest.raises(ValueError):
+            variants.parse_name(bad)
+
+
+@pytest.mark.parametrize("name", ["Montreal@bend1", "Sochi@section2", "Austin@mirror+bend2"])
+def test_edits_are_reproducible_local_and_drivable(name):
+    built = variants.build(name)
+    assert np.array_equal(built.centerline, variants.build(name).centerline)
+    base, kinds = variants.parse_name(name)
+    reference = variants.load_official(base)
+    for kind in kinds[:-1]:
+        reference = variants.apply(reference, kind, base)
+    moved = np.any(built.centerline[:, :2] != reference.centerline[:, :2], axis=1)
+    assert 0 < moved.sum() < len(moved) / 4  # one bend or one stretch, not the whole loop
+    arc, step, _ = variants._loop_geometry(reference.centerline[:, :2])
+    assert not moved[~variants._editable(arc, arc[-1] + step[-1])].any()  # start untouched
+    assert np.array_equal(built.centerline[:, 2:], reference.centerline[:, 2:])
+    assert variants.check(built, reference) is None
+    assert np.all(clearance_m(built) > 0.3)
+
+
+def test_different_seeds_give_different_tracks():
+    shapes = {variants.build(f"Montreal@section{seed}").centerline.tobytes() for seed in range(4)}
+    assert len(shapes) == 4
+
+
+def test_check_rejects_a_corridor_pushed_onto_another():
+    official = variants.load_official("Montreal")
+    arc, _, _ = variants._loop_geometry(official.centerline[:, :2])
+    reasons = {
+        variants.check(variants.shift_section(official, start, 12.0, shift), official)
+        for start in np.linspace(20, arc[-1] - 40, 12)
+        for shift in (-6.0, 6.0)
+    }
+    assert any(r and "apart" in r for r in reasons)
+    assert any(r and ("radius" in r or "folds" in r) for r in reasons)
+
+
+def test_a_track_without_bends_refuses_bend():
+    with pytest.raises(ValueError, match="no bend"):
+        variants.build("IMS@bend1")

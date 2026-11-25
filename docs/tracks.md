@@ -116,6 +116,10 @@ Une variante s'appelle `<Base>@<transformation>[+<transformation>...]`, appliqu�
 | `reverse` | On roule dans l'autre sens. Le départ reste sur le premier point, les côtés droit et gauche s'échangent | Identique |
 | `mirror` | Le circuit est retourné de gauche à droite : les virages à gauche deviennent des virages à droite | Retournée, origine recalculée pour que chaque pixel garde sa position |
 | `narrow` | Les deux demi-largeurs sont multipliées par `NARROW_FACTOR` (0,75) | Redessinée |
+| `bend<graine>` | Un virage tiré au sort est resserré (rayon × 0,55 à 0,85) ou élargi (× 1,3 à 2) autour de son centre de courbure, avec des raccords progressifs | Redessinée |
+| `section<graine>` | Un tronçon tiré au sort, de 6 à 16 m, est poussé sur le côté de 0,6 à 1,8 m par une bosse douce, nulle à ses deux bouts | Redessinée |
+
+`bend` et `section` ne déplacent la centerline que dans une fenêtre : la boucle reste fermée, les largeurs ne changent pas, et les 15 premiers et derniers mètres (le départ et la grille) ne bougent jamais. Un tirage n'est gardé que si le couloir reste praticable (`variants.check`) : rayon lissé sur 6 m d'au moins 1 m, bord intérieur qui ne se replie pas, piste dans l'image, et aucun tronçon rapproché d'un autre au point que leurs couloirs se touchent. Sinon on passe au tirage suivant de la même graine. Une graine donne toujours le même circuit : `Sochi@bend3` est reproductible, et `Sochi@bend1` à `Sochi@bend50` donnent 50 circuits différents. IMS, un ovale sans virage serré, n'accepte pas `bend`.
 
 Une carte, ce sont trois fichiers cohérents : la centerline (départ, progression, sortie de piste), l'image (LiDAR et contacts avec les murs) et le YAML (résolution, origine). Chaque variante réécrit les trois.
 
