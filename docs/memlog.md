@@ -261,3 +261,7 @@ Le tournoi testera sans doute des circuits nouveaux ou modifiés, et nos 4 circu
 
 Première mesure, sur 135 courses par pilote (`docs/results/e-60`) : driver1 finit 93,6 % des variantes, mais perd plus de 10 points en sens inverse et en couloir rétréci ; driver2 finit 52,6 % des variantes et 33 % de la validation, et ses abandons suivent le circuit d'origine, pas la transformation. Pourquoi : mesurer la généralisation avant d'entraîner les nouveaux pilotes, et leur donner de quoi s'y entraîner. Décision : la règle d'abandon des pistes (E-59) jugera aussi sur ce banc.
 
+## 2026-11-25 · [Entraînement] Sans progression dès l'entraînement, et feature dropout (E-57)
+
+Deux options de `train_ppo.py` pour réentraîner driver2 avec les recettes de driver1, sans correction après coup (E-56). `--progress-blind` met à zéro les entrées de progression (sinus, cosinus, tours accomplis) de chaque observation empilée, et leurs poids de première couche à la création : avec une entrée nulle, ces poids ne reçoivent aucun gradient et restent nuls, donc le modèle exporté ignore la vraie progression que `agent.py` reçoit au tournoi. `--feature-dropout p` met à zéro chaque feature de la voiture (rayons LiDAR, vitesse, braquage) avec la probabilité `p` à chaque décision, à l'entraînement seulement. Les deux sont désactivées par défaut. Pourquoi : E-18 et E-60 montrent que driver2 apprend ses circuits par cœur. Protocole figé avant tout run : `docs/results/e-57/README.md`, avec les circuits modifiés (`--track-variants 0.3`) dans la recette.
+

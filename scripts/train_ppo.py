@@ -21,7 +21,13 @@ from crashlearn.experiments import (
     initialization_source,
     sha256,
 )
-from crashlearn.history_env import FrictionWrapper, HistoryWrapper
+from crashlearn.features import FEATURE_SIZE
+from crashlearn.history_env import (
+    PROGRESS_COLUMNS,
+    FrictionWrapper,
+    HistoryWrapper,
+    InputMaskWrapper,
+)
 from crashlearn.tracks import train_tracks
 from crashlearn.weather import WeatherConfig
 
@@ -42,12 +48,16 @@ def make_env(depth: int, track: str | None, config: dict):
         map_cache.install()
         weather = config["weather"]
         env = HistoryWrapper(
-            CrashLearnEnv(
-                maps=track,
-                max_speed=config["max_speed"],
-                random_start=config["random_start"],
-                weather=WeatherConfig(**weather) if weather else None,
-                track_variants=config["track_variants"],
+            InputMaskWrapper(
+                CrashLearnEnv(
+                    maps=track,
+                    max_speed=config["max_speed"],
+                    random_start=config["random_start"],
+                    weather=WeatherConfig(**weather) if weather else None,
+                    track_variants=config["track_variants"],
+                ),
+                progress_blind=config["progress_blind"],
+                feature_dropout=config["feature_dropout"],
             ),
             depth,
         )
@@ -80,6 +90,8 @@ def build_model(args: argparse.Namespace, env, run: Run):
     if args.resume:
         return PPO.load(args.resume, env=env, device=args.device)
     model = PPO("MlpPolicy", env, seed=args.seed, device=args.device, **PPO_CONFIG)
+    if args.progress_blind:
+        blind_progress(model, args.history_depth)
     if args.initialize_from:
         source = PPO.load(args.initialize_from, device=args.device)
         copy_policy(source, model)
@@ -90,8 +102,28 @@ def build_model(args: argparse.Namespace, env, run: Run):
             "source_timesteps": source.num_timesteps,
             "optimizer_restored": False,
         }
+        if args.progress_blind:
+            blind_progress(model, args.history_depth)  # the source may read the progress
         model.set_random_seed(args.seed)
     return model
+
+
+def progress_columns(depth: int) -> list[int]:
+    """The progress inputs of every stacked frame."""
+    frame = list(range(FEATURE_SIZE)[PROGRESS_COLUMNS])
+    return [k * FEATURE_SIZE + c for k in range(depth) for c in frame]
+
+
+def blind_progress(model, depth: int) -> None:
+    """Zero the first-layer weights of the progress inputs (E-57, `InputMaskWrapper`)."""
+    import torch
+
+    with torch.no_grad():
+        for network in (
+            model.policy.mlp_extractor.policy_net,
+            model.policy.mlp_extractor.value_net,
+        ):
+            network[0].weight[:, progress_columns(depth)] = 0
 
 
 def train(args: argparse.Namespace, run: Run) -> None:
@@ -201,6 +233,17 @@ def main() -> int:
         help="E-60: share of episodes on a modified train track, in [0, 1]",
     )
     parser.add_argument(
+        "--progress-blind",
+        action="store_true",
+        help="E-57: train without the lap progress inputs (zero inputs and weights)",
+    )
+    parser.add_argument(
+        "--feature-dropout",
+        type=float,
+        default=0.0,
+        help="E-57: probability of zeroing each ego feature at every decision, in [0, 1)",
+    )
+    parser.add_argument(
         "--friction-feature",
         action="store_true",
         help="E-23 measurement: append friction_current to the observation (not exportable)",
@@ -219,6 +262,8 @@ def main() -> int:
         parser.error(f"no checkpoint at {args.initialize_from}")
     if not 0 < args.max_speed <= SPEED_MAX:
         parser.error(f"--max-speed must be in (0, {SPEED_MAX}]")
+    if not 0 <= args.feature_dropout < 1:
+        parser.error("--feature-dropout must be in [0, 1)")
     if not 0 <= args.track_variants <= 1:
         parser.error("--track-variants must be in [0, 1]")
     if not 0 <= args.nominal_share <= 1:
@@ -237,6 +282,8 @@ def main() -> int:
         else None,
         "friction_feature": args.friction_feature,
         "track_variants": args.track_variants,
+        "progress_blind": args.progress_blind,
+        "feature_dropout": args.feature_dropout,
     }
     try:
         args.initialization = (
