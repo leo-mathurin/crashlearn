@@ -254,3 +254,10 @@ Retour de Léo après essai : voitures saccadées, ouverture lente, panneaux qui
 ## 2026-11-19 · [Évaluation] Le 400/400 de driver1 est une mesure sur les cartes de sélection
 
 Correction de l'entrée du 2026-11-10 sur driver1. Les quatre cartes de validation ont servi à choisir l'ablation de la progression et le plafond de 4,75 m/s ; les seeds 200 à 299 ne changent que le bruit du moteur. Le 400/400 est donc optimiste : il décrit les cartes de sélection, pas la généralisation, qui se jugera sur les circuits test scellés. Pourquoi : remarque de méthode de Thibaud sur #19. Au passage, `--initialize-from` exige désormais un checkpoint enregistré par un run au même prétraitement, comme une reprise. Détails : `docs/results/driver1/README.md`.
+
+## 2026-11-25 · [Évaluation] Circuits modifiés : un banc de généralisation sans ouvrir le test (E-60)
+
+Le tournoi testera sans doute des circuits nouveaux ou modifiés, et nos 4 circuits de test ne s'ouvrent qu'une fois. `crashlearn.variants` dérive donc des circuits modifiés des cartes officielles, sans toucher `vendor/` : sens inverse, miroir, couloir rétréci, virage resserré ou élargi, tronçon déformé, plus Norisring, un circuit réel de la base TUMFTM que l'école n'a pas repris. Suzuka, l'autre circuit absent, se croise lui-même : la progression du simulateur y saute de 41 % d'un tour, il est inutilisable. Le banc compte 26 circuits tirés de la validation et de Norisring, jamais de l'entraînement ; `--track-variants` randomise les circuits d'entraînement de la même façon. Le témoin scripté finit les 197 variantes essayées, et Norisring.
+
+Première mesure, sur 135 courses par pilote (`docs/results/e-60`) : driver1 finit 93,6 % des variantes, mais perd plus de 10 points en sens inverse et en couloir rétréci ; driver2 finit 52,6 % des variantes et 33 % de la validation, et ses abandons suivent le circuit d'origine, pas la transformation. Pourquoi : mesurer la généralisation avant d'entraîner les nouveaux pilotes, et leur donner de quoi s'y entraîner. Décision : la règle d'abandon des pistes (E-59) jugera aussi sur ce banc.
+

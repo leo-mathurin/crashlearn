@@ -20,6 +20,10 @@ Friction and LiDAR noise: the official simulator pins them (friction 1.0, noise 
 upstream). `friction` and `lidar_noise` override them from our side for a whole episode,
 `vendor/` untouched; `None` keeps the official behaviour. `weather` changes both during the
 episode, as the tournament does (E-23, `crashlearn.weather`).
+
+Track randomization (E-60): with `track_variants` > 0, that share of episodes drawn on a train
+track runs on a modified version of it instead (`crashlearn.variants`). Maps may also name a
+variant or a new track directly, such as `Sochi@mirror` or `Norisring`.
 """
 
 from collections.abc import Callable, Sequence
@@ -31,7 +35,7 @@ from gymnasium import spaces
 
 from crashlearn import MAX_DECISIONS, add_simulator_to_path, engine_seed, features, variants
 from crashlearn.reward import STATUS_ACTIVE, STATUS_DNF, STATUS_FINISHED, RaceReward, RewardConfig
-from crashlearn.tracks import train_tracks
+from crashlearn.tracks import random_train_variant, train_tracks
 from crashlearn.weather import Segment, WeatherConfig, schedule
 
 add_simulator_to_path()
@@ -93,6 +97,7 @@ class CrashLearnEnv(gym.Env):
         max_speed: float = SPEED_MAX,
         random_start: bool = False,
         weather: WeatherConfig | None = None,
+        track_variants: float = 0.0,
     ):
         global _open_env
         if _open_env is not None:
@@ -105,6 +110,8 @@ class CrashLearnEnv(gym.Env):
             raise ValueError(f"max_speed must be in (0, {SPEED_MAX}]")
         if random_start and num_cars != 1:
             raise ValueError("random_start is only supported for solo training")
+        if not 0.0 <= track_variants <= 1.0:
+            raise ValueError("track_variants is a share of episodes, in [0, 1]")
         if weather is not None and (friction is not None or lidar_noise is not None):
             raise ValueError("weather replaces the friction and lidar_noise overrides")
 
@@ -124,6 +131,7 @@ class CrashLearnEnv(gym.Env):
         self.lidar_noise = lidar_noise
         self.max_speed = max_speed
         self.random_start = random_start
+        self.track_variants = track_variants
         self.weather = weather
 
         self.observation_space = spaces.Box(-1.0, 1.0, (OBS_SIZE,), dtype=np.float32)
@@ -143,7 +151,17 @@ class CrashLearnEnv(gym.Env):
         options = options or {}
 
         name = options.get("map") or self.maps[int(self.np_random.integers(len(self.maps)))]
-        sim.set_map(name)
+        # E-60 track randomization: no draw at all when off, so older seeds replay unchanged
+        if "map" not in options and self.track_variants and name in train_tracks():
+            if self.np_random.random() < self.track_variants:
+                name = random_train_variant(name, self.np_random)
+        try:
+            sim.set_map(name)
+        except ValueError:
+            if not variants.is_variant(name) or "map" in options:
+                raise
+            name = name.partition("@")[0]  # no drivable draw (IMS has no bend): the base
+            sim.set_map(name)
         self._map = name
 
         # One seed per episode from np_random: seeding once makes every later episode

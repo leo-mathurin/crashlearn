@@ -186,3 +186,57 @@ def test_new_tracks_take_variants():
     assert variants.parse_name("Norisring@mirror+bend1") == ("Norisring", ("mirror", "bend1"))
     assert variants.is_generated("Norisring") and not variants.is_generated("Sochi")
     assert np.all(clearance_m(variants.build("Norisring@mirror")) > 0.5)
+
+
+# --- splits and track randomization (E-60) -------------------------------------------
+
+
+def test_variant_bench_never_touches_train_or_test_tracks():
+    bench = tracks.variant_test_tracks()
+    bases = {variants.parse_name(n)[0] if variants.is_variant(n) else n for n in bench}
+    assert bases == set(tracks.validation_tracks()) | {"Norisring"}
+    assert len(bench) == 26 and "Norisring" in bench
+
+
+def test_random_train_variants_stay_on_their_base():
+    rng = np.random.default_rng(0)
+    drawn = [tracks.random_train_variant("Austin", rng) for _ in range(200)]
+    assert {variants.parse_name(n)[0] for n in drawn} == {"Austin"}
+    kinds = {variants.parse_name(n)[1][0].rstrip("0123456789") for n in drawn}
+    assert kinds == {"reverse", "mirror", "narrow", "bend", "section"}
+    for base in ("Montreal", "Norisring", "Spa"):
+        with pytest.raises(ValueError):
+            tracks.random_train_variant(base, rng)
+
+
+def test_campaign_adds_the_bench_only_on_demand():
+    from crashlearn.evaluation import campaign
+
+    assert not {r.split for r in campaign()} & {"variant"}
+    races = campaign(conditions=["nominal"], seeds=(0,), variants=True)
+    assert {r.map for r in races if r.split == "variant"} == set(tracks.variant_test_tracks())
+
+
+@pytest.mark.slow
+def test_track_randomization_draws_variants_and_falls_back_on_ims():
+    from crashlearn.env import CrashLearnEnv
+
+    env = CrashLearnEnv(maps=("IMS", "Montreal"), track_variants=1.0, max_episode_steps=5)
+    try:
+        seen = set()
+        for seed in range(6):
+            env.reset(seed=seed)
+            seen.add(env.unwrapped._map)
+        # Montreal is a validation track: never randomized; IMS has no bend, falls back
+        assert "Montreal" in seen
+        assert all(n == "IMS" or n.startswith("IMS@") for n in seen - {"Montreal"})
+        assert not any(n.startswith("IMS@bend") for n in seen)
+    finally:
+        env.close()
+
+
+def test_track_randomization_is_off_by_default():
+    from crashlearn.env import CrashLearnEnv
+
+    with pytest.raises(ValueError):
+        CrashLearnEnv(track_variants=1.5)

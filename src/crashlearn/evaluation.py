@@ -78,9 +78,15 @@ def campaign(
     maps: list[str] | None = None,
     conditions: list[str] | None = None,
     seeds: tuple[int, ...] = EVAL_SEEDS,
+    variants: bool = False,
 ) -> list[Race]:
-    """Nominal races on train and validation, perturbed ones on validation. Never the test."""
+    """Nominal races on train and validation, perturbed ones on validation. Never the test.
+
+    `variants` adds nominal races on the modified tracks of the bench (E-60), split
+    `variant`: a driver that learned its tracks by heart loses finishes there."""
     nominal = [("train", tracks.train_tracks()), ("validation", tracks.validation_tracks())]
+    if variants:
+        nominal.append(("variant", tracks.variant_test_tracks()))
     perturbed = [("validation", tracks.validation_tracks())]
     return [
         Race(split, name, condition, seed)

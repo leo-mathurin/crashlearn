@@ -91,13 +91,16 @@ def main() -> int:
     parser.add_argument("--condition", action="append", choices=CONDITIONS, dest="conditions")
     parser.add_argument("--seed", action="append", type=int, dest="seeds")
     parser.add_argument(
+        "--variants", action="store_true", help="E-60: add the modified tracks of the bench"
+    )
+    parser.add_argument(
         "--max-steps", type=int, default=MAX_DECISIONS, help="decisions before TIMEOUT"
     )
     args = parser.parse_args()
     if args.output.exists():
         parser.error("output already exists; preserve prior results")
 
-    races = campaign(args.maps, args.conditions, tuple(args.seeds or EVAL_SEEDS))
+    races = campaign(args.maps, args.conditions, tuple(args.seeds or EVAL_SEEDS), args.variants)
     if not races:
         parser.error("no race left: --map must name a training or validation track")
 
