@@ -105,6 +105,28 @@ Si une récompense, une feature ou le replay venait à utiliser la raceline, il 
 
 Chargement réel : `uv run python scripts/check_track_loading.py` enchaîne `set_map`, `reset(num_cars=1)` et 20 décisions à 20 Hz sur chaque nom. Les 23 circuits se chargent. La version pytest est `uv run pytest -m slow tests/test_tracks.py`. Le chargement par le visualiseur (`viz_replay.py`) n'est pas couvert ici.
 
+## Circuits modifiés (E-60)
+
+Nos 4 circuits de test ne s'ouvrent qu'une fois : pour mesurer la généralisation d'ici le gel, et pour faire varier les circuits à l'entraînement, `crashlearn.variants` dérive des variantes des cartes officielles, sans toucher `vendor/`.
+
+Une variante s'appelle `<Base>@<transformation>[+<transformation>...]`, appliquées de gauche à droite : `Sochi@mirror`, `Montreal@mirror+reverse`. On l'utilise comme un circuit officiel : `CrashLearnEnv(maps="Sochi@mirror")` ou `env.reset(options={"map": "Sochi@narrow"})`.
+
+| Transformation | Ce qui change | Image |
+|---|---|---|
+| `reverse` | On roule dans l'autre sens. Le départ reste sur le premier point, les côtés droit et gauche s'échangent | Identique |
+| `mirror` | Le circuit est retourné de gauche à droite : les virages à gauche deviennent des virages à droite | Retournée, origine recalculée pour que chaque pixel garde sa position |
+| `narrow` | Les deux demi-largeurs sont multipliées par `NARROW_FACTOR` (0,75) | Redessinée |
+
+Une carte, ce sont trois fichiers cohérents : la centerline (départ, progression, sortie de piste), l'image (LiDAR et contacts avec les murs) et le YAML (résolution, origine). Chaque variante réécrit les trois.
+
+**Le dessin des murs.** Les cartes officielles sont des murs de 3 pixels (0,28 m) sur fond libre, à la distance de la centerline que donnent les largeurs mesurées. `variants.render` redessine ce couloir à partir de la seule centerline et de ses largeurs. Sur les 19 circuits d'entraînement et de validation, les murs redessinés tombent à moins de 0,1 m des murs officiels pour 95 % des pixels (un pixel vaut 0,09 m), et à 0,18 m au pire (test `test_render_reproduces_every_official_map`).
+
+**Génération.** Les fichiers sont produits au premier usage dans `runs/track_variants/maps/<nom>/` (ignoré par git), en une fraction de seconde, de façon reproductible et atomique (plusieurs workers peuvent demander la même variante). `GENERATOR_VERSION` régénère les variantes quand le générateur change.
+
+**Chargement.** `env_simulation.set_map` construit ses chemins à partir de `_REPO_ROOT/maps/<nom>` puis ne garde que des chemins absolus. `variants.install()`, appelé à l'import de `crashlearn.env`, enveloppe `set_map` : pour un nom de variante, il pointe `_REPO_ROOT` vers le dossier des variantes le temps de ce seul appel.
+
+**Règle.** Un circuit du test scellé ne sert jamais de base (`PermissionError`) : un Spa en miroir serait déjà un regard sur Spa.
+
 ## Métriques géométriques : limites
 
 Les champs `geometry_*` sont des **descripteurs géométriques** calculés à partir de la seule centerline. Ce ne sont **pas des mesures de difficulté** : aucun agent n'a encore roulé.

@@ -29,13 +29,15 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from crashlearn import MAX_DECISIONS, add_simulator_to_path, engine_seed, features
+from crashlearn import MAX_DECISIONS, add_simulator_to_path, engine_seed, features, variants
 from crashlearn.reward import STATUS_ACTIVE, STATUS_DNF, STATUS_FINISHED, RaceReward, RewardConfig
 from crashlearn.tracks import train_tracks
 from crashlearn.weather import Segment, WeatherConfig, schedule
 
 add_simulator_to_path()
 import env_simulation as sim  # noqa: E402
+
+variants.install()  # set_map also loads the modified tracks of E-60
 
 SPEED_MIN = -2.0
 SPEED_MAX = features.SPEED_MAX
@@ -108,7 +110,10 @@ class CrashLearnEnv(gym.Env):
 
         self.num_cars = num_cars
         self.maps = (maps,) if isinstance(maps, str) else tuple(maps or train_tracks())
-        unknown = set(self.maps) - set(sim.get_available_maps()) - {"example"}
+        for name in filter(variants.is_variant, self.maps):
+            variants.parse_name(name)  # raises on an unknown base or kind
+        official = {name for name in self.maps if not variants.is_variant(name)}
+        unknown = official - set(sim.get_available_maps()) - {"example"}
         if unknown:
             raise ValueError(f"unknown maps: {sorted(unknown)}")
         self.ego_id = ego_id
