@@ -54,4 +54,21 @@ Puis, pour chaque run : `uv run python scripts/evaluate_drivers.py --run-dir run
 
 ## Résultats
 
-À venir.
+Les 15 entraînements ont atteint les 5 007 360 interactions prévues au commit `d301653`. Les 2 925 courses d'évaluation sont complètes. Le tableau utilise les 90 courses nominales sur circuits inédits par modèle, soit 450 par bras.
+
+| Bras | Arrivées | Taux d'arrivée |
+|---|---:|---:|
+| `h1` | 373 / 450 | 82,9 % |
+| `h4` | 354 / 450 | 78,7 % |
+| `h4-dropout` | 254 / 450 | 56,4 % |
+
+Le bootstrap rééchantillonne les cinq graines d'entraînement appariées, avec 10 000 tirages et la graine de calcul 0, comme dans E-18. Un écart de chrono positif indique que le premier bras est plus lent, sur les courses que les deux bras terminent.
+
+| Comparaison | Écart d'arrivée (IC à 95 %) | Écart de chrono (IC à 95 %) | Verdict |
+|---|---|---|---|
+| `h4 − h1` | −4,2 points (−15,8 à +6,7) | +0,85 s (−0,64 à +2,15) | Non concluant |
+| `h4-dropout − h4` | −22,2 points (−59,3 à +5,1) | +3,29 s (+1,24 à +5,33) | Dropout plus lent |
+
+Sur la graine 4, le dropout finit 5 courses sur 90 et `h4` en finit 85. L'intervalle d'arrivée du dropout inclut zéro. La décision préétablie de garder `h1` comme référence tient à l'absence de gain concluant de `h4` et au coût du dropout sur le chrono.
+
+Les 15 fichiers d'évaluation et la synthèse `bootstrap.json` sont dans l'artefact versionné `results-e-57:v0`. Les empreintes des 16 fichiers figurent dans [SHA256SUMS](SHA256SUMS). [Artefact W&B](https://wandb.ai/crashlearn/crashlearn/artifacts/results/results-e-57/v0)
