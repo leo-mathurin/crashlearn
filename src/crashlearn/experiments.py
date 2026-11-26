@@ -42,6 +42,8 @@ FROZEN_CONFIG = {
     "weather": None,
     "friction_feature": False,
     "track_variants": 0.0,
+    "progress_blind": False,
+    "feature_dropout": 0.0,
 }
 
 

@@ -10,6 +10,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
+from crashlearn.features import EGO_SIZE, LIDAR_RAYS
 from crashlearn.history import DEPTH, CarHistory
 
 
@@ -63,3 +64,49 @@ class FrictionWrapper(gym.Wrapper):
 
     def _append(self, obs: np.ndarray, info: dict) -> np.ndarray:
         return np.append(obs, np.float32(friction_feature(info)))
+
+
+# sin and cos of the lap progress, then laps completed: after LiDAR, speed and steering.
+# Kept out of features.py, whose source is copied into the submission agent.py.
+PROGRESS_COLUMNS = slice(LIDAR_RAYS + 2, EGO_SIZE)
+# Seeds the feature dropout apart from the episode streams of the env
+DROPOUT_STREAM = 57
+
+
+class InputMaskWrapper(gym.Wrapper):
+    """E-57 training inputs, applied to each frame before `HistoryWrapper` stacks it.
+
+    - `progress_blind`: the lap progress (sin, cos) and the laps completed are always zero.
+      `train_ppo.py` also zeroes their first-layer weights at creation: with a zero input
+      they receive no gradient and stay zero, so the exported model ignores the real values
+      `agent.py` passes at the tournament. No correction after training (E-56).
+    - `feature_dropout`: at every decision, each ego feature (LiDAR rays, speed, steering) is
+      zeroed with this probability, so the driver cannot lean on a few rays. Training only.
+    """
+
+    def __init__(self, env: gym.Env, progress_blind: bool = False, feature_dropout: float = 0.0):
+        super().__init__(env)
+        if not 0.0 <= feature_dropout < 1.0:
+            raise ValueError("feature_dropout is a probability, in [0, 1)")
+        self.progress_blind = progress_blind
+        self.feature_dropout = feature_dropout
+        self._rng = np.random.default_rng()
+
+    def reset(self, *, seed: int | None = None, **kwargs):
+        if seed is not None:
+            self._rng = np.random.default_rng([seed, DROPOUT_STREAM])
+        obs, info = self.env.reset(seed=seed, **kwargs)
+        return self._mask(obs), info
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        return self._mask(obs), reward, terminated, truncated, info
+
+    def _mask(self, obs: np.ndarray) -> np.ndarray:
+        obs = obs.copy()
+        if self.feature_dropout:
+            drop = self._rng.random(EGO_SIZE) < self.feature_dropout
+            obs[:EGO_SIZE][drop] = 0.0
+        if self.progress_blind:
+            obs[PROGRESS_COLUMNS] = 0.0
+        return obs
