@@ -88,3 +88,169 @@ Accès au dépôt Epitech vérifié (E-7, `docs/remise.md`) : la remise sera un 
 E-5 / PR #12 : les reprises PPO depuis le checkpoint final et le dernier checkpoint périodique sont validées sur CUDA. La lecture T3 s’exécute sous l’utilisateur non privilégié et les travaux survivant dans une session `closing` restent détectés. Le seuil de charge 0,5 est conservé après une observation courte de 0,16 à 0,34 sans entraînement ni build ; ses limites et la procédure de recalibrage sont décrites dans `docs/station-gpu.md`. L’extinction réelle après une heure n’a pas été testée pendant cette validation.
 
 La documentation versionnée conserve le matériel, les commandes reproductibles et l’exploitation utile au projet. Les notes de migration et de configuration personnelles sont retirées du dépôt de livraison.
+
+## 2026-10-14 · [Reward] Reward v1 : progression en mètres, contacts journalisés sans poids
+
+Remplace la v0 du 16/09 (E-15, `docs/mdp.md`, `src/crashlearn/reward.py`). +1 par mètre de progression signée, +20 par tour, +50 à l'arrivée, -200 en cas d'abandon. Légères pénalités pour la lenteur (-0,1 par pas sous 1 m/s), la marche arrière au-delà de 1 s (-0,1 par pas) et les à-coups d'action (-0,02 × ‖Δa‖²). Contacts mur et voiture à 0 mais journalisés. Pourquoi :
+
+- **Mètres plutôt que `1000 × progress_delta`** : les circuits d'entraînement vont de 293 à 487 m. La v0 payait le même mètre 1,7 fois plus sur IMS que sur Sepang, et le même raccourci valait plus sur un petit circuit.
+- **Primes de tour et d'arrivée réduites** (+100 et +300 en v0) : la progression paie déjà le tour. Les primes ne font que marquer l'événement.
+- **DNF porté à -200** (-100 en v0) : un raccourci mortel comme celui de Sochi (+126 m puis DNF) doit rester perdant.
+
+Mesuré avec `scripts/reward_scale.py` sur les 15 circuits d'entraînement : un pilote propre à 6 m/s gagne environ +1 330 par course, dont 92 % en progression. Rester à l'arrêt, reculer ou conduire au hasard coûte entre -220 et -255. Coefficients de départ, à ajuster sur les entraînements (E-18, E-19, E-24).
+
+## 2026-10-14 · [MDP] Features uniques : 126 entrées, adversaires masqués aussi en solo
+
+E-16 (`docs/features.md`, `src/crashlearn/features.py`). Une seule source NumPy pour les features, utilisée par l'environnement d'entraînement et recopiée dans les `agent.py`. Aux 105 entrées existantes (LiDAR, vitesse, braquage, phase, tours) s'ajoutent 3 emplacements adversaires de 7 valeurs : masque, position relative, lacet, vitesse et écart de course. Seuls les adversaires en course sont lus, triés du plus proche au plus loin. Une donnée manquante prend une valeur neutre. Pourquoi :
+
+- **Même entrée en solo et pour le champion** : la politique solo se transfère sans changer d'architecture (ADR 0001).
+- **Tri par distance** : la politique ne doit pas dépendre du numéro de voiture.
+- **Lecture tolérante** : une exception dans l'agent vaut un DNF au tournoi.
+
+L'ancien schéma d'adversaires du loader est abandonné, puisque l'archive du 18/09 n'en a plus qu'un.
+
+## 2026-10-23 · [MDP] Mémoire temporelle par voiture, remise à zéro au moindre écart de pas
+
+E-13 (`docs/history.md`, `src/crashlearn/history.py`). Les pilotes avec historique empilent leurs quatre dernières observations dans une mémoire indexée par `agent_id`, jamais sur l'instance d'`Agent`. Au début d'un épisode, la première observation est recopiée quatre fois. Pourquoi :
+
+- **Par voiture** : rien n'oblige le tournoi à créer une instance par voiture, et `sim_recorder` prévoit d'en recopier une sur toutes les voitures. Avec le loader du 18/09, ce chemin n'est pas atteint, mais le harness du tournoi est inconnu.
+- **Nouvel épisode dès que le pas n'est pas le suivant** : ça couvre le recul du compteur, deux épisodes courts qui se suivent au même pas et une mémoire périmée après un trou.
+- **Dry-run reconnu** : l'observation factice du loader arrive au pas 0, juste avant le pas 1 de la course. Sans la reconnaître, elle entrerait dans l'historique de la voiture 0.
+- **Copie de la première observation plutôt que des zéros** : c'est aussi ce qu'il faudra faire à l'entraînement (pas de `VecFrameStack`), pour que le réseau voie les mêmes débuts d'épisode qu'au tournoi.
+
+Le pilote réactif reste sans état et sert de repli.
+
+## 2026-10-30 · [Évaluation] Témoin déterministe : les 15 cartes d'entraînement sont bouclées
+
+Pilote scripté sans apprentissage, qui vise la direction la plus dégagée du LiDAR (E-11, PR #5, `docs/scripted_driver.md`). Pourquoi : quand une métrique semble aberrante, rejouer la même course avec lui dit si le problème vient du simulateur, de la mesure ou de la politique RL. Sur l'archive du 18/09, aucun DNF ni contact mur : 3 tours seul sur 5 cartes (seeds 0 à 2), 3 tours à 4 voitures sur Austin et Budapest, 1 tour seul sur les 10 autres cartes.
+
+Il a confirmé les défauts de la première archive : les DNF d'IMS, BrandsHatch et MexicoCity venaient du faux DNF après la ligne, et ils ont disparu à configuration de pilote inchangée. Temps de référence sur 3 tours, seed 0 : IMS 132,35 s, BrandsHatch 163,50 s, MexicoCity 176,80 s, Budapest 189,45 s, Austin 224,30 s. Tout agent RL doit au moins faire mieux que ces temps.
+
+## 2026-10-30 · [Évaluation] Protocole E-18 : mesurer la mémoire contre un PPO réactif identique
+
+Chaîne commune créée pour driver2 (E-18, `docs/results/e-18/README.md`) : `HistoryWrapper`, `train_ppo.py`, `evaluate_drivers.py`, `compare_drivers.py`. Le PPO à 4 observations est comparé à un PPO à 1 observation, même code, mêmes hyperparamètres, mêmes 5 seeds et même budget. Le pilote scripté reste un témoin. Pourquoi :
+
+- **PPO réactif en baseline** : comparer un PPO à un script mesurerait l'apprentissage, pas la mémoire.
+- **Critère écrit avant les résultats** : un intervalle bootstrap à 95 % par seed d'entraînement doit exclure 0, sinon la conclusion est « non concluant ».
+- **Chronos sur les courses finies par les deux pilotes** : sinon, échouer sur les circuits durs améliorerait le chrono.
+- **Échecs versionnés** dans `docs/results/e-18/`, puisque `runs/` est ignoré par git.
+
+Conditions de robustesse : friction 0,5 et bruit LiDAR 0,1, bornes « forte pluie » du simulateur, sur les 4 circuits de validation. Budget à fixer après un banc de débit sur la station. `log_std_init = -1` pour les deux profondeurs : avec le défaut, l'écart-type de 1 sature l'action de bruit et la reward d'entraînement baisse sur 200 000 pas. Choix sur une seule seed, sans course finie : une validation sur la station passe avant la campagne.
+
+## 2026-11-01 · [Reward] Reward v1 inchangée après revue : contacts, marche arrière et raccourci de Sochi
+
+Revue de Thibaud sur la PR #14. Aucun coefficient ne change, pour ne pas invalider la campagne E-18 qui attend une reward stable. Trois corrections de l'entrée du 14/10 :
+
+- **Contacts** : avec un poids nul, `wall_contact` et `vehicle_contact` valent toujours 0 dans `reward_terms`, donc ils n'étaient pas journalisés. Les contacts se comptent dans `info["wall_contact"]` et `info["vehicle_contact"]`, ce que fait maintenant `scripts/reward_scale.py`. La poursuite à 6 m/s frotte le mur 21 pas sur 15 circuits (Monza et MexicoCity).
+- **Marche arrière** : la seconde de grâce échappe au terme `reverse`, pas à `slow`. Gardé tel quel : reculer d'un mur coûte un peu, ce qui ne gêne pas le dégagement.
+- **Sochi** : le -74 ne tenait pas compte de l'actualisation. Le DNF tombe 200 pas après le raccourci, donc à γ = 0,99 il ne pèse plus qu'environ -27. Mesuré par Thibaud, le raccourci reste perdant face à la conduite propre, mais de très peu (+13,5 contre +15,3). À revoir si γ ou le DNF changent.
+
+## 2026-11-01 · [Évaluation] Témoin : une voiture arrivée continue de rouler sur les courses courtes
+
+Avec `--laps 1` ou `2`, le simulateur laisse une voiture arrivée `ACTIVE` sur la piste. `control_race.py` lui envoyait `(0, 0)` : elle s'arrêtait après la ligne et ralentissait les suivantes, même sans contact. Elle continue maintenant d'être conduite, et ses mesures restent figées à son arrivée. Pourquoi : un témoin ne doit pas fausser les temps des autres voitures. Référence Budapest à 1 tour et 2 voitures : voiture 0 64,65 → 64,50 s, voiture 1 inchangée (63,45 s). Les courses de 3 tours ne changent pas : le simulateur y fige la voiture arrivée.
+
+## 2026-11-01 · [Évaluation] Protocole E-18 aligné sur le document d'expériences
+
+Ajouts au protocole du 30/10 (E-18, `docs/results/e-18/README.md`), avant tout résultat. Pourquoi : le document Linear « Expériences, robustesse et évaluation » les demande, et le protocole devait être figé avant la campagne.
+
+- **Condition `strict_margin`** : 4 circuits de validation avec la marge de sortie de piste de 0,50 m annoncée par `INSTRUCTIONS.md`, au lieu du 1,00 m du code. La pédagogie peut encore corriger le simulateur, et un pilote ne doit pas dépendre de cette tolérance. 105 courses par modèle au lieu de 93.
+- **Métriques** : taux d'arrivée moyenné par carte, contacts par 100 m, immobilité, marche arrière, variation des commandes, sauts de progression et écart entre progression créditée et distance roulée (raccourcis).
+- **Bruit LiDAR gardé à 0,1** (±10 %), au-delà des ±5 % de la plage « Champion » du document : c'est la pire condition annoncée pour le tournoi, alors que la plage du document sert au curriculum (E-23).
+
+
+## 2026-11-09 · [Outillage] Runs reprenables et agents ONNX autonomes
+
+E-20 / E-25 : chaque tentative garde ses logs CSV et son statut dans le manifest, y compris après une erreur ou SIGTERM. La reprise refuse un changement de seed, de prétraitement, de reward ou de distribution d'entraînement. W&B reste facultatif et hors ligne par défaut. L'export incorpore les features et l'historique canoniques dans un agent autonome, opset 17, poids externes, accord PyTorch/ONNX contrôlé à 10⁻⁵. Pourquoi : dix runs sur une station partagée doivent survivre aux interruptions, et le tournoi n'autorise que NumPy et ONNX Runtime.
+
+## 2026-11-09 · [Entraînement] Cache de géométrie et un circuit par worker
+
+Un reset Austin coûtait 0,341 s, presque tout dans le chargement LiDAR. Un cache de deux cartes par processus le ramène à environ 0,0003 s, avec des trajectoires identiques bit à bit et sans toucher `vendor/`. 15 workers portent chacun un circuit train (`--fixed-map-workers --n-envs 15`). Pourquoi : les interactions sont réparties uniformément par carte, et un changement de carte ne bloque plus tout le `SubprocVecEnv`.
+
+## 2026-11-09 · [Entraînement] Budget de campagne : 5 000 000 interactions sur GPU
+
+Banc d'un million d'interactions : 3 699 interactions/s en CPU, 6 088 en CUDA. Le banc CUDA finit déjà BrandsHatch, Budapest et IMS. La RTX 5070 est retenue. Budget fixé avant le premier run : 5 000 000 interactions demandées, 5 007 360 après arrondi SB3, pour les dix runs. Les bancs sont exclus de la comparaison.
+
+## 2026-11-10 · [Évaluation] Campagne E-18 : apport de la mémoire non concluant
+
+Dix PPO de fin de budget, cinq seeds et deux profondeurs, ont chacun leurs 105 courses d'évaluation ; le témoin ajoute 105 courses. La tentative réactive seed 4 interrompue par un redémarrage est conservée, et une relance à budget identique la remplace. Conclusion nominale appariée : « non concluant ». Les agents livrés sont choisis sur les finitions nominales de validation, puis la plus petite seed : `ppo-h1` seed 0 (7/12) et `ppo-h4` seed 1 (6/12). Résultats : `docs/results/e-18/README.md`.
+
+## 2026-11-10 · [Entraînement] Fiabilité du réactif : adaptation et ablation de la progression
+
+E-19 : aucun plafond de vitesse seul ne fait finir les quatre circuits de validation au réactif. Deux adaptations de deux millions d'interactions, plafond 5 m/s puis départs train diversifiés, finissent 10/12. Masquer les trois entrées de progression et de tours donne 12/12 : une dérivation met à zéro ces seules connexions, sans interaction ajoutée. Confirmation sur 120 courses nouvelles : 118/120, deux DNF à Montreal. Pourquoi : PPO est conservé pour isoler ces changements, et la fiabilité prime sur le chrono (médiane de 120,65 à 203,00 s sur les courses communes).
+
+## 2026-11-10 · [Livraison] driver1 à 400/400 avec un plafond d'inférence de 4,75 m/s
+
+La cible passe à 100 % observés. Les 132 anciennes courses deviennent des cas de sélection, et 400 courses nouvelles, seeds 200 à 299, sont fixées avant la confirmation. Un plafond global de 4,75 m/s corrige les deux DNF, sans réglage par circuit et avec les mêmes poids appris. Le candidat figé finit 400/400. Coût : médiane de 236,17 à 247,57 s sur 118 courses communes. Faible adhérence et forte pluie restent à 6/12 (E-23). Preuves : `docs/results/driver1/README.md`.
+
+## 2026-11-12 · [Livraison] Poids adversaires des pilotes solo à zéro
+
+Préparation de E-28 : les poids d'entrée des colonnes adversaires (105 à 125 de chaque frame) n'avaient jamais été entraînés et décalaient les actions jusqu'à 0,25 avec des voitures adverses. Une dérivation sans interaction les met à zéro dans driver1 et driver2. Seul en piste, rien ne change : 40 courses de driver1 et 20 de driver2 sont identiques, les résultats publiés restent valables. Pourquoi : la course commune doit montrer les pilotes tels qu'ils ont appris, pas un bruit d'initialisation. Preuves : `docs/results/opponent-weights/README.md`.
+
+## 2026-11-12 · [Outillage] Équipe W&B partagée
+
+E-20 : entité W&B `crashlearn` (organisation `crashlearn-org`, plan académique en essai jusqu'au 12/12/2026, 100 Go inclus, aucun moyen de paiement). Lucas et Thibaud sont invités ; la clé d'API de la station est dans `~/.netrc`, hors Git. Les 13 runs hors ligne de E-18 et E-19 sont dans le projet `crashlearn-archive` avec leurs identifiants d'origine, sans leurs checkpoints, qui restent sur la station. Un run en ligne de contrôle (4096 puis 8192 interactions) garde son identifiant W&B à la reprise. Le suivi hors ligne reste le défaut. Pourquoi : comparer les runs à trois sans passer par la station, sans dépendre du réseau pendant un entraînement.
+
+## 2026-11-12 · [Simulateur] Exploits mesurés : raccourcis rarement rentables, contacts gratuits
+
+E-47 : 1 404 traversées de mur sur les 8 circuits à raccourci, aux marges de 1,00 m et 0,50 m, et 180 mesures de contact sur trois circuits d'entraînement. 10 % des traversées sont créditées et finissent en course, 90 % en DNF. Le meilleur raccourci rapporte +8 m face à une poursuite propre à 6 m/s, et aucun ne vaut la conduite propre avec la reward v1 à γ = 0,99. Être poussé par l'arrière rapporte +4 à +8 m en 5 s ; pousser de côté à 6 m/s met la victime en DNF 7 fois sur 18. Décision : garder les poids nuls des contacts, `slow`, le DNF à -200 et la seconde de marche arrière tolérée ; ajouter un pousseur latéral à la ligue (E-31) ; proposer le raccourci de Zandvoort au curriculum (E-23), à faible dose. Pourquoi : les contacts coûtent déjà par la physique, et une pénalité de contact ferait payer la voiture poussée. Le catalogue couvre aussi les circuits de test scellés, car il ne mesure que la géométrie et la physique : aucun scénario n'en est tiré. Détails : `docs/exploits.md` ; mesures brutes dans l'artefact W&B `results-e-47`.
+
+## 2026-11-12 · [Livraison] Modèles livrés sans LFS, provenance contrôlée
+
+E-36 demandait Git LFS pour les modèles livrés. On garde Git simple, comme décidé dans `docs/remise.md` : les fichiers font moins de 800 Ko, et une récupération qui ignore LFS ne verrait que des pointeurs. Pour l'intention du critère, `scripts/check_deliverables.py` vérifie en CI les hashes de `export.json` et relie chaque modèle à son manifest (commit, configuration, seed), à ses ancêtres et à ses résultats. Un clone neuf passe le contrôle, et les deux modèles sont restaurés depuis les archives de la station puis ré-exportés à l'octet près. Pourquoi : la remise doit rester récupérable et prouvable sans outil en plus. Détails : `docs/remise.md`.
+
+## 2026-11-12 · [Évaluation] Protocole E-23 figé avant les résultats
+
+La météo du tournoi change en pleine course (sujet v1.3.0) : friction dans [0,7 ; 1,0] et bruit LiDAR dans [0,001 ; 0,1], ensemble ou séparément. Le wrapper applique un calendrier de segments constants de 5 à 40 s, tiré par seed. Conditions d'évaluation : `low_friction` et `heavy_rain` passent de 0,5 à 0,7, et `changing_weather` tire son calendrier de la seed de course, par un flux que l'entraînement n'utilise jamais. Les anciens fichiers de résultats gardent leurs valeurs, enregistrées course par course.
+
+Campagne fixée avant tout résultat, à partir de `cap5-random-h1-seed0` (source de driver1), 2 000 000 interactions demandées par run, plafond 5 m/s, départs diversifiés, seeds 0, 1 et 2 :
+
+- **A** : météo changeante, 25 % d'épisodes nominaux ;
+- **B** : A plus `friction_current` en entrée (mesure seulement) ;
+- **C** : même adaptation sans météo, pour séparer l'effet de la météo de celui des interactions ajoutées.
+
+Chaque modèle brut, la source comprise, court les 117 courses de la campagne (train nominal, validation en six conditions). Règle pour la friction en entrée : l'adopter seulement si B finit au moins 10 courses de plus que A sur les 108 courses météo (`low_friction`, `heavy_rain`, `changing_weather`, trois seeds), sans perdre en nominal. Sinon les features restent à 126 colonnes.
+
+Candidat livrable : chaque seed de A passe par la chaîne de driver1 (progression masquée, plafond 4,75 m/s, poids adversaires à zéro), puis la campagne. La seed qui finit le plus de courses de validation, toutes conditions, est retenue (égalité : la plus petite seed). Elle remplace driver1 seulement si elle finit 400/400 sur la confirmation nominale (seeds 200 à 299, image du tournoi) et strictement plus de courses que driver1 sur une confirmation météo neuve : `changing_weather` seeds 300 à 349, `low_friction` et `heavy_rain` seeds 300 à 309, sur les quatre circuits de validation.
+
+## 2026-11-12 · [Livraison] driver1 réentraîné sous météo changeante
+
+E-23, selon le protocole figé : A seed 2 dérivé remplace driver1. Il finit 400/400 en nominal dans l'image du tournoi et 262/280 courses météo neuves, contre 218/280 pour l'ancien ; le gain vient de Montreal. `friction_current` reste hors des features : B ne gagne que 5 courses météo sur 108 face à A, sous le seuil de 10, et perd en nominal. Limite : brut, C (sans météo) finit plus de courses météo que A, 74 contre 61 sur 108 ; la part de la météo dans le gain n'est pas isolée. Pourquoi : la météo du tournoi change en pleine course, et l'ancien driver1 échouait à Montreal sous faible adhérence. Résultats : `docs/results/e-23/README.md`.
+
+## 2026-11-12 · [Outillage] Résultats bruts dans W&B, hors Git
+
+Les courses brutes (`.json` de `docs/results/`, environ 2 Mo pour E-18 et driver1) passent dans des artefacts W&B `results-<campagne>` de l'équipe `crashlearn`. Git garde les README, les manifests de runs et un `SHA256SUMS` par campagne, qui fixe la version de l'artefact et l'empreinte de chaque fichier ; `scripts/results_artifact.py fetch` les récupère et les vérifie. Pourquoi : le dépôt de remise ne doit pas grossir de données brutes, et la provenance des modèles reste vérifiable depuis un simple clone grâce aux manifests.
+
+## 2026-11-12 · [Livraison] Soumission contrôlée dans un processus partagé
+
+E-27 : `scripts/check_shared_process.py` charge les quatre pilotes dans un seul processus, comme au tournoi, puis lance trois courses de 600 décisions à quatre voitures sur Austin. La CI l'exécute dans l'image CPU du tournoi, avec `verify_submission.py` sur chaque pilote et en mode Grand Prix. Pourquoi : le vérificateur officiel charge chaque pilote seul et ne contrôle que la présence de `model.onnx.data`. Un état global partagé, une mémoire commune aux voitures ou des poids lus hors du fichier passeraient sans erreur. Détail des contrôles : `submission/README.md`.
+
+- **driver3 et driver4 manquants** : remplacés par des copies de `driver1` et `driver2`, et la sortie l'indique.
+- **Hashes lus dans `export.json`** : jamais écrits dans le code, car les poids vont changer (mise à zéro des entrées adversaires, E-28).
+- **Pas de mesure avec adversaires** : ces courses testent le chargement et la mémoire, pas la conduite à plusieurs. Le format des courses finales est inconnu.
+- **Preuve** : le contrôle échoue sur un `model.onnx.data` absent, un import de `yaml` dans `Agent()`, un état global partagé et une mémoire commune à toutes les voitures. Il passe sur la livraison actuelle en 20 s.
+
+## 2026-11-12 · [Évaluation] Protocole E-49 figé avant les essais
+
+Objectif : 100 % de courses finies par driver1 sous la météo du tournoi, sans perdre le nominal. Les 280 courses de confirmation E-23 (262 finies) deviennent des cas de sélection. Confirmation fixée avant tout essai, sur courses neuves et sur les 4 circuits de validation : `changing_weather` seeds 350 à 449, `low_friction` et `heavy_rain` seeds 350 à 399 (800 courses), puis les 400 courses nominales (seeds 200 à 299) dans l'image du tournoi. Le résultat publié est celui de la confirmation, même sous 100 %.
+
+Piste 1, sans réentraînement : l'agent borne sa vitesse à 4,75 × μ^k m/s, μ étant `friction_current` de `info`. À μ = 1 la borne vaut le plafond actuel. k = 0,5 vient de la physique (vitesse de virage maximale en √μ) ; on retient le plus petit k parmi 0,5, 0,75 et 1 qui finit les 280 cas de sélection. Si aucun n'y arrive, piste 2 : réentraînement sous faible adhérence, circuits train seulement. Pourquoi : la friction est donnée par le tournoi, et un plafond global a déjà réglé Montreal en nominal.
+
+## 2026-11-12 · [Livraison] driver1 ralentit selon la friction : 800/800 sous météo
+
+E-49 : sur les 280 cas de sélection, la borne 4,75 × μ^k finit tout pour k = 0,5 et k = 0,75 ; k = 0,5 est retenu (plus petit, plus rapide). Confirmation neuve : 800/800 courses météo contre 716/800 sans la borne, et 400/400 courses nominales identiques à E-23. Coût : +5,6 % de temps médian sous météo. Le modèle ne change pas, seul `agent.py`. Pourquoi : le tournoi donne `friction_current`, et ralentir sous la pluie règle Montreal sans réentraîner. Résultats : `docs/results/e-49/README.md`.
+
+## 2026-11-12 · [Outillage] Dashboard de course : scène 3D, Bun et Three.js
+
+E-33, commencé avant le champion à la demande de Léo. Le lecteur de replays est dans `dashboard/` : TypeScript, Three.js avec `WebGPURenderer` (WebGPU si le navigateur l'offre, WebGL 2 sinon), Bun comme serveur, bundler et lanceur de tests. Il décode les `.npz` du recorder dans le navigateur ; le format ne change pas. Sur la piste, tout vient des données : bitume depuis la centerline et les largeurs, murs de 0,25 m depuis les pixels occupés (seuil 128 du simulateur), limite de DNF calculée comme `_is_off_track`. Les replays ne sont pas dans Git : `scripts/record_replay.py` les enregistre avec le recorder fourni et refuse le test scellé. Pourquoi : un replay doit montrer ce que le simulateur a vu, sans alourdir le dépôt de remise. Détails : `dashboard/README.md`.
+
+## 2026-11-12 · [Outillage] Dashboard : Voiture suivie, décor et flou des panneaux
+
+E-51 : quand la Voiture suivie devient inactive, la caméra Poursuite reste 2 s (temps réel) puis suit la voiture active la mieux classée ; si elle est liée à la Voiture sélectionnée, la sélection change avec elle. Une voiture déjà inactive que l'on choisit garde la caméra. E-50 : le décor (arbres, tribunes, portique, ciel) est placé à 4 m au moins au-delà de la limite de DNF et dessiné avant la course, qui est dessinée par-dessus : il ne peut cacher ni mur, ni voiture, ni rayon LiDAR, quelle que soit la caméra. Le flou d'arrière-plan des panneaux est retiré : mesuré, il faisait tomber Firefox de 60 à 44 fps. Pourquoi : le décor est une ambiance, le diagnostic passe d'abord. Mesures : `dashboard/README.md`.
+
+## 2026-11-12 · [Outillage] Dashboard : fluidité, petites fenêtres et déplacement au clavier
+
+Retour de Léo après essai : voitures saccadées, ouverture lente, panneaux qui se chevauchent. Entre deux poses du recorder (20 par seconde), la voiture suit une courbe lisse et non des segments droits. La caméra Poursuite est à distance fixe de la voiture : seule sa direction a du retard. Les programmes du GPU sont compilés à l'ouverture, pas à la première apparition de chaque objet, et la résolution de la scène baisse si le GPU ne tient pas 42 images par seconde. Le HUD est une colonne où aucun panneau ne passe sur un autre. La caméra Libre se déplace avec `Z` `Q` `S` `D`, lues par leur place sur le clavier ; le raccourci du décor passe donc de `D` à `G`. Limite : les saccades n'ont pas été reproduites sur la station (60 fps avant et après) ; la cause sur la machine de Léo n'est pas mesurée. Pourquoi : un replay sert à juger une trajectoire, et une saccade d'affichage se confond avec un défaut du pilote.
+
+## 2026-11-19 · [Évaluation] Le 400/400 de driver1 est une mesure sur les cartes de sélection
+
+Correction de l'entrée du 2026-11-10 sur driver1. Les quatre cartes de validation ont servi à choisir l'ablation de la progression et le plafond de 4,75 m/s ; les seeds 200 à 299 ne changent que le bruit du moteur. Le 400/400 est donc optimiste : il décrit les cartes de sélection, pas la généralisation, qui se jugera sur les circuits test scellés. Pourquoi : remarque de méthode de Thibaud sur #19. Au passage, `--initialize-from` exige désormais un checkpoint enregistré par un run au même prétraitement, comme une reprise. Détails : `docs/results/driver1/README.md`.

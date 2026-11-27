@@ -17,6 +17,10 @@ Le [projet Linear Crash & Learn](https://linear.app/e-hamilton/project/crash-and
 - [Qualité du code et livraison](https://linear.app/e-hamilton/document/qualite-du-code-et-livraison-1da5f06a62ac)
 - [Infrastructure, stockage et reproductibilité](https://linear.app/e-hamilton/document/infrastructure-stockage-et-reproductibilite-9553c0c81bbc)
 - [Station Ubuntu et image Docker GPU](docs/station-gpu.md)
+- [Suivi des entraînements, reprise et export ONNX](docs/experiments.md)
+- [MDP et reward](docs/mdp.md)
+- [Expérience E-18 : apport de la mémoire pour driver2](docs/results/e-18/README.md)
+- [driver1 : 400/400 courses finies en validation nominale](docs/results/driver1/README.md)
 - [Dashboard de course et vocabulaire](https://linear.app/e-hamilton/document/dashboard-de-course-et-vocabulaire-0987cb2ff84a)
 
 ## Développement
@@ -112,15 +116,31 @@ uv run python scripts/track_inventory.py --write    # régénère assets et geom
 uv run python scripts/check_track_loading.py        # set_map + reset + 20 décisions sur chaque carte
 ```
 
+Pilote scripté de contrôle ([docs/scripted_driver.md](docs/scripted_driver.md)). C'est un témoin de diagnostic, pas un livrable.
+
+```bash
+uv run python scripts/control_race.py                          # 5 cartes train, 3 tours, seed 0 → runs/control_race.json
+uv run python scripts/control_race.py --map Austin --cars 4 --seed 1 --output runs/austin.json
+```
+
+## Dashboard de course
+
+Lecteur web local de replays, dans une scène 3D ([dashboard/README.md](dashboard/README.md)). Il demande [Bun](https://bun.sh).
+
+```bash
+uv run python scripts/record_replay.py --demo    # 3 replays de démonstration dans replays/
+cd dashboard && bun install && bun start         # http://localhost:5173
+```
+
 ## Intégration continue
 
-GitHub Actions lance deux jobs, **Ruff** et **Pytest**, sur chaque PR et chaque push vers `develop` et `main`. Le workflow **Commitlint** s'exécute sur chaque PR et à chaque modification de son titre.
+GitHub Actions lance trois jobs, **Ruff**, **Pytest** et **Training and ONNX**, sur chaque PR et chaque push vers `develop` et `main`. Pour une PR empilée sur une autre branche, les lancer à la main (`gh workflow run ci.yml --ref <branche>`). Le workflow **Commitlint** s'exécute sur chaque PR et à chaque modification de son titre.
 - Il vérifie le **titre de la PR suivi de ` (#N)`**, c'est-à-dire le titre du commit que GitHub crée lors d'une fusion en squash. Le titre de la PR doit donc tenir en 93 caractères environ.
 - Il vérifie aussi **chaque commit** de la PR (hors commits de fusion), sans exception pour les fixup. Tant que le dépôt autorise aussi les fusions par merge commit et par rebase, ces commits peuvent arriver tels quels sur `develop`.
 - Réglage recommandé : fusion en squash uniquement, avec le titre de la PR (`PR_TITLE`) comme titre de commit. Ce réglage n'est pas encore appliqué. Une fois en place, seul le titre de la PR ferait foi, et la vérification des commits pourrait se limiter au refus des fixup.
 - Le job Commitlint n'utilise pas `uv` : il installe Node 22.12 et commitlint avec `npm`, aux versions épinglées dans le workflow.
 - L'environnement des jobs Ruff et Pytest est installé avec `uv sync --locked` : la CI échoue si `uv.lock` n'est plus aligné sur `pyproject.toml`. Après toute modification des dépendances, lancer `uv lock` et committer le lock.
-- La CI n'installe ni torch ni CUDA.
+- Ruff et Pytest n'installent ni torch ni CUDA. Training and ONNX utilise PyTorch CPU dans l'image officielle pour vérifier entraînement, reprise et export.
 
 Protection prévue sur `develop` et `main` :
 - PR obligatoire, avec l'approbation d'un autre membre ;
@@ -135,8 +155,9 @@ Le run de contrôle accepte `--map`, `--steps`, `--speed` et `--steer-gain`. Il 
 src/crashlearn/     package applicatif (code de l'équipe)
 scripts/            points d'entrée CLI (run de contrôle, …)
 src/crashlearn/tracks.yaml  circuits, alias et partitions train/validation/test (source unique)
-tests/              tests pytest (contrat simulateur, soumission, circuits, wrapper, features, export)
-docs/               documentation technique (circuits et partitions)
+tests/              tests pytest (contrat simulateur, soumission, circuits, pilote scripté, wrapper, features, export)
+dashboard/          dashboard de course : lecteur web local de replays (Bun, TypeScript, Three.js)
+docs/               documentation technique (circuits et partitions, pilote scripté)
 .github/workflows/  CI GitHub Actions (ci.yml, commitlint.yml)
 .pre-commit-config.yaml  hooks Git (ruff en local, commitlint en hook distant)
 .commitlintrc.json  règles des messages de commit ; .commitlintrc.ci.json ajoute defaultIgnores: false

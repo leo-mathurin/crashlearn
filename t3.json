@@ -1,0 +1,27 @@
+{
+  "$schema": "https://t3.codes/schema/t3.json",
+  "scripts": [
+    {
+      "name": "Setup",
+      "command": "uv sync --locked",
+      "icon": "configure",
+      "runOnWorktreeCreate": true,
+      "async": false
+    },
+    {
+      "name": "Smoke test · Austin",
+      "command": "uv run --locked python scripts/smoke_sim.py --map Austin --steps 200",
+      "icon": "test"
+    },
+    {
+      "name": "Test",
+      "command": "uv run --locked pytest",
+      "icon": "test"
+    },
+    {
+      "name": "Lint",
+      "command": "uv run --locked ruff check .",
+      "icon": "lint"
+    }
+  ]
+}
