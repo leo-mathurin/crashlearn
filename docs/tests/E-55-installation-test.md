@@ -5,12 +5,12 @@
 | Information | Valeur |
 |---|---|
 | Testeur | Tiziano Denaro |
-| Date | |
-| Système d'exploitation | |
+| Date | 27-11-2026|
+| Système d'exploitation | Windows 11|
 | Python | 3.11 |
-| Version uv | |
-| Branche testée | |
-| Commit testé | |
+| Version uv |uv 0.13.8|
+| Branche testée | main |
+| Commit testé | 7e5deac8|
 
 ## 2. Tableau de validation
 
@@ -31,61 +31,34 @@ Statuts :
 | T07 | Tests longs | `uv run pytest -m slow` | 🟢 | |
 | T08 | Installation des hooks Git | `uv run pre-commit install` | 🟢 | |
 | T09 | Vérification des hooks | `uv run pre-commit run --all-files` | 🟢 | |
-| T10 | Vérification commitlint | `uv run pre-commit run commitlint --hook-stage commit-msg --commit-msg-filename .git/COMMIT_EDITMSG` | 🔴 | |
+| T10 | Vérification commitlint | `uv run pre-commit run commitlint --hook-stage commit-msg --commit-msg-filename .git/COMMIT_EDITMSG` | 🟢| |
 | T11 | Installation des dépendances d'entraînement | `uv sync --group train` | 🟢 | |
 | T12 | Installation du groupe inference | `uv sync --only-group inference` | 🟢 | |
 | T13 | Vérification des circuits | `uv run python scripts/track_inventory.py` | 🟠 | |
 | T14 | Régénération des données des circuits | `uv run python scripts/track_inventory.py --write` | 🟢 | |
 | T15 | Vérification du chargement des circuits | `uv run python scripts/check_track_loading.py` | 🟢 | |
 
-## 3. Journal des blocages
-
-| ID | Tâche concernée | Problème rencontré | Correction apportée |
-|---|---|---|---|
-| B01 | | | |
-| B02 | | | |
-| B03 | | | |
-
-### Détail d'un blocage
-
-#### B01 — [Titre]
-
-**Commande exécutée :**
-```bash
-```
-
-**Erreur obtenue :**
-```text
-```
-
-**Cause :**
-
-**Solution :**
-
-**Modification nécessaire dans le README :**
-
----
 
 ## 4. Bilan
 
 | Indicateur | Résultat |
 |---|---|
-| Tâches réussies | |
-| Tâches réussies avec difficulté | |
-| Tâches échouées | |
-| Tâches non testées | |
-| Blocages rencontrés | |
-| Blocages corrigés | |
+| Tâches réussies | 14|
+| Tâches réussies avec difficulté | 1|
+| Tâches échouées | 0|
+| Tâches non testées | 0|
+| Blocages rencontrés | 1|
+| Blocages corrigés | 1|
 
 ### Conclusion
 
-- [ ] Le README permet de cloner le projet.
-- [ ] L'installation fonctionne sur une machine vierge.
-- [ ] Les commandes de vérification fonctionnent.
-- [ ] Les hooks Git fonctionnent.
-- [ ] Les commandes de gestion des circuits fonctionnent.
+- [x] Le README permet de cloner le projet.
+- [x] L'installation fonctionne sur une machine vierge.
+- [x] Les commandes de vérification fonctionnent.
+- [x] Les hooks Git fonctionnent.
+- [x] Les commandes de gestion des circuits fonctionnent.
 
-**Résultat du test :** Validé / Partiellement validé / Non validé
+**Résultat du test :** Validé 
 
-**Observations finales :**
+**Observations finales :** Le readme est clair et complet, l'installation est simple et rapide. Le test a été réalisé sur une machine vierge et toutes les étapes ont été validées avec succès.
 
