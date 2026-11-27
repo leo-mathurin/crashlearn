@@ -111,8 +111,8 @@ Les options de pytest (`--strict-markers`, marqueurs, sélection par défaut) so
 Circuits et partitions ([docs/tracks.md](docs/tracks.md)) :
 
 ```bash
-uv run python scripts/track_inventory.py            # contrôle tracks.yaml contre vendor/ (hashes, géométrie)
 uv run python scripts/track_inventory.py --write    # régénère assets et geometry_* (jamais les partitions)
+uv run python scripts/track_inventory.py            # contrôle tracks.yaml contre vendor/ (hashes, géométrie)
 uv run python scripts/check_track_loading.py        # set_map + reset + 20 décisions sur chaque carte
 ```
 
