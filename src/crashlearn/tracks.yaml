@@ -11,18 +11,18 @@ tracks:
 - name: Austin
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Austin_DonkeySim_waypoints.txt
-      sha256: 5e035baf438957f194904fbc5c168b8e1aaea8a087020afee6195d6609470412
     centerline:
       file: Austin_centerline.csv
-      sha256: 9bd4eb1dc7a766d42fa86f682890e42036fe25dfa313f4ec998910ea99038ed4
+      sha256: 5110ff8d048d480b74393aae388f879112969e32164b8ab230e9597ebb115727
+    donkeysim_waypoints:
+      file: Austin_DonkeySim_waypoints.txt
+      sha256: d560dfaa6696088711d8af51acf9fffad4f3bada3b210b2a5e50e7a261fc1623
     map_image:
       file: Austin_map.png
       sha256: 16501f0cf2333305c305efb6cc3110c7a31e2843263067ddc52edfe826633318
     map_yaml:
       file: Austin_map.yaml
-      sha256: 047b64a29679a0e15bfeb126399bd6f0f46ae77ca273aa3023a1520c7bb35a45
+      sha256: 9841165e26f27fff8d9e6b0416d47463c9a177d56acb55a89a4fcc50f955f4d5
     raceline:
       file: Austin_raceline.csv
       sha256: f984fc20bc0a08eb584be75ef7dfad137a95747981f0f1dc0afcbf4332671779
@@ -35,18 +35,18 @@ tracks:
 - name: BrandsHatch
   split: train
   assets:
-    donkeysim_waypoints:
-      file: BrandsHatch_DonkeySim_waypoints.txt
-      sha256: 6328b87e116d2a06146f2c5cf2ff46f4275594f5ad4fb6de8facb61d10f740f4
     centerline:
       file: BrandsHatch_centerline.csv
-      sha256: f3e5c538b969f837002f2f2659103c8a8e660053c8848c38d5b28c02e05c6d32
+      sha256: 7504fe3871914719e350aea44cc742848849b35e3f13291e1107e8fba7681527
+    donkeysim_waypoints:
+      file: BrandsHatch_DonkeySim_waypoints.txt
+      sha256: 43adfa842b47908f2a4d7683c73dafcdb4446ebc3d5051d4506614f436fa34ae
     map_image:
       file: BrandsHatch_map.png
       sha256: e56c8cd34766ef38476ff3637dcec167ff275041f12a0cfc122e5f87aacd2eeb
     map_yaml:
       file: BrandsHatch_map.yaml
-      sha256: 7e8395f16b78b3baccdbf73ed8859f96eb876ccf6c6846cf077f4a6dcbb24cbf
+      sha256: fb2bad69cc870799e687b2861a749f95e85dbb2ac33d835da423244df26ad8f3
     raceline:
       file: BrandsHatch_raceline.csv
       sha256: b1cf2cf858383d3a93ca45c80a8438fd289e3cb3a537483e67bdba6db2e32e8f
@@ -59,18 +59,18 @@ tracks:
 - name: Budapest
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Budapest_DonkeySim_waypoints.txt
-      sha256: d6d300e7a0ccb54f2329c5906565d16a59270d8ef9d4c326d9fff7ab0ddad106
     centerline:
       file: Budapest_centerline.csv
-      sha256: 2362bf4bdd1563b2271521399ba677f744a4a542ba9c725291b589ce82b9c1e1
+      sha256: 3ca494a726d3fe66d2c6ad05bed68cc6caf3e8a7f7792bac5dc1ceb17bfbbe66
+    donkeysim_waypoints:
+      file: Budapest_DonkeySim_waypoints.txt
+      sha256: d4f352af95847efdfa78b865f6fb67db2281d64e4ff8b63a94be793591511365
     map_image:
       file: Budapest_map.png
       sha256: 563d819bb68ee66236647f92ec68a2f7f60ecb90b92c9aab487be6f7840d04d6
     map_yaml:
       file: Budapest_map.yaml
-      sha256: e0a20945b7d34439fc96e512a5b88478c1eed21163eff44c9f4207ffeda0eea7
+      sha256: 932b681cc2724c28f9c51fe0cdb3a6b40edc80c84a1229cb8c549226ad81f28a
     raceline:
       file: Budapest_raceline.csv
       sha256: a0b2774651b261c108c9793983203686f9a7623bea0fe25fa1987d38ea13b195
@@ -83,18 +83,18 @@ tracks:
 - name: Catalunya
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Catalunya_DonkeySim_waypoints.txt
-      sha256: 852830ad50ca09220c25235db57925575baed7eae0951b7dc9abb11780d80637
     centerline:
       file: Catalunya_centerline.csv
-      sha256: 3e037d2cd82919ac9abc9686722afcfd16b2dffef9fa55dcf5675ce280b9ae53
+      sha256: 634abc0e19f0929db1d01dd4af8df723d5e2cb905a907e644d7eed3b92be16f1
+    donkeysim_waypoints:
+      file: Catalunya_DonkeySim_waypoints.txt
+      sha256: ddb3debe0b1fe14c7a013b1b21168939a3425e3266610d8b86da951f2e19c131
     map_image:
       file: Catalunya_map.png
       sha256: fe7087e601144ba869496859de1194a0f9eaddaed6b20db523186e51bd28e79c
     map_yaml:
       file: Catalunya_map.yaml
-      sha256: 22aa71894ce1973af7e0423ee10a0611fe774ea124df59e4951b2c014d1a42bf
+      sha256: 105815e744e57699e91ff1a060349f9ff84370eee7c8601a144b349cff7bc135
     raceline:
       file: Catalunya_raceline.csv
       sha256: 3dfca97d061702b712fefa114cb709ed1a10fbcb35b8ac19650bb3bef19e43c3
@@ -107,18 +107,18 @@ tracks:
 - name: Hockenheim
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Hockenheim_DonkeySim_waypoints.txt
-      sha256: 84cb114659f4691b6263014504b92da05e2f40a925465b4a6055f1716f826aad
     centerline:
       file: Hockenheim_centerline.csv
-      sha256: e03f5fc3a497645af48b25eb36ab6cadb50b23a8a3fe6b6268ff338e839ea157
+      sha256: 5c17f1d7d9ce384ae91b2949514ee9cddc5559ea90185c65358631702a43904e
+    donkeysim_waypoints:
+      file: Hockenheim_DonkeySim_waypoints.txt
+      sha256: 128a6ef8a25712cc91e7d65948e616fcbf000d14f5ba246683df691f9dcfd8ca
     map_image:
       file: Hockenheim_map.png
       sha256: 39a31a54cd59b1c1b983d2c5a57c9324d08148bb554034be335db8efed66c9fa
     map_yaml:
       file: Hockenheim_map.yaml
-      sha256: 1d883171b48cf65a04a5133a22274de5f54371a664a5ae1b699627cd8c732058
+      sha256: 87cb2ec2c28cf655e92ef6d4f97df124ad7c1b86fd52896d1605ac3c85db05e1
     raceline:
       file: Hockenheim_raceline.csv
       sha256: a797ec0bec60fa913c18c8e4a1ec1391d4064d4519a03fe92c45849fc36fe561
@@ -131,18 +131,18 @@ tracks:
 - name: IMS
   split: train
   assets:
-    donkeysim_waypoints:
-      file: IMS_DonkeySim_waypoints.txt
-      sha256: 077fd6d7afbe3a6472a2468448e61f7469cd72ce5f7e473bb87546ad4eb27458
     centerline:
       file: IMS_centerline.csv
-      sha256: 9ac96e40615b3cb77ab3a39b81e009740d8465647d541a2ec52a61fe398891da
+      sha256: b5f3eb7ffbc18d24c0b780cb9de1c73d9fed57185a911be007d4eea367e7a921
+    donkeysim_waypoints:
+      file: IMS_DonkeySim_waypoints.txt
+      sha256: 55226b07f0398aa8d14c86bbb185442617adf0cc17981af7c58114ddc3bfe6b2
     map_image:
       file: IMS_map.png
       sha256: 72dc803ba3bdcddbfe10503abd4d1bf49c7b12e9f13ded01a7803360d3af21f8
     map_yaml:
       file: IMS_map.yaml
-      sha256: cb3af8a30567efef4e0044361fcaeee67a5d043a8a2eaebe24d7e64e666e339e
+      sha256: 6af2c68245d9fc289e9d3b5db90d102603997595d580754732c50fc4a5d424a8
     raceline:
       file: IMS_raceline.csv
       sha256: 88ecc448196be54abbb1f37218f872daf1020b7417288e4359746bd3f34e39bc
@@ -155,18 +155,18 @@ tracks:
 - name: Melbourne
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Melbourne_DonkeySim_waypoints.txt
-      sha256: 25c5bc0bc324d8ebe4c940a26c26c66937534adef3321d9fa1068ee02a8bcebc
     centerline:
       file: Melbourne_centerline.csv
-      sha256: f5cd05134c9d6ba39c38c10c1891181bb35484dc4cf27168a334e5ecf7db8fe8
+      sha256: a3df231c2d5d5492fa40c1aa3de0e32823aeeec3a4c35991b89cba53d6e17fda
+    donkeysim_waypoints:
+      file: Melbourne_DonkeySim_waypoints.txt
+      sha256: a5ed6b16b1ebe8cff752961f6458f8969b6ce6be27334e7bcd993ed82b3a9b38
     map_image:
       file: Melbourne_map.png
       sha256: aea9221ae58b853b097cac0657b0311fe588219250a7500fd59a6de5a531a890
     map_yaml:
       file: Melbourne_map.yaml
-      sha256: 51aa81fc65e6e129b36bed45842514f6075e3ab0d39e3033a107468f478b2a4f
+      sha256: 48750eee7dab4d6707f5c7391f415b4084af646755bb9f6376d8fd546782e7f7
     raceline:
       file: Melbourne_raceline.csv
       sha256: c8b722710169b3c7d819d4aa25c7712619de53dd85d6fdc47b4f045b6d162006
@@ -181,18 +181,18 @@ tracks:
   - Mexico City
   split: train
   assets:
-    donkeysim_waypoints:
-      file: MexicoCity_DonkeySim_waypoints.txt
-      sha256: 0ebbc229c84d35cbee7b3eb5375af872b32e635e361c3da4b7472940d2d2e863
     centerline:
       file: MexicoCity_centerline.csv
-      sha256: c3bbcc0f738e943042c3a18630ce662e8eaec146c83472115650c76c5b040707
+      sha256: 79d56835ec511198792fa6345bf6deafe68e12125bb443b2ef809639ed76cc09
+    donkeysim_waypoints:
+      file: MexicoCity_DonkeySim_waypoints.txt
+      sha256: d08cf4e24f8f67020ca7b155ab28301d37173c16bdf63282a213933e5a3146e3
     map_image:
       file: MexicoCity_map.png
       sha256: b891887c5319774459aee5a2033c3134053e9e04d036a6198be0c292993bf857
     map_yaml:
       file: MexicoCity_map.yaml
-      sha256: 00fce5da256231ed21dd490b9b9a35dcf115e6153313f71bbc70b34c94736e69
+      sha256: efed125782b1fae60bafed5422728b7caee0123b7e356084c38358ba971cc7f0
     raceline:
       file: MexicoCity_raceline.csv
       sha256: 7be224432e31aa3733b84bd6a2fa5750e955a4a7972934e0efde0d806e742118
@@ -205,18 +205,18 @@ tracks:
 - name: Monza
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Monza_DonkeySim_waypoints.txt
-      sha256: 3e60ef9aeabfb39f257fc849d9f033d9d89cf08328b103a704e28fd8540b9e96
     centerline:
       file: Monza_centerline.csv
-      sha256: f73a38b163315b8f3fd32d5a3a3b321118cb12ce8bf2195b101f9ca90512745c
+      sha256: 56b812e9f15641e817e2b8a932249af2c175e4752f501073cc9012171aec3a3c
+    donkeysim_waypoints:
+      file: Monza_DonkeySim_waypoints.txt
+      sha256: 9f45f4c89311541396d3d1d918fe5f189dcc901fd7791e76aa90d35d2663702a
     map_image:
       file: Monza_map.png
       sha256: a550c761e4f360703b374c714ee20920281fe25078862f52ae21b4570d47b2cf
     map_yaml:
       file: Monza_map.yaml
-      sha256: 8b26c3b3036726f8f37c9df0dd12c273f37b570e287eb8ffe5a7a7645e5e0101
+      sha256: 3ded76a19af50e56548ab02f88bb891ad3502ccb93857a950967a04945605bb3
     raceline:
       file: Monza_raceline.csv
       sha256: 0a28fa43852a914922e10082b1a49103d932c1ea501b594e74a509b4d1992bfa
@@ -229,18 +229,18 @@ tracks:
 - name: Nuerburgring
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Nuerburgring_DonkeySim_waypoints.txt
-      sha256: f1a39dfaab48d6071416c091985a95a94df0ed3ace8abe478cbace0fc62ab1f2
     centerline:
       file: Nuerburgring_centerline.csv
-      sha256: 86ce84443ab0b72301491965d7b0c1b2f760d6266b8ef677b9f111ce4f4aa760
+      sha256: d67ebf2c052973bbad7effb0594eca65888040571020fd518a6630b26e4cd3c0
+    donkeysim_waypoints:
+      file: Nuerburgring_DonkeySim_waypoints.txt
+      sha256: 4102721f71e50b6adab5fce83cfa015f603022749b458e3f5396b88cb84cb013
     map_image:
       file: Nuerburgring_map.png
       sha256: 6f933ceb7718bae7649ecbe6c20359c1d881ba109c2a76cf378fccb9fec2215b
     map_yaml:
       file: Nuerburgring_map.yaml
-      sha256: fcd451ee80f8cd8581403869fb104f01e3f382602539dd1d986f694c59b43e32
+      sha256: 55be8712ca3c3869d079550eea9aede1025773b8ec4d7b37ac396411f1ab17b9
     raceline:
       file: Nuerburgring_raceline.csv
       sha256: c4a60b8ab2330c063046b08a39dc8563e61bc75322af66133e829e7784a3f007
@@ -253,18 +253,18 @@ tracks:
 - name: Sakhir
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Sakhir_DonkeySim_waypoints.txt
-      sha256: 53a43b3cfeab8cb10268a7e89d0a74d31a407aa7a9c39f698b633acd2141a971
     centerline:
       file: Sakhir_centerline.csv
-      sha256: 821e62a55a47d8cb5a4fe44dccd567066b511a0a6902c0b83e827556940ca2d1
+      sha256: d39773207287e44c8fab5f9fe3f9f33f7eee4c4e822cc41e89dea8c98ef5bc02
+    donkeysim_waypoints:
+      file: Sakhir_DonkeySim_waypoints.txt
+      sha256: 2216fdd0ed094358e7758e3490765dc3d6d1a8bb05f967d84dabd891ad14cfd9
     map_image:
       file: Sakhir_map.png
       sha256: f3746a4d48a72ccc3cad020bc383e370dd3a915009c87d4d6041af06e7de85eb
     map_yaml:
       file: Sakhir_map.yaml
-      sha256: f24f04998becd72e4fa4c8dea7ff2177a9035a691d944804cd0e6278c201cf44
+      sha256: abc5206c0393dd5f068e541edbaeac2673c53bc9b940ece89027537e4d82ff13
     raceline:
       file: Sakhir_raceline.csv
       sha256: c24fe76a6436d121fdd98252536fd5c62c65498d94235f7dc229ba88917ecf50
@@ -277,18 +277,18 @@ tracks:
 - name: SaoPaulo
   split: train
   assets:
-    donkeysim_waypoints:
-      file: SaoPaulo_DonkeySim_waypoints.txt
-      sha256: b7af7a616f5838463279194bb0e65f979afeb67a1e6faec37d1844673ad6d781
     centerline:
       file: SaoPaulo_centerline.csv
-      sha256: 0fbb4c80ce12c953bf4aa0785f9b5f3fa00457209511ba53f74da07f7ac1e056
+      sha256: db1a0fca88743cb577cb8238c09abf86f63aa2f4feccacf6e57bd9c295f039df
+    donkeysim_waypoints:
+      file: SaoPaulo_DonkeySim_waypoints.txt
+      sha256: 40e5ac2113b40cf10fab5f004e16f7fdd25998a5d87f7bcb80a0ff9c8234e954
     map_image:
       file: SaoPaulo_map.png
       sha256: 88e6ef4fdf95478699afa5a3e5206494a34716f7327b64444cd8579f5ee594c9
     map_yaml:
       file: SaoPaulo_map.yaml
-      sha256: bd0e2017983e315be9e0290bb383e329fc067260aca2b8d2524175e57f70e458
+      sha256: e8a08d323588fb9fef3e79852e79ce8b3f0d55304a2c6a8f3e1d16a7a1cadf98
     raceline:
       file: SaoPaulo_raceline.csv
       sha256: 1dd52f1983e779ebc6aba52675b101e539fce367bf40f7ddfc30ed9a2263b335
@@ -301,18 +301,18 @@ tracks:
 - name: Sepang
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Sepang_DonkeySim_waypoints.txt
-      sha256: ee6acbf610ef0f946f74969e77c354fccc47472b6c21e3165aa8349eebb3b75e
     centerline:
       file: Sepang_centerline.csv
-      sha256: 1ffc476568bfd7c8b747a1149ba73c29eb089845203c5dbb201f145512ab926b
+      sha256: a0d7faf9f5c7d546b9a40e483f87f85eec61d34410765e73f42f9171bf33ed6f
+    donkeysim_waypoints:
+      file: Sepang_DonkeySim_waypoints.txt
+      sha256: ab969645290d2ffb7b29598fd6ab7c963f79699d6a2e87ead11ca130ec13f0d4
     map_image:
       file: Sepang_map.png
       sha256: 869e8896a6e43e9648929f7c731c92501f79f92a10d2b273d60b15fe52f37f0f
     map_yaml:
       file: Sepang_map.yaml
-      sha256: 94840e988243ed5263544bc98f6c9ea99ccba299683c53fc8b2612a6b5001bd9
+      sha256: c18165ff5e14e3157ac84f8b2d52073c108450b3ea03738947efab70fe6b2b7a
     raceline:
       file: Sepang_raceline.csv
       sha256: 9b8125d1a712dd40d71383e76e3e5cdab1ce823ebaa165cb97b77b85fc64bfe0
@@ -325,18 +325,18 @@ tracks:
 - name: Silverstone
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Silverstone_DonkeySim_waypoints.txt
-      sha256: 5c64b11f5994223db6258f341ab02b33e9edf62ae5ea5790dee1837f5d1fe655
     centerline:
       file: Silverstone_centerline.csv
-      sha256: 9fc5cb10c322176fcd35fe88946f313c5f1b97593079cebc06f3ff65d331f517
+      sha256: 83ef0adf6edb81fea7200748fbf3d3c11cb90e7aeaaa5b88d65064804dbcfe0b
+    donkeysim_waypoints:
+      file: Silverstone_DonkeySim_waypoints.txt
+      sha256: 53e224fa406e0655b373280261151dfda486eb1cf51cd490eadc75a2525a0bb3
     map_image:
       file: Silverstone_map.png
       sha256: 074bfe8080ab70b18068c77ab19179f8c289305b1964888ad72a503d4c7baf4a
     map_yaml:
       file: Silverstone_map.yaml
-      sha256: 4e29dd02649b98f94f4676bc9542f367de6de895ec6e0884751476ff03d78d40
+      sha256: 0f97cde428cbfd762c571a2fa3479980be9c5a96c198472d8561f124c896108a
     raceline:
       file: Silverstone_raceline.csv
       sha256: cc2925c22468c3cb57b225dc88eab933589c037805af4de6823fff340a64fd97
@@ -349,18 +349,18 @@ tracks:
 - name: Zandvoort
   split: train
   assets:
-    donkeysim_waypoints:
-      file: Zandvoort_DonkeySim_waypoints.txt
-      sha256: 047419f203da442c4beac36c861bc6041fa36c6d1f97b06b70d55a9a08ca8b5f
     centerline:
       file: Zandvoort_centerline.csv
-      sha256: 16392b02d9713dbd2c7d71001be64c37bb3b78ef2452d11052630a7dde9a987f
+      sha256: 3a5c76c996dd03e0219786afb4d39e535bfdc894d6f9d3f57891ca246c1bb029
+    donkeysim_waypoints:
+      file: Zandvoort_DonkeySim_waypoints.txt
+      sha256: 9a2d9f6d00c02c002203884395c3237ae372ef8d253e4c114bebf4887a417936
     map_image:
       file: Zandvoort_map.png
       sha256: 7d2dbc9682152f5567892752202e27c823856e4440e011fdc7e87797b31791c0
     map_yaml:
       file: Zandvoort_map.yaml
-      sha256: cec2760ad8e3b9deb36ca66bec56c17b6c6d02f358f05b3eca6e1eeb1e946d7b
+      sha256: c5e2fb46d91208f6387e245e25ca1383f629ead2d3096783c630410ef6c69508
     raceline:
       file: Zandvoort_raceline.csv
       sha256: 13c4acef70be6b0d7b16e3445f862698a9a69833cf8cfae467b946db7fc0997f
@@ -373,18 +373,18 @@ tracks:
 - name: Montreal
   split: validation
   assets:
-    donkeysim_waypoints:
-      file: Montreal_DonkeySim_waypoints.txt
-      sha256: 2d142ca200b39d55f99e945de18e5765bf71486178ee9d3167869b54cc210d79
     centerline:
       file: Montreal_centerline.csv
-      sha256: 185f05b271892a5378dd05466ae17e81d50c2622258ca9ea14acdaf5dfa10189
+      sha256: 43e55ad4c25ed4f44501417d0b71ae43557343a91b88aeaf8638046bdc19e9b8
+    donkeysim_waypoints:
+      file: Montreal_DonkeySim_waypoints.txt
+      sha256: a0e253f4fcba3a4037ff641fcc7ba5916ea00fe0c6d91f8e39b9a644792a50c1
     map_image:
       file: Montreal_map.png
       sha256: 22cf9b8b8a15fa7c20a0cdf1348957e763e89be12201fe17820c9bbdff889308
     map_yaml:
       file: Montreal_map.yaml
-      sha256: d9760286cef74ed9497e52d93ef7f52f8e7ca002db0084422e6b9bc1e2331565
+      sha256: f894ab1eaf458d0759a84002743dea792b9935fedf8856e9eada46f322083331
   geometry_length_m: 285.047
   geometry_total_turning_rad: 23.143
   geometry_curvature_abs_p50_radpm: 0.0122
@@ -394,18 +394,18 @@ tracks:
 - name: Sochi
   split: validation
   assets:
-    donkeysim_waypoints:
-      file: Sochi_DonkeySim_waypoints.txt
-      sha256: d505f399aab236eff6ec0fa757959c1cfbf1b27802f3a0a1cac2b139a7a710d7
     centerline:
       file: Sochi_centerline.csv
-      sha256: b6be98abaa66dc80494e56d22bb59be80e89db0939ccfa72549b2e76a2db2f28
+      sha256: 768c7e13a519b2fd53457727af4a51e1e2f501fc160964cbefc33214a9c29bc5
+    donkeysim_waypoints:
+      file: Sochi_DonkeySim_waypoints.txt
+      sha256: bcd3c07796f65c7d10021cc0d9ad6354e1937b7c07ff298ca3b1d45213f6fb3d
     map_image:
       file: Sochi_map.png
       sha256: d4dea886ea0f036ef781026cd500e897c8cee8429192a1ce94d5defc1ee8c138
     map_yaml:
       file: Sochi_map.yaml
-      sha256: 256a9648bdddc256bb5bcc22dffeb062de19555f1e2950f9654c70f0b0178558
+      sha256: 4bc8d409c794b311d55f6986e7bfb10de03b34fe7d5c4eeaffa896a125d3da18
     raceline:
       file: Sochi_raceline.csv
       sha256: 50f4384adccb577844eebd6e0f118a6c74f9531ba5d56836166067307d59aa7d
@@ -418,18 +418,18 @@ tracks:
 - name: Spielberg
   split: validation
   assets:
-    donkeysim_waypoints:
-      file: Spielberg_DonkeySim_waypoints.txt
-      sha256: 9b904759007e39cb1255c2eeb0e2840bdd9525bf43875eaa229deacc4e39d49f
     centerline:
       file: Spielberg_centerline.csv
-      sha256: 8874fbdfa68638802ab7ddc62ee18452f62e9c8201fb0384464e4300071f8513
+      sha256: 1b2acc714a48fbda7f9ee8494dc8c9561829f6c54d8f6ac839057d3b0d93fcd9
+    donkeysim_waypoints:
+      file: Spielberg_DonkeySim_waypoints.txt
+      sha256: 5051a32e4ea318f15b54c792a27478a4ae6b0d29f4e27228569893eae705237e
     map_image:
       file: Spielberg_map.png
       sha256: 3378ea1da231e00b4c41015311f7f3a63fb62420d8c54aaa23b6d1ca7c947e56
     map_yaml:
       file: Spielberg_map.yaml
-      sha256: 86c0eb7546bb035ee6e0173eddc8a2953f8c079944acd28374856f8cc245f6f1
+      sha256: a377d5110630e660ef7a17bb59688f24ddc663d06c170e6d469d746dcc219781
     raceline:
       file: Spielberg_raceline.csv
       sha256: 4b79179d42e712c9121ffbfb045cd0b06689d96607ffa5701324360450d1f0bd
@@ -442,18 +442,18 @@ tracks:
 - name: YasMarina
   split: validation
   assets:
-    donkeysim_waypoints:
-      file: YasMarina_DonkeySim_waypoints.txt
-      sha256: c439b8fe0489bb93fe8be8808c2f72874a5dbb1150353eb9367d033a0aa23fbe
     centerline:
       file: YasMarina_centerline.csv
-      sha256: c95249e79fe181b077dc1f03da79e0ecc5c87aadab9cd10e0446cfdade3f2854
+      sha256: e0042e8d94ab1ec1e102fbd3ab7d0dd868ed0c4cb461ab05c3a2b6be3829994f
+    donkeysim_waypoints:
+      file: YasMarina_DonkeySim_waypoints.txt
+      sha256: fe3d3cb9644bc9eab735e48f3d5933dac95a1409ff5b74923c3ea2ba58822f22
     map_image:
       file: YasMarina_map.png
       sha256: 13c6019c61b0891e4a2068bd7b0b34d499415d1d002c29c0b31dbc7bae632969
     map_yaml:
       file: YasMarina_map.yaml
-      sha256: b2ca848ce94d55cfe6238d5e6c111c8892328096b6da3c91eaed978a749dfd82
+      sha256: f11ccfd0418c09ff1847f31dbb4456a999e9e7926ed890e192586f0f0370d84b
     raceline:
       file: YasMarina_raceline.csv
       sha256: 73000bf917ae57dd5e6a378784160c4dcbbcf046f0f5c71a12a5fd3f6ac50212
@@ -466,18 +466,18 @@ tracks:
 - name: MoscowRaceway
   split: test
   assets:
-    donkeysim_waypoints:
-      file: MoscowRaceway_DonkeySim_waypoints.txt
-      sha256: 8a392a8dfa3939260d3fcdaf1727d92279c051c6bb0add6e806caabc2d9e4da7
     centerline:
       file: MoscowRaceway_centerline.csv
-      sha256: 0d83b48cb7b808ee3630132987c488152444f97c0ff523dccb2ab7836c34ac3f
+      sha256: 391d33e019c6ac1d16e014144dcb1f872a2e420351d11650e5702245bf174797
+    donkeysim_waypoints:
+      file: MoscowRaceway_DonkeySim_waypoints.txt
+      sha256: 70af85977d8204f18962e466cfaabac8ea6503d823830f3b0e16d1351c3f8641
     map_image:
       file: MoscowRaceway_map.png
       sha256: af4c9818717b9f4066acd971fc65311c2794bc12f0fa5e1b742904e9bd634381
     map_yaml:
       file: MoscowRaceway_map.yaml
-      sha256: 235f837e4e63bc2ca2847dc1a0680619a50877f55f9f5ab4f96fb05d23caaf39
+      sha256: eca25aaebf53a9f06700c8f7005bb1f34542b5db6fab8259ae7b8758c56d7860
     raceline:
       file: MoscowRaceway_raceline.csv
       sha256: 0dcbffc5677f42dcdc63ce6e1d8645aa4dca9d535e15da85c594b8d7b027f53a
@@ -490,18 +490,18 @@ tracks:
 - name: Oschersleben
   split: test
   assets:
-    donkeysim_waypoints:
-      file: Oschersleben_DonkeySim_waypoints.txt
-      sha256: d197e47654a027e95601d02df115b50bd4cfc63888faabda410ae49125a253db
     centerline:
       file: Oschersleben_centerline.csv
-      sha256: 8523c4170be4b8496b084f2dbacb787efe2190614c32511390fd060526c44726
+      sha256: 95397c796f626b17ba831c7fcd9680e05dd2ea5a569866f40c14915e8d8a7b55
+    donkeysim_waypoints:
+      file: Oschersleben_DonkeySim_waypoints.txt
+      sha256: c1f39ea0821772cc4eb0a8c027af43697c2ace5e6f8b360f9b689c595fe288a0
     map_image:
       file: Oschersleben_map.png
       sha256: 3753d0ec3e0cb13602d4c34b172b877a1ba12eb6b4117dfd56da5d1b51ce4634
     map_yaml:
       file: Oschersleben_map.yaml
-      sha256: 1cb2a0fa0e1e35090488d0115a6c45786c1b530764522c9b24ea96a4a4ebaf45
+      sha256: 93cecf047467f5120947dfa7b7f6cd078139e44dca04aa0728a1a2dad1bf1f58
     raceline:
       file: Oschersleben_raceline.csv
       sha256: 713e4d0f129172b058680afe604b29aed7b81d544abfbca18c942672a2ae62dd
@@ -514,18 +514,18 @@ tracks:
 - name: Shanghai
   split: test
   assets:
-    donkeysim_waypoints:
-      file: Shanghai_DonkeySim_waypoints.txt
-      sha256: 72ecbf50294e2f0ca173c478a988270ed1be88160b08dfa88134514664e35fb8
     centerline:
       file: Shanghai_centerline.csv
-      sha256: fff472478b7fbf6f97e532fa70cf6550db69edf7d86d79cc5b64ba5aa953f28b
+      sha256: 442d024a230c8e0d2a10eb9306108e96083bb4891f608eecd7e71a350c718ffc
+    donkeysim_waypoints:
+      file: Shanghai_DonkeySim_waypoints.txt
+      sha256: fec0bcb48192011ef820d1e6e3d00c9119b19abd0ac40143bb6d43ca1087997b
     map_image:
       file: Shanghai_map.png
       sha256: e3f5cfed82160eca7401bbc91c7a44ac9b83bbb818e49b378e31ee1270055d43
     map_yaml:
       file: Shanghai_map.yaml
-      sha256: f2ba4aaa40a09cde424a239d255e0b63b2a2243ea17c024e0128865fc385b4ef
+      sha256: 878c278f4b0fecc8cbd06c870150a95dce834dcb47509cd97db2436a99486446
   geometry_length_m: 497.614
   geometry_total_turning_rad: 33.494
   geometry_curvature_abs_p50_radpm: 0.0037
@@ -535,18 +535,18 @@ tracks:
 - name: Spa
   split: test
   assets:
-    donkeysim_waypoints:
-      file: Spa_DonkeySim_waypoints.txt
-      sha256: 8448010c6293759637f4e3a9a0a8e5be1159f70188841a3a78439a7a358f493e
     centerline:
       file: Spa_centerline.csv
-      sha256: 3d387cb01109b9e2025f6f1972cad4baa27fbf4602dba9149276935fbe5e6d28
+      sha256: 9fd1d86f142c8a8362280dcad44c35e8fc05b7d00a2b2741fdf4b426d5ec3c95
+    donkeysim_waypoints:
+      file: Spa_DonkeySim_waypoints.txt
+      sha256: 0e32d929b041273201e5800426e9f46dcddf8372f37e802efa2a947ccd7ea364
     map_image:
       file: Spa_map.png
       sha256: 0ac745f24fcc713ce9917327787ee725519e7e544de089bd43751a15ffcfd99c
     map_yaml:
       file: Spa_map.yaml
-      sha256: 149dc534c6eabb7e44c3d8156553cfd1d54ae1dfc7512cceb447d60b842320ee
+      sha256: 44d633f4be08a2bf90c0833ccf25f227fc2c9e999fb887fdbdc339a98e47f73a
     raceline:
       file: Spa_raceline.csv
       sha256: b1184c0ef28eae03c8e7018f21a3b5faf22a1a9a49c4832c62e41a46ea5aee9f

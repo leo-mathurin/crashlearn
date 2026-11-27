@@ -21,3 +21,4 @@ simulation.zip
 # Raw results live in W&B artifacts (scripts/results_artifact.py); manifests stay in Git
 docs/results/**/*.json
 !docs/results/**/manifests/*.json
+.idea/
